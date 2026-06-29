@@ -25,10 +25,6 @@ docs/reference/
 docs/technical-context/
 docs/sdaal/
 
-# Base de conhecimento interna do framework
-docs/knowledge-base/frameworks/
-docs/knowledge-base/meta/
-docs/knowledge-base/concepts/
-docs/knowledge-base/patterns/
-docs/knowledge-base/platforms/
-docs/knowledge-base/tools/
+# Base de conhecimento interna do framework e índice
+docs/knowledge-base/
+docs/INDEX.md
