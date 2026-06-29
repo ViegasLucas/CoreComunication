@@ -16,9 +16,8 @@ A IA serve como um canal de entrada para que o RH tenha visibilidade estruturada
 - Temas mais recorrentes (mapa de calor dos times).
 - Alertas de risco gerados manualmente pelos gestores.
 
-## 3. Gestão de PDIs
-O agente apoia a estruturação formal e o acompanhamento do **Plano de Desenvolvimento Individual (PDI)**, como parte integrante da solução final. A proposta é que o PDI seja simples, acionável e conectado ao Framework de Levels, contendo no máximo 2 ou 3 objetivos simultâneos para evitar sobrecarga. Cada PDI deve conter:
-- **Competência e objetivo de desenvolvimento:** Baseado no Framework de Levels.
-- **Ações concretas:** O que o colaborador vai fazer (máximo 3 ações práticas e verificáveis).
-- **Prazo e marco de verificação:** Data-limite e o que será verificado.
-- **Suporte necessário do gestor:** O que o líder vai fazer para viabilizar o desenvolvimento.
+## 3. Gestão de Acordos Táticos
+O agente apoia a estruturação e o acompanhamento de **Acordos de Curto Prazo** definidos na 1:1. (*Nota: A estruturação formal de Planos de Desenvolvimento Individual - PDI - está fora do escopo do MVP*). A proposta é que os combinados sejam simples, acionáveis e contendo no máximo 2 ou 3 ações simultâneas para evitar sobrecarga. Cada acordo deve conter:
+- **Tópico abordado:** Contexto geral do combinado.
+- **Ações concretas:** O que o colaborador ou líder vai fazer (ações práticas e verificáveis).
+- **Prazo:** Data-limite e o que será verificado no próximo encontro.

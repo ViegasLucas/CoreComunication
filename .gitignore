@@ -1,6 +1,21 @@
+# ==========================================
+# Configurações de Ambiente
+# ==========================================
 .env
+
+# ==========================================
+# Framework Onion (Arquivos de Sistema)
+# ==========================================
+# Pastas de configuração dos agentes
 .agents/
+# Arquivo de personas do framework
 AGENTS.md
+agent.md
+
+# ==========================================
+# Documentação Técnica e de Framework (Não essenciais para o projeto)
+# ==========================================
+# Pastas de validações e análises do Onion
 docs/analysis/
 docs/applying/
 docs/meta-specs/
@@ -9,6 +24,8 @@ docs/plans/
 docs/reference/
 docs/technical-context/
 docs/sdaal/
+
+# Base de conhecimento interna do framework
 docs/knowledge-base/frameworks/
 docs/knowledge-base/meta/
 docs/knowledge-base/concepts/

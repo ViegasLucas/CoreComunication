@@ -20,6 +20,7 @@ Use quando o projeto-alvo precisa demonstrar conformidade com frameworks regulat
 docs/compliance-context/
 ├── README.md                       # este arquivo
 ├── index.md                        # índice navegável (gerado pelo comando)
+├── lgpd-and-llms.md                # Diretrizes de compliance e LGPD para LLMs
 │
 ├── 01-security/                    # Camada 1 — Segurança da Informação (ISO 27001)
 │   ├── isms-policy.md              # Política de SGSI

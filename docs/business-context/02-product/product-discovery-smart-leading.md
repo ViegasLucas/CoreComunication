@@ -52,9 +52,9 @@
   - *Hipótese:* Acreditamos que roteiros passo a passo e humanizados darão o repertório emocional necessário para conversas difíceis. 
   - *Métrica:* Aumento na percepção de clareza e empatia após os feedbacks.
 - **H3. Hipótese de Engajamento e Retenção (Foco no Líder Engajado):** 
-  - *Problema:* Resolve o problema da falta de organização e PDIs genéricos/inexistentes. 
-  - *Hipótese:* Acreditamos que automatizar a criação das pautas poupará tempo e impedirá que os PDIs fiquem estagnados. 
-  - *Métrica:* Uso recorrente da ferramenta e PDIs atualizados a cada nova 1:1 ou feedback.
+  - *Problema:* Resolve o problema da falta de organização e acompanhamento de acordos. 
+  - *Hipótese:* Acreditamos que automatizar a criação das pautas poupará tempo e impedirá que os combinados fiquem esquecidos. 
+  - *Métrica:* Uso recorrente da ferramenta e acordos atualizados a cada nova 1:1 ou feedback.
 - **H4. Hipótese de Governança de Dados (Foco no RH):** 
   - *Problema:* Resolve o ponto cego analítico e a descentralização. 
   - *Hipótese:* Centralizar tudo na IA eliminará o "ponto cego" de informações dispersas no Word/Excel ou Sólides. 

@@ -26,4 +26,4 @@ O processo de adoção e uso do Smart Leading pela liderança é projetado para 
 ## 4. Evolução Contínua
 *Acompanhamento estruturado.*
 - **Lembretes e Cadência:** O agente de IA notifica o gestor sobre o tempo desde o último 1:1, garantindo a recorrência mínima (quinzenal ou mensal).
-- **PDIs:** A estruturação e acompanhamento de **Plano de Desenvolvimento Individual (PDI)** será facilitada pelo agente, devendo ser simples e acionável. Cada PDI terá foco em competências do Framework de Levels, até 3 ações práticas, marcos de verificação e suporte explícito do gestor.
+- **Acordos de Curto Prazo:** O agente focará na estruturação e acompanhamento de acordos táticos da 1:1 (*Nota: A estruturação formal e governança de Planos de Desenvolvimento Individual - PDI - estão fora do escopo do MVP*).
