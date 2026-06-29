@@ -1,0 +1,17 @@
+.env
+.agents/
+AGENTS.md
+docs/analysis/
+docs/applying/
+docs/meta-specs/
+docs/onion/
+docs/plans/
+docs/reference/
+docs/technical-context/
+docs/sdaal/
+docs/knowledge-base/frameworks/
+docs/knowledge-base/meta/
+docs/knowledge-base/concepts/
+docs/knowledge-base/patterns/
+docs/knowledge-base/platforms/
+docs/knowledge-base/tools/
