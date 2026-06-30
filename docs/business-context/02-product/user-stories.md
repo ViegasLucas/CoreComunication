@@ -115,3 +115,20 @@ A interface e as respostas da IA devem seguir o framework de comunicação (Mess
 - **Evitar o "tom de RH burocrático".**
 - A linguagem deve abrir o diálogo ("O que está acontecendo com você nisso?") em vez de julgamentos terminativos ("Isso é inaceitável").
 - A ferramenta deve ser vendida e percebida internamente como um facilitador que salva o tempo do gestor, e não como uma ferramenta de controle/micro-gestão da empresa.
+
+---
+
+## 6. Matriz de Status de Funcionalidade (MVP)
+
+| ID | Funcionalidade | Prioridade | Estado | Responsável | Observações |
+|---|---|---|---|---|---|
+| US01 | Seleção de perfil de liderança | Alta | 🔲 Não iniciado | — | Base do perfilamento da IA |
+| US02 | Inserção de contexto (LGPD compliant) | Alta | 🔲 Não iniciado | — | Validar bloqueio de dados sensíveis |
+| US03 | Geração de roteiro estruturado (SBI) | Alta | 🔲 Não iniciado | — | Core do produto (Épico 1) |
+| US04 | Resgate do histórico em novos roteiros | Média | 🔲 Não iniciado | — | Depende de US05 |
+| US05 | Registro rápido pós-reunião | Média | 🔲 Não iniciado | — | Alimenta o histórico |
+| US06 | Dashboard de frequência (RH) | Baixa | 🔲 Não iniciado | — | Visão de governança |
+| US07 | Mapa de calor de temas (anonimizado) | Baixa | 🔲 Não iniciado | — | Dados agregados, sem expor identidade |
+| US08 | Alertas de risco direcionados (RH) | Baixa | 🔲 Não iniciado | — | Flag manual do gestor |
+
+*Legenda: ✅ Concluído · 🔄 Em progresso · 🔲 Não iniciado · ⛔ Bloqueado.*

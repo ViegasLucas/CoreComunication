@@ -51,5 +51,10 @@ Navegue abaixo por todas as dimensões da documentação de negócio:
 
 ---
 
-## ✅ Pendências de Validação
-- Nenhuma pendência imediata. O escopo e restrições da solução (incluindo LGPD, SBI obrigatório e exclusão de PDI no MVP) estão consolidados e prontos para o desenvolvimento.
+## ✅ Validação de Escopo — MVP Smart Leading
+- **Escopo aprovado em:** [Inserir data de aprovação]
+- **Aprovado por:** [Inserir nome do PO/mentor] ([papel])
+- **Itens dentro do escopo:** geração de roteiros personalizados, registro pós-reunião, resgate de histórico, dashboard analítico para RH
+- **Itens fora do escopo (MVP):** integração com Sólides, migração de histórico, PDI
+- **Restrições inegociáveis:** LGPD (RN01), human-in-the-loop (RN02), greenfield (RN03), SBI (RN05)
+- **Próxima revisão:** ao iniciar a fase de PoC
