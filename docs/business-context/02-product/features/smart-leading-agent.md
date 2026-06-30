@@ -10,8 +10,8 @@ A IA gera scripts e guias passo-a-passo baseados no contexto fornecido pelo gest
 - **Desenvolvimento, Carreira e Feedback:** (Modelo SBI) Feedback sobre competências com base no Framework de Levels da ClearIT.
 - **Acordos e Próximos Passos:** Definição clara de próximos passos com prazos.
 
-## 2. Consolidação de Dados (Dashboard RH)
-A IA serve como um canal de entrada para que o RH tenha visibilidade estruturada, extraindo de forma anônima os seguintes dados das sessões de IA:
+## 2. Consolidação de Dados (Visão Futura para RH - V2)
+Embora fora do MVP, a estrutura de dados preparará o terreno para que, no futuro, o RH tenha visibilidade estruturada através de dashboards, extraindo de forma anônima os seguintes dados:
 - Frequência de 1:1s por líder/área.
 - Temas mais recorrentes (mapa de calor dos times).
 - Alertas de risco gerados manualmente pelos gestores.

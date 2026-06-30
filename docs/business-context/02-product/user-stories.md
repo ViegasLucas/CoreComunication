@@ -15,7 +15,7 @@ Um agente inteligente que atua *antes* da conversa, provendo roteiros de 1:1 e f
 ### Métricas de Sucesso
 - Aumento da frequência de 1:1s e adoção orgânica por parte dos líderes.
 - Recuperação qualitativa dos indicadores de **eNPS** e **Índice de Liderança e Confiança**.
-- Eliminação do ponto cego do RH através de painéis analíticos agregados.
+- Início da estruturação de dados qualitativos das reuniões, pavimentando a futura visão de governança (v2).
 
 ---
 
@@ -86,26 +86,15 @@ Essas restrições são inegociáveis e guiam a arquitetura da solução:
 - **Eu quero** registrar os acordos finais da 1:1 de forma simplificada
 - **Para que** eles fiquem salvos no sistema para a próxima interação e sirvam como registro de evolução, substituindo planilhas e Word.
 
-### Épico 3: Governança e Dados (Visão RH)
+### Backlog Futuro / Próximos Incrementos (Fora do MVP)
 
-**US06: Dashboard de Frequência**
-- **Como** profissional de RH
-- **Eu quero** visualizar um painel com a frequência e assiduidade das 1:1s por líder e por área
-- **Para que** eu possa mensurar o engajamento da liderança e a adoção da ferramenta sem precisar cobrar cada gestor manualmente.
-- **Critérios de Aceite:**
-  - O dashboard deve exibir dados agregados (frequência) sem expor o conteúdo da conversa.
+As funcionalidades abaixo representam a visão de governança para o RH (v2 do produto). Elas foram retiradas do escopo inicial do MVP para garantirmos foco total na experiência e adoção pelos líderes.
 
-**US07: Mapa de Calor de Temas (Anonimizado)**
-- **Como** profissional de RH
-- **Eu quero** visualizar um mapa de calor com os temas mais discutidos nas reuniões (ex: Carreira, Entregas, Comportamento) 
-- **Para que** eu possa identificar tendências, gargalos ou necessidades de treinamento na empresa.
-- **Critérios de Aceite:**
-  - Os dados devem ser estritamente agregados e anonimizados, sem expor a identidade de quem é o liderado e qual o líder.
-
-**US08: Alertas de Risco Direcionados**
-- **Como** profissional de RH
-- **Eu quero** receber um alerta diretamente na plataforma caso um líder flagelise (marque manualmente) uma situação de risco (ex: risco iminente de turnover, problema grave de conduta)
-- **Para que** o RH possa agir de forma preventiva e proativa antes que o problema se concretize.
+| Funcionalidade Futura (V2) | Descrição Resumida | Valor Esperado |
+|---|---|---|
+| **Dashboard de Frequência** | Painel analítico para o RH visualizar a frequência das 1:1s por líder e área. | Mensurar adoção e engajamento da liderança sem micro-gestão. |
+| **Mapa de Calor de Temas** | Visão anonimizada e agregada dos temas mais discutidos nas reuniões (ex: Carreira). | Identificar tendências organizacionais e necessidades de treinamento. |
+| **Alertas de Risco** | Sistema onde o líder pode sinalizar manualmente riscos iminentes (ex: turnover). | Atuação preventiva e proativa do RH. |
 
 ---
 
@@ -116,19 +105,4 @@ A interface e as respostas da IA devem seguir o framework de comunicação (Mess
 - A linguagem deve abrir o diálogo ("O que está acontecendo com você nisso?") em vez de julgamentos terminativos ("Isso é inaceitável").
 - A ferramenta deve ser vendida e percebida internamente como um facilitador que salva o tempo do gestor, e não como uma ferramenta de controle/micro-gestão da empresa.
 
----
 
-## 6. Matriz de Status de Funcionalidade (MVP)
-
-| ID | Funcionalidade | Prioridade | Estado | Responsável | Observações |
-|---|---|---|---|---|---|
-| US01 | Seleção de perfil de liderança | Alta | 🔲 Não iniciado | — | Base do perfilamento da IA |
-| US02 | Inserção de contexto (LGPD compliant) | Alta | 🔲 Não iniciado | — | Validar bloqueio de dados sensíveis |
-| US03 | Geração de roteiro estruturado (SBI) | Alta | 🔲 Não iniciado | — | Core do produto (Épico 1) |
-| US04 | Resgate do histórico em novos roteiros | Média | 🔲 Não iniciado | — | Depende de US05 |
-| US05 | Registro rápido pós-reunião | Média | 🔲 Não iniciado | — | Alimenta o histórico |
-| US06 | Dashboard de frequência (RH) | Baixa | 🔲 Não iniciado | — | Visão de governança |
-| US07 | Mapa de calor de temas (anonimizado) | Baixa | 🔲 Não iniciado | — | Dados agregados, sem expor identidade |
-| US08 | Alertas de risco direcionados (RH) | Baixa | 🔲 Não iniciado | — | Flag manual do gestor |
-
-*Legenda: ✅ Concluído · 🔄 Em progresso · 🔲 Não iniciado · ⛔ Bloqueado.*

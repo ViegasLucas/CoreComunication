@@ -13,8 +13,8 @@ Este documento consolida as decisões arquiteturais e de produto para o MVP do S
 
 **Desafio:** Como o RH pode ter acesso aos dados sem quebrar a privacidade? Existe risco de sabotagem?
 
-*   **Acesso do RH (Visibilidade vs. Privacidade):** Para preservar a confiança, o RH **não terá acesso às transcrições brutas** ou detalhes sensíveis das conversas de 1:1. O acesso do RH será restrito a **Metadados e Dashboards Agregados**.
-    *   *O que o RH vê:* Taxa de adesão (quem faz 1:1 e com qual frequência), categorização de temas (ex: % de conversas sobre carreira vs. feedback corretivo) e o status de evolução dos acordos táticos (andamento vs. estagnado).
+*   **Acesso do RH (Visibilidade vs. Privacidade):** Para preservar a confiança, o RH **não terá acesso às transcrições brutas** ou detalhes sensíveis das conversas de 1:1. No futuro (V2), o acesso do RH será restrito a **Metadados e Dashboards Agregados**.
+    *   *O que o RH verá (V2):* Taxa de adesão (quem faz 1:1 e com qual frequência), categorização de temas (ex: % de conversas sobre carreira vs. feedback corretivo) e o status de evolução dos acordos táticos (andamento vs. estagnado).
 *   **Risco de Sabotagem:** Líderes (especialmente o Perfil Técnico) podem tentar fraudar o processo preenchendo os campos com dados genéricos (ex: "tudo ok") apenas para cumprir a métrica do RH.
     *   *Mitigação:* A IA avaliará a qualidade do input do líder no pós-reunião. Se o input for insuficiente para gerar um registro válido de acordos, a IA intervirá de forma empática solicitando refinamento ou sugerindo opções de "clique-rápido" baseadas no roteiro sugerido, reduzindo a fricção e dificultando o "bypass" do sistema.
 
@@ -30,7 +30,7 @@ O ciclo de vida da informação, desde a interação do líder até a visão do 
 6.  **Condução:** A 1:1 acontece guiada pelo roteiro.
 7.  **Input (Pós-Reunião):** O gestor faz anotações rápidas sobre o resultado e os combinados (via texto ou voz/Whisper).
 8.  **Síntese e Acordos (LLM):** O LLM estrutura as anotações em itens de ação claros e consolida os acordos táticos.
-9.  **Saída (RH):** Os dados são salvos no banco. Uma camada analítica extrai apenas as categorias temáticas e métricas de uso para o Dashboard do RH.
+9.  **Saída (RH):** Os dados são salvos no banco. Uma estruturação básica garantirá que, no futuro (V2), uma camada analítica extraia as categorias temáticas e métricas para o Dashboard do RH.
 
 ## 3. Pontos de Atuação da IA no Fluxo
 
@@ -62,4 +62,4 @@ Considerando o mapa do problema, a prioridade número um para o MVP é **provar 
 
 *   **Foco Estratégico (Vertical Slice):** A prioridade é desenvolver e validar as hipóteses **H1 (Adesão do Líder Técnico)** e **H5 (Perfilamento da IA)**.
 *   **O que será construído:** O fluxo de "Preparação e Roteirização" (Pré-1:1). O sistema deve ser capaz de receber tópicos simples, anonimizar, processar o tom correto via LLM e entregar um roteiro que reduza o tempo de preparo do gestor para menos de 5 minutos.
-*   **O que será deixado para depois:** Dashboards complexos para o RH e a funcionalidade de gravação de voz (Whisper) podem entrar em releases secundários, após a validação do engajamento inicial através de inputs de texto.
+*   **O que será deixado para depois:** A criação de Dashboards analíticos para o RH e a funcionalidade de gravação de voz (Whisper) entrarão em releases secundários (V2+), apenas após a validação do engajamento inicial.

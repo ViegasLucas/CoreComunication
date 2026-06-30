@@ -54,7 +54,23 @@ Navegue abaixo por todas as dimensões da documentação de negócio:
 ## ✅ Validação de Escopo — MVP Smart Leading
 - **Escopo aprovado em:** [Inserir data de aprovação]
 - **Aprovado por:** [Inserir nome do PO/mentor] ([papel])
-- **Itens dentro do escopo:** geração de roteiros personalizados, registro pós-reunião, resgate de histórico, dashboard analítico para RH
-- **Itens fora do escopo (MVP):** integração com Sólides, migração de histórico, PDI
+- **Itens dentro do escopo:** geração de roteiros personalizados, registro pós-reunião, resgate de histórico
+- **Itens fora do escopo (MVP):** dashboard e painéis analíticos para o RH (movidos para V2), integração com Sólides, migração de histórico, PDI
 - **Restrições inegociáveis:** LGPD (RN01), human-in-the-loop (RN02), greenfield (RN03), SBI (RN05)
 - **Próxima revisão:** ao iniciar a fase de PoC
+
+---
+
+## 📊 Matriz de Status de Funcionalidade (MVP)
+
+Acompanhamento de alto nível da execução e implementação das histórias de usuário. Os detalhes completos e critérios de aceite de cada item estão no [Product Backlog & Requisitos](02-product/user-stories.md).
+
+| ID | Funcionalidade | Prioridade | Estado | Responsável | Observações |
+|---|---|---|---|---|---|
+| US01 | Seleção de perfil de liderança | Alta | 🔲 Não iniciado | — | Base do perfilamento da IA |
+| US02 | Inserção de contexto (LGPD compliant) | Alta | 🔲 Não iniciado | — | Validar bloqueio de dados sensíveis |
+| US03 | Geração de roteiro estruturado (SBI) | Alta | 🔲 Não iniciado | — | Core do produto (Épico 1) |
+| US04 | Resgate do histórico em novos roteiros | Média | 🔲 Não iniciado | — | Depende de US05 |
+| US05 | Registro rápido pós-reunião | Média | 🔲 Não iniciado | — | Alimenta o histórico |
+
+*Legenda: ✅ Concluído · 🔄 Em progresso · 🔲 Não iniciado · ⛔ Bloqueado.*
