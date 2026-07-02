@@ -7,59 +7,71 @@ description: Documentação das definições estratégicas sobre privacidade, fl
 
 # Estratégia do MVP: Resolução de Questões Críticas (Smart Leading)
 
-Este documento consolida as decisões arquiteturais e de produto para o MVP do Smart Leading, respondendo às cinco questões fundamentais levantadas pela diretoria (ClearIT) para validação antes do desenho técnico dos componentes.
+Este documento consolida as decisões arquiteturais e de produto para o MVP do Smart Leading, respondendo às questões fundamentais levantadas pela diretoria (ClearIT) e pela consultoria para validação antes do desenho técnico dos componentes.
 
 ## 1. Privacidade, Acesso do RH e Risco de Sabotagem
 
 **Desafio:** Como o RH pode ter acesso aos dados sem quebrar a privacidade? Existe risco de sabotagem?
 
-*   **Acesso do RH (Visibilidade vs. Privacidade):** Para preservar a confiança, o RH **não terá acesso às transcrições brutas** ou detalhes sensíveis das conversas de 1:1. No futuro (V2), o acesso do RH será restrito a **Metadados e Dashboards Agregados**.
-    *   *O que o RH verá (V2):* Taxa de adesão (quem faz 1:1 e com qual frequência), categorização de temas (ex: % de conversas sobre carreira vs. feedback corretivo) e o status de evolução dos acordos táticos (andamento vs. estagnado).
-*   **Risco de Sabotagem:** Líderes (especialmente o Perfil Técnico) podem tentar fraudar o processo preenchendo os campos com dados genéricos (ex: "tudo ok") apenas para cumprir a métrica do RH.
-    *   *Mitigação:* A IA avaliará a qualidade do input do líder no pós-reunião. Se o input for insuficiente para gerar um registro válido de acordos, a IA intervirá de forma empática solicitando refinamento ou sugerindo opções de "clique-rápido" baseadas no roteiro sugerido, reduzindo a fricção e dificultando o "bypass" do sistema.
+*   **Acesso do RH (Visibilidade vs. Privacidade):** Para preservar a confiança, o RH **não terá acesso às transcrições brutas** ou detalhes sensíveis das conversas de 1:1. O acesso ao RH no MVP será feito através de um modelo híbrido focado em dados agregados e de baixo custo de desenvolvimento:
+    *   **Conversational Analytics (Chat):** O RH usará um chat integrado ao Smart Agent para fazer perguntas globais (ex: *"Quais os principais temas de 1:1 na Engenharia?"*).
+    *   **Exportação Segura (Backup):** Uma tela com uma tabela simples contendo dados quantitativos (Líder, Frequência, Status) com opção de **Download de CSV**. Sem dashboards complexos nesta fase.
+*   **Risco de Sabotagem:** Líderes podem tentar fraudar o processo preenchendo os campos com dados genéricos (ex: "tudo ok").
+    *   *Mitigação:* A IA avaliará a qualidade do input do líder no pós-reunião. Se o input for insuficiente para gerar um registro válido de acordos, a IA intervirá via chat solicitando refinamento ou sugerindo planos de ação.
 
-## 2. Fluxo de Dados (Entrada à Saída)
+## 2. Fluxo de Dados (Entrada à Saída) e UX do Líder
 
-O ciclo de vida da informação, desde a interação do líder até a visão do RH, seguirá este fluxo:
+O ciclo de vida da informação, desde a interação do líder até a visão do RH, seguirá este fluxo, projetado para ter **Atrito Zero**:
 
-1.  **Setup e Perfilamento:** O gestor acessa a plataforma, que identifica seu perfil de liderança e o liderado selecionado para a 1:1.
+1.  **Setup e Perfilamento:** O gestor acessa a plataforma, que identifica seu perfil e o liderado.
 2.  **Input (Pré-Reunião):** O gestor insere tópicos curtos (bullet points) sobre o que deseja abordar.
-3.  **Anonimização:** O sistema intercepta os dados e substitui Identificadores Pessoais (PII) por tokens (ex: `[GESTOR_1]`, `[LIDERADO_A]`) para garantir conformidade com a LGPD (Minimização de Dados).
-4.  **Processamento (LLM):** Os dados anonimizados e o histórico são enviados ao LLM para gerar o roteiro da reunião adaptado ao tom do gestor.
-5.  **Re-hidratação:** O sistema recebe o roteiro e recoloca os nomes reais para a visualização do gestor.
+3.  **Anonimização:** O sistema intercepta os dados e substitui Identificadores Pessoais (PII) por tokens (ex: `[GESTOR_1]`) para garantir conformidade com a LGPD.
+4.  **Processamento (LLM):** Os dados anonimizados são enviados ao LLM para gerar o roteiro da reunião.
+5.  **Re-hidratação:** O sistema recoloca os nomes reais na interface.
 6.  **Condução:** A 1:1 acontece guiada pelo roteiro.
-7.  **Input (Pós-Reunião):** O gestor faz anotações rápidas sobre o resultado e os combinados (via texto ou voz/Whisper).
-8.  **Síntese e Acordos (LLM):** O LLM estrutura as anotações em itens de ação claros e consolida os acordos táticos.
-9.  **Saída (RH):** Os dados são salvos no banco. Uma estruturação básica garantirá que, no futuro (V2), uma camada analítica extraia as categorias temáticas e métricas para o Dashboard do RH.
+7.  **Input (Pós-Reunião - "Brain Dump"):** Em vez de formulários complexos, o líder faz anotações livres em uma **única caixa de texto** (Brain Dump). A IA lê e estrutura isso automaticamente. Se algo faltar (ex: plano de ação de um feedback crítico), o Smart Agent entra no chat e pergunta ativamente ao líder para complementar a ata.
+8.  **Síntese e Acordos (LLM):** O LLM estrutura as anotações em itens de ação (Action Items).
+9.  **Saída (RH):** Os dados processados alimentam o Chat do RH e a tabela de exportação de CSV.
 
-## 3. Pontos de Atuação da IA no Fluxo
+## 3. Estratégia de Dados e Métricas Extraídas (MVP)
 
-A Inteligência Artificial (LLM) atua como um **Copiloto (Human-in-the-Loop)** em três etapas distintas:
+A plataforma extrairá insights automáticos sem exigir esforço de preenchimento. As métricas focarão em 3 pilares:
 
-1.  **Roteirização e Adequação de Tom (Pré-Reunião):** Cruza o histórico de 1:1s anteriores com os tópicos atuais e gera um guia de conversa adaptado à persona do líder (ex: mais direto para líderes técnicos; mais empático e passo-a-passo para líderes em transição).
-2.  **Tagueamento Temático (Processamento Background):** Classifica automaticamente o teor da reunião (ex: Engajamento, Performance, Conflito) para gerar inteligência de dados para o RH sem expor o texto original.
-3.  **Síntese Acionável (Pós-Reunião):** Transforma os "rabiscos" ou gravações brutas do gestor em um registro estruturado de acordos, resolvendo a dor de combinados genéricos e estagnados.
+*   **Métricas de Ritmo e Adesão (Quantitativas):**
+    *   Frequência de 1:1s por líder (% de líderes com reuniões em dia).
+    *   Taxa de cancelamento ou reagendamento sucessivo.
+*   **Métricas Temáticas e de Sentimento (Extraídas pela IA):**
+    *   **Tags Temáticas:** A IA categoriza as reuniões (ex: Carreira, Alinhamento de Metas, Sobrecarga).
+    *   **Sentimento e Red Flags:** Identificação de clima geral (Positivo, Alerta) e risco de atrito (*Flight Risk* / *Turnover*).
+*   **Métricas de Efetividade (O Elo com o Framework SBI):**
+    *   A IA conectará a detecção de feedbacks corretivos (dados no padrão SBI - Situação, Comportamento, Impacto) com a **geração obrigatória de Itens de Ação (Plano de Ação)**.
+    *   O RH medirá a eficácia da liderança através da taxa de feedbacks que geraram combinados claros de mudança.
 
-## 4. Estratégia de Testes, Ferramentas e Dados
+## 4. Viabilidade Financeira e Infraestrutura de IA
 
-A validação deste sistema requer uma abordagem focada em qualidade de prompt, segurança de dados e usabilidade.
+Respondendo a questionamentos estratégicos sobre a infraestrutura necessária e custos envolvidos para uma empresa base de 60 colaboradores:
 
-*   **Testes de Privacidade e Segurança (Unit/Integration):**
-    *   *Objetivo:* Garantir a anonimização. Validar se a camada de tokenização impede o envio de CPFs e Nomes para a API do LLM.
-    *   *Ferramentas:* Jest / Vitest.
-*   **Avaliação do LLM (Prompt Evaluation):**
-    *   *Objetivo:* Medir a aderência do tom de voz, mitigação de viés (Bias) e evitar alucinações, assegurando o uso de modelos comportamentais (ex: Feedback SBI).
-    *   *Dados:* Datasets de validação (exemplos de "entradas reais" e "saídas ideais").
-    *   *Ferramentas:* LangSmith (ou similar) para tracking de prompts e logs.
-*   **Testes End-to-End (E2E):**
-    *   *Objetivo:* Validar a métrica central de sucesso: o fluxo do usuário (Setup -> Roteiro -> Acordos) pode ser feito em **menos de 5 minutos**?
-    *   *Ferramentas:* Playwright ou Cypress.
-    *   *Dados:* Massa de dados *mockada* simulando diferentes líderes e históricos.
+*   **Ausência de IA Corporativa:** O produto **não requer** a contratação prévia ou instalação de uma infraestrutura robusta de "IA Corporativa" (como instâncias dedicadas na nuvem hospedadas internamente). O Smart Leading Agent utilizará integrações via API (ex: OpenAI, Anthropic) de forma *Stateless* (sem estado de memória retido fora do banco da aplicação) e com anonimização ativa (descrita no Ponto 2), eliminando o risco de exposição de dados da empresa para treinamento de modelos externos.
+*   **Provável Baixo Custo para o Tipo de Uso:** A operação via API (pagamento por Token) tem custo praticamente zero para o volume de uso projetado no MVP. 
+    *   *Cálculo Estimado:* Considerando 60 funcionários, 2 reuniões de 1:1 mensais por funcionário (~120 1:1s/mês). Com tarefas focadas em estruturação de texto e "Brain Dump", utilizando modelos ultra-rápidos e eficientes (ex: GPT-4o-mini ou Claude 3 Haiku), o custo total de tokens de processamento para a empresa inteira girará em torno de **US$ 1,00 a US$ 3,00 mensais**. 
+    *   *Conclusão:* A relação custo-benefício (Retenção de Talentos vs. Centavos por requisição) viabiliza o projeto de forma autônoma, dispensando orçamentos complexos de TI.
 
-## 5. Prioridade para a Próxima Fase (Desenvolvimento e Validação)
+## 5. Pontos de Atuação da IA no Fluxo
 
-Considerando o mapa do problema, a prioridade número um para o MVP é **provar o valor da ferramenta para a Liderança, não para o RH**. Se o líder não engajar, o sistema não gera dados para análise.
+A Inteligência Artificial atua como um **Copiloto (Human-in-the-Loop)**:
+1.  **Roteirização (Pré-Reunião):** Gera um guia de conversa adaptado à persona do líder.
+2.  **Tagueamento Temático (Background):** Classifica automaticamente o teor da reunião (Sentimento/Temas) para gerar inteligência de dados.
+3.  **Síntese Acionável (Pós-Reunião):** Transforma anotações brutas ("Brain Dump") em um registro estruturado de acordos.
 
-*   **Foco Estratégico (Vertical Slice):** A prioridade é desenvolver e validar as hipóteses **H1 (Adesão do Líder Técnico)** e **H5 (Perfilamento da IA)**.
-*   **O que será construído:** O fluxo de "Preparação e Roteirização" (Pré-1:1). O sistema deve ser capaz de receber tópicos simples, anonimizar, processar o tom correto via LLM e entregar um roteiro que reduza o tempo de preparo do gestor para menos de 5 minutos.
-*   **O que será deixado para depois:** A criação de Dashboards analíticos para o RH e a funcionalidade de gravação de voz (Whisper) entrarão em releases secundários (V2+), apenas após a validação do engajamento inicial.
+## 6. Estratégia de Testes e Validação
+
+*   **Testes de Privacidade (Unit/Integration):** Garantir a anonimização de PII antes da chamada da API do LLM.
+*   **Avaliação do LLM (Prompt Evaluation):** Medir a aderência do tom de voz e evitar alucinações.
+*   **Testes End-to-End (E2E):** Validar se o fluxo do usuário (Setup -> Roteiro -> Acordos) pode ser feito em menos de 5 minutos.
+
+## 7. Prioridade para a Próxima Fase (Desenvolvimento)
+
+A prioridade número um para o MVP é **provar o valor da ferramenta para a Liderança, não para o RH**. Se o líder não engajar, o sistema não gera dados.
+
+*   **Foco Estratégico:** A prioridade é validar as hipóteses de **Adesão do Líder** e **Perfilamento da IA**. O fluxo de "Preparação e Roteirização" com atrito zero deve ser desenvolvido primeiro.
+*   **Dashboards e UI Complexa:** A criação de Dashboards analíticos visuais para o RH fica postergada para Releases secundários (V2+). O RH trabalhará exclusivamente via *Conversational Analytics* e exportação de CSV no MVP, comprovando a hipótese de valor com mínimo esforço de engenharia frontend.

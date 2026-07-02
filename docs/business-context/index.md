@@ -52,8 +52,8 @@ Navegue abaixo por todas as dimensões da documentação de negócio:
 ---
 
 ## ✅ Validação de Escopo — MVP Smart Leading
-- **Escopo aprovado em:** [Inserir data de aprovação]
-- **Aprovado por:** [Inserir nome do PO/mentor] ([papel])
+- **Escopo aprovado em:** [30/06/2026]
+- **Aprovado por:** [Estella Mello] ([Tecnologia e Produto])
 - **Itens dentro do escopo:** geração de roteiros personalizados, registro pós-reunião, resgate de histórico
 - **Itens fora do escopo (MVP):** dashboard e painéis analíticos para o RH (movidos para V2), integração com Sólides, migração de histórico, PDI
 - **Restrições inegociáveis:** LGPD (RN01), human-in-the-loop (RN02), greenfield (RN03), SBI (RN05)
