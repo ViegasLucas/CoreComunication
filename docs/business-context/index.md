@@ -54,8 +54,8 @@ Navegue abaixo por todas as dimensões da documentação de negócio:
 ## ✅ Validação de Escopo — MVP Smart Leading
 - **Escopo aprovado em:** [30/06/2026]
 - **Aprovado por:** [Estella Mello] ([Tecnologia e Produto])
-- **Itens dentro do escopo:** geração de roteiros personalizados, registro pós-reunião, resgate de histórico
-- **Itens fora do escopo (MVP):** dashboard e painéis analíticos para o RH (movidos para V2), integração com Sólides, migração de histórico, PDI
+- **Itens dentro do escopo:** geração de roteiros personalizados, registro pós-reunião, resgate de histórico, sugestão opcional de PDI
+- **Itens fora do escopo (MVP):** dashboard e painéis analíticos para o RH (movidos para V2), integração com Sólides, migração de histórico, governança formal sistêmica de PDI
 - **Restrições inegociáveis:** LGPD (RN01), human-in-the-loop (RN02), greenfield (RN03), SBI (RN05)
 - **Próxima revisão:** ao iniciar a fase de PoC
 
@@ -72,5 +72,9 @@ Acompanhamento de alto nível da execução e implementação das histórias de 
 | US03 | Geração de roteiro estruturado (SBI) | Alta | 🔲 Não iniciado | — | Core do produto (Épico 1) |
 | US04 | Resgate do histórico em novos roteiros | Média | 🔲 Não iniciado | — | Depende de US05 |
 | US05 | Registro rápido pós-reunião | Média | 🔲 Não iniciado | — | Alimenta o histórico |
+| US06 | Sugestão Opcional de Trilha de Desenvolvimento (PDI) | Baixa | 🔲 Não iniciado | — | Funcionalidade de apoio (MVP) |
+| US07 | Dashboard de frequência (RH) | Baixa | 🔲 Não iniciado | — | Visão de governança (V2) |
+| US08 | Mapa de calor de temas (anonimizado) | Baixa | 🔲 Não iniciado | — | Dados agregados, sem expor identidade (V2) |
+| US09 | Alertas de risco direcionados (RH) | Baixa | 🔲 Não iniciado | — | Flag manual do gestor (V2) |
 
 *Legenda: ✅ Concluído · 🔄 Em progresso · 🔲 Não iniciado · ⛔ Bloqueado.*

@@ -60,8 +60,9 @@ Respondendo a questionamentos estratégicos sobre a infraestrutura necessária e
 
 A Inteligência Artificial atua como um **Copiloto (Human-in-the-Loop)**:
 1.  **Roteirização (Pré-Reunião):** Gera um guia de conversa adaptado à persona do líder.
-2.  **Tagueamento Temático (Background):** Classifica automaticamente o teor da reunião (Sentimento/Temas) para gerar inteligência de dados.
-3.  **Síntese Acionável (Pós-Reunião):** Transforma anotações brutas ("Brain Dump") em um registro estruturado de acordos.
+2.  **Sugestão de PDI (Opcional Pré-Reunião):** Gera uma trilha de desenvolvimento estruturada com base no Framework de Levels para guiar conversas de carreira.
+3.  **Tagueamento Temático (Background):** Classifica automaticamente o teor da reunião (Sentimento/Temas) para gerar inteligência de dados.
+4.  **Síntese Acionável (Pós-Reunião):** Transforma anotações brutas ("Brain Dump") em um registro estruturado de acordos.
 
 ## 6. Estratégia de Testes e Validação
 

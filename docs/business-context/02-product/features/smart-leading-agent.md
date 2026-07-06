@@ -16,8 +16,8 @@ Embora fora do MVP, a estrutura de dados preparará o terreno para que, no futur
 - Temas mais recorrentes (mapa de calor dos times).
 - Alertas de risco gerados manualmente pelos gestores.
 
-## 3. Gestão de Acordos Táticos
-O agente apoia a estruturação e o acompanhamento de **Acordos de Curto Prazo** definidos na 1:1. (*Nota: A estruturação formal de Planos de Desenvolvimento Individual - PDI - está fora do escopo do MVP*). A proposta é que os combinados sejam simples, acionáveis e contendo no máximo 2 ou 3 ações simultâneas para evitar sobrecarga. Cada acordo deve conter:
+## 3. Gestão de Acordos Táticos e Sugestão de PDI
+O agente apoia a estruturação e o acompanhamento de **Acordos de Curto Prazo** definidos na 1:1. (*Nota: Embora a governança formal do PDI pelo RH não seja gerenciada pela ferramenta, o líder poderá gerar uma sugestão opcional de trilha de PDI para discutir na reunião*). A proposta é que os combinados sejam simples, acionáveis e contendo no máximo 2 ou 3 ações simultâneas para evitar sobrecarga. Cada acordo deve conter:
 - **Tópico abordado:** Contexto geral do combinado.
 - **Ações concretas:** O que o colaborador ou líder vai fazer (ações práticas e verificáveis).
 - **Prazo:** Data-limite e o que será verificado no próximo encontro.

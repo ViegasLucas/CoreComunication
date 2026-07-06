@@ -36,7 +36,7 @@ Essas restrições são inegociáveis e guiam a arquitetura da solução:
 - **RN01 - Bloqueio de Dados Sensíveis (LGPD):** É proibido inserir dados pessoais sensíveis (Nomes completos, CPFs, diagnósticos de saúde, processos disciplinares) no contexto. O sistema deve barrar ou anonimizar automaticamente tais dados.
 - **RN02 - Princípio Human-in-the-Loop:** A IA atua apenas como copiloto de preparação. O gestor humano é o único responsável pelas decisões, avaliação e pelo tom final aplicado durante a reunião presencial/remota.
 - **RN03 - Isolamento do MVP (Abordagem Greenfield):** A solução funcionará de forma autônoma. Não haverá integração de leitura ou escrita com a plataforma Sólides, planilhas ou sistemas legados nesta fase.
-- **RN04 - Exclusão de PDI:** A criação e governança de Planos de Desenvolvimento Individual (PDI) estão fora do escopo do MVP. O sistema foca em acordos táticos de curto prazo da 1:1.
+- **RN04 - Sugestão Opcional de PDI (Copiloto):** A governança sistêmica do fluxo oficial de Planos de Desenvolvimento Individual (PDI) no RH está fora do MVP, mas a ferramenta ofertará a geração de sugestões iniciais de trilhas de desenvolvimento para apoiar o líder. O sistema também foca em acordos táticos de curto prazo.
 - **RN05 - Metodologia SBI Obrigatória:** Feedbacks corretivos e de desenvolvimento gerados pela IA devem ser ancorados no modelo Situação-Comportamento-Impacto.
 
 ---
@@ -71,6 +71,30 @@ Essas restrições são inegociáveis e guiam a arquitetura da solução:
   - **Líder Técnico:** Roteiro deve ser em bullet points, direto e sem jargões.
   - **Líder em Transição:** Roteiro deve ser detalhado, com exemplos práticos de como introduzir cada tópico.
   - O roteiro deve obrigatoriamente incluir a estrutura de feedback SBI (Situação, Comportamento, Impacto) conforme a RN05.
+
+**US06: Sugestão Opcional de Trilha de Desenvolvimento (PDI)**
+- **Como** Líder
+- **Eu quero** poder solicitar à IA uma sugestão de trilha de desenvolvimento (PDI) baseada no Framework de Levels antes da minha 1:1
+- **Para que** eu tenha um ponto de partida estruturado para discutir e co-construir os próximos passos de carreira com meu liderado.
+- **Critérios de Aceite:**
+  - A funcionalidade deve ser **opcional**: o agente pode ofertar a sugestão ao identificar contexto de desenvolvimento, ou o líder pode solicitá-la ativamente.
+  - O PDI sugerido deve ser simples e acionável: máximo de 2 a 3 objetivos, máximo de 3 ações práticas e marcos de verificação sugeridos.
+  - A trilha deve estar ancorada nos comportamentos e competências do Framework de Levels da empresa.
+  - **Disclaimer (Human-in-the-loop):** A interface e o retorno da IA devem apresentar um alerta explícito de que o PDI é apenas uma *sugestão inicial* para guiar a conversa, cabendo ao líder e ao liderado a definição final, com eventual aval do RH.
+
+**📊 ESTIMATIVA DE STORY POINTS (US06)**
+- **Atual:** 5 pontos
+- **Histórico de Mudanças:**
+
+| Data | Estimativa | Mudança | Motivo |
+|------|------------|---------|--------|
+| 2026-07-05 | 5 pts | - | Criação inicial após refinamento do MVP |
+
+- **Análise Atual:** Complexidade Média / Risco Médio / Incerteza Média
+- **Fatores que influenciaram:**
+  - O principal esforço reside no *prompt engineering* para garantir que a IA obedeça às restrições de formatação (máximo de ações/objetivos).
+  - Necessidade de injetar o contexto do Framework de Levels da empresa.
+  - Implementação do alerta de responsabilidade (disclaimer) na interface/saída do agente.
 
 ### Épico 2: Continuidade e Histórico
 
