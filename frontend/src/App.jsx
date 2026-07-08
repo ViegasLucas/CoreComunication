@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 // Importa o Layout e Sidebar comuns
-import MainLayout from './layouts/MainLayout';
-import Sidebar from './components/features/Sidebar';
+import MainLayout from './layouts/mainLayout';
+import Sidebar from './components/features/sidebar';
 
 // Importa as 3 Visões Demo do nosso Escopo
 import ConducaoView from './views/conducaoView'; 
