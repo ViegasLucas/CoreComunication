@@ -1,27 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, Users, Target, Moon, Sun, LogOut, CheckCircle2, 
-  Save, Plus, AlertCircle, Briefcase, ChevronRight, MessageSquare, 
-  History, UserCircle2, Calendar, Sparkles, BarChart3 
-} from 'lucide-react';
 
-// Importa o teu Layout
+// Importa o Layout e Sidebar comuns
 import MainLayout from './layouts/MainLayout';
-// Importa a tua View principal
-import ConducaoView from './views/ConducaoView';
-// Importa a tua Sidebar
 import Sidebar from './components/features/Sidebar';
-// Importa os dados da lista que criámos
+
+// Importa as 3 Visões Demo do nosso Escopo
+import ConducaoView from './views/conducaoView'; 
+import RhView from './views/rhView';             
+import LideradoView from './views/lideradoView';
+
 import { dadosIniciaisEquipe } from './dados';
 
-
 export default function App() {
+  // Estado que controla qual tela está ativa: 'conducao' (Líder), 'rh' ou 'liderado'
   const [viewAtiva, setViewAtiva] = useState('conducao');
   const [temaEscuro, setTemaEscuro] = useState(false);
-  const [mensagemToast, setMensagemToast] = useState('');
-  const [abaConducao, setAbaConducao] = useState('nova'); 
-  const [perfilLider, setPerfilLider] = useState('tecnico'); 
-  const [formAnotacoes, setFormAnotacoes] = useState({ checkin: '', pauta: '', acordos: '' });
   const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
   const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
 
@@ -34,16 +27,32 @@ export default function App() {
     else document.documentElement.classList.remove('dark');
   }, [temaEscuro]);
 
+  // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
+  const renderizaView = () => {
+    switch (viewAtiva) {
+      case 'conducao':
+        return <ConducaoView lideradoAtivo={lideradoAtivo} />;
+      case 'rh':
+        return <RhView />;
+      case 'liderado':
+        return <LideradoView />;
+      default:
+        return <ConducaoView lideradoAtivo={lideradoAtivo} />;
+    }
+  };
+
   return (
     <MainLayout 
       sidebar={
         <Sidebar 
           temaEscuro={temaEscuro} 
           btnMudarTema={btnMudarTema} 
+          viewAtiva={viewAtiva}
+          setViewAtiva={setViewAtiva} // Passa a função para a Sidebar mudar o estado
         />
       }
     >
-      <ConducaoView lideradoAtivo={lideradoAtivo} />
+      {renderizaView()}
     </MainLayout>
   );
 }
