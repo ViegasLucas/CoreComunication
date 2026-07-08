@@ -9,7 +9,7 @@ import ConducaoView from './views/conducaoView';
 import RhView from './views/rhView';             
 import LideradoView from './views/lideradoView';
 
-import { dadosIniciaisEquipe } from './dados';
+import { dadosIniciaisEquipe } from "./dados";
 
 export default function App() {
   // Estado que controla qual tela está ativa: 'conducao' (Líder), 'rh' ou 'liderado'

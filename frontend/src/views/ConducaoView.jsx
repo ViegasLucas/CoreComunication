@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Send, Sparkles, ShieldAlert } from 'lucide-react';
-import { mockMensagens, mockPerfisLideranca } from '../mocks/chatMocks';
+import { Send, ShieldAlert } from 'lucide-react';
+import { mockMensagens, mockPerfisLideranca } from "../dados";
 
 export default function conducaoView({ lideradoAtivo }) {
   const [mensagens, setMensagens] = useState(mockMensagens);
@@ -26,10 +26,10 @@ export default function conducaoView({ lideradoAtivo }) {
       {/* Banner de Segurança Baseado nas Regras de Negócio de LGPD */}
       <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-medium">
         <ShieldAlert className="h-4 w-4 shrink-0" />
-        <span>🔒 Ambiente Seguro (LGPD): Os dados inseridos aqui são anonimizados. Evite usar nomes de saúde ou documentos.</span>
+        <span>🔒 Ambiente Seguro (LGPD): Os dados inseridos aqui são anonimizados. Evite usar nomes próprios ou dados de saúde.</span>
       </div>
 
-      {/* Seletor de Perfil de Liderança (Tarefa 2.2) */}
+      {/* Seletor de Perfil de Liderança */}
       <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-lg w-fit">
         {mockPerfisLideranca.map((perfil) => (
           <button
@@ -46,7 +46,7 @@ export default function conducaoView({ lideradoAtivo }) {
         ))}
       </div>
 
-      {/* Área de Histórico das Mensagens (UI Dumb Component com Scroll) */}
+      {/* Área de Histórico das Mensagens */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {mensagens.map((msg) => (
           <div

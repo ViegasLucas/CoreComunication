@@ -57,3 +57,14 @@ export const dadosIniciaisEquipe = [
     ]
   }
 ];
+
+export const mockPerfisLideranca = [
+  { id: 'tecnico', label: 'Líder Técnico' },
+  { id: 'transicao', label: 'Líder em Transição' },
+  { id: 'engajado', label: 'Líder Engajado' }
+];
+
+export const mockMensagens = [
+  { id: '1', role: 'ai', content: 'Olá! Como posso ajudar na sua reunião de hoje?' },
+  { id: '2', role: 'user', content: 'Meu liderado não está cumprindo metas.' }
+];
