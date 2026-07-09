@@ -1,36 +1,38 @@
 import React, { useState, useEffect } from 'react';
 
-<<<<<<< HEAD
+HEAD
 // Importa o Layout e Sidebar comuns
-import MainLayout from './layouts/mainLayout';
-import Sidebar from './components/features/sidebar';
+import MainLayout from './layouts/MainLayout';
+import Sidebar from './components/features/Sidebar';
 
 // Importa as 3 Visões Demo do nosso Escopo
-import ConducaoView from './views/conducaoView'; 
+import ConducaoView from './views/ConducaoView'; 
 import RhView from './views/rhView';             
 import LideradoView from './views/lideradoView';
 import SeparacaoUsuarioView from './views/SeparacaoUsuarioView';
-
-import { dadosIniciaisEquipe } from "./dados";
-
-export default function App() {
   // Estado que controla qual tela está ativa: 'separacao', 'conducao' (Líder), 'rh' ou 'liderado'
   const [viewAtiva, setViewAtiva] = useState('separacao');
   const [temaEscuro, setTemaEscuro] = useState(false);
   const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
   const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
-=======
+
 // Importa as Visões
 import LoginView from './views/LoginView';
 import LeaderDashboardView from './views/LeaderDashboardView';
 import EmployeeDashboardView from './views/EmployeeDashboardView';
 import HRDashboardView from './views/HRDashboardView';
 
+
+import { dadosIniciaisEquipe } from "./dados";
+
 export default function App() {
+
+  
   // Estado de Autenticação
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
->>>>>>> 617670c57639033446eddf42cacad88fffaaece2
+  
+
 
   // Acessibilidade e Tema (Globais)
   const [isDark, setIsDark] = useState(true);
@@ -42,7 +44,7 @@ export default function App() {
     if (isDark) root.classList.add('dark');
     else root.classList.remove('dark');
 
-<<<<<<< HEAD
+
   // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
   const renderizaView = () => {
     switch (viewAtiva) {
@@ -73,7 +75,7 @@ export default function App() {
       {renderizaView()}
     </MainLayout>
   );
-=======
+
     // High contrast mode
     if (isHighContrast) root.classList.add('high-contrast');
     else root.classList.remove('high-contrast');
@@ -101,5 +103,4 @@ export default function App() {
 
   // Padrão (Líder)
   return <LeaderDashboardView {...dashboardProps} />;
->>>>>>> 617670c57639033446eddf42cacad88fffaaece2
 }
