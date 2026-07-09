@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-HEAD
 // Importa o Layout e Sidebar comuns
 import MainLayout from './layouts/MainLayout';
 import Sidebar from './components/features/Sidebar';
@@ -10,11 +9,6 @@ import ConducaoView from './views/ConducaoView';
 import RhView from './views/rhView';             
 import LideradoView from './views/lideradoView';
 import SeparacaoUsuarioView from './views/SeparacaoUsuarioView';
-  // Estado que controla qual tela está ativa: 'separacao', 'conducao' (Líder), 'rh' ou 'liderado'
-  const [viewAtiva, setViewAtiva] = useState('separacao');
-  const [temaEscuro, setTemaEscuro] = useState(false);
-  const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
-  const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
 
 // Importa as Visões
 import LoginView from './views/LoginView';
@@ -28,6 +22,13 @@ import { dadosIniciaisEquipe } from "./dados";
 export default function App() {
 
   
+  // Estado que controla qual tela está ativa: 'separacao', 'conducao' (Líder), 'rh' ou 'liderado'
+
+  const [viewAtiva, setViewAtiva] = useState('separacao');
+  const [temaEscuro, setTemaEscuro] = useState(false);
+  const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
+  const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
+
   // Estado de Autenticação
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -44,6 +45,16 @@ export default function App() {
     if (isDark) root.classList.add('dark');
     else root.classList.remove('dark');
 
+    // High contrast mode
+    if (isHighContrast) root.classList.add('high-contrast');
+    else root.classList.remove('high-contrast');
+  }, [isDark, isHighContrast]);
+
+  // Função para alternar tema escuro (usada pelo Sidebar)
+  const btnMudarTema = () => setTemaEscuro(prev => !prev);
+
+  // Deriva o liderado ativo a partir do id
+  const lideradoAtivo = listaLiderados.find(l => l.id === lideradoAtivoId) || null;
 
   // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
   const renderizaView = () => {
@@ -69,17 +80,6 @@ export default function App() {
       setViewAtiva={setViewAtiva}
     />
   );
-
-  return (
-    <MainLayout sidebar={sidebarContent}>
-      {renderizaView()}
-    </MainLayout>
-  );
-
-    // High contrast mode
-    if (isHighContrast) root.classList.add('high-contrast');
-    else root.classList.remove('high-contrast');
-  }, [isDark, isHighContrast]);
   
   // Renderização condicional: se não estiver logado, mostra o Login
   if (!isLoggedIn) {
