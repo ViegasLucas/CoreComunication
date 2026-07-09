@@ -8,12 +8,13 @@ import Sidebar from './components/features/sidebar';
 import ConducaoView from './views/conducaoView'; 
 import RhView from './views/rhView';             
 import LideradoView from './views/lideradoView';
+import SeparacaoUsuarioView from './views/SeparacaoUsuarioView';
 
 import { dadosIniciaisEquipe } from "./dados";
 
 export default function App() {
-  // Estado que controla qual tela está ativa: 'conducao' (Líder), 'rh' ou 'liderado'
-  const [viewAtiva, setViewAtiva] = useState('conducao');
+  // Estado que controla qual tela está ativa: 'separacao', 'conducao' (Líder), 'rh' ou 'liderado'
+  const [viewAtiva, setViewAtiva] = useState('separacao');
   const [temaEscuro, setTemaEscuro] = useState(false);
   const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
   const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
@@ -30,6 +31,8 @@ export default function App() {
   // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
   const renderizaView = () => {
     switch (viewAtiva) {
+      case 'separacao':
+        return <SeparacaoUsuarioView onSelecionarView={setViewAtiva} />;
       case 'conducao':
         return <ConducaoView lideradoAtivo={lideradoAtivo} />;
       case 'rh':
@@ -37,21 +40,21 @@ export default function App() {
       case 'liderado':
         return <LideradoView />;
       default:
-        return <ConducaoView lideradoAtivo={lideradoAtivo} />;
+        return <SeparacaoUsuarioView onSelecionarView={setViewAtiva} />;
     }
   };
 
+  const sidebarContent = viewAtiva === 'separacao' ? null : (
+    <Sidebar 
+      temaEscuro={temaEscuro} 
+      btnMudarTema={btnMudarTema} 
+      viewAtiva={viewAtiva}
+      setViewAtiva={setViewAtiva}
+    />
+  );
+
   return (
-    <MainLayout 
-      sidebar={
-        <Sidebar 
-          temaEscuro={temaEscuro} 
-          btnMudarTema={btnMudarTema} 
-          viewAtiva={viewAtiva}
-          setViewAtiva={setViewAtiva} // Passa a função para a Sidebar mudar o estado
-        />
-      }
-    >
+    <MainLayout sidebar={sidebarContent}>
       {renderizaView()}
     </MainLayout>
   );

@@ -1,6 +1,13 @@
 const { auth } = require('../config/firebase');
 
 const verifyToken = async (req, res, next) => {
+  // Guard: Firebase Admin não inicializou (falta Service Account)
+  if (!auth) {
+    return res.status(503).json({
+      error: 'Serviço de autenticação indisponível. Contate o administrador.',
+    });
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -11,10 +18,10 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const decodedToken = await auth.verifyIdToken(token);
-    req.user = decodedToken;
+    req.user = decodedToken; // UID e e-mail ficam disponíveis em req.user nos controllers
     next();
   } catch (error) {
-    console.error('Erro ao verificar o token Firebase:', error);
+    console.error('[Auth] Token inválido ou expirado:', error.code || error.message);
     return res.status(403).json({ error: 'Token inválido ou expirado.' });
   }
 };
