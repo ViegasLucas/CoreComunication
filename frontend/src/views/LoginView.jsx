@@ -8,8 +8,14 @@ export default function LoginView({ onLoginSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    let role = "leader"; // Default fallback
+    if (email === "visaolider@gmail.com") role = "leader";
+    if (email === "visaooperacional@gmail.com") role = "employee";
+    if (email === "visaorh@gmail.com") role = "hr";
+
     // TODO: wire auth logic with Firebase
-    onLoginSuccess();
+    onLoginSuccess(role);
   };
 
   return (
@@ -91,7 +97,7 @@ export default function LoginView({ onLoginSuccess }) {
 
             <button
               type="submit"
-              className="group mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98]"
+              className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98]"
             >
               Entrar
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />

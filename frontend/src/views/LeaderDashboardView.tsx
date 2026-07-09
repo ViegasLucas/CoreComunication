@@ -21,6 +21,7 @@ import {
   Clock,
   MessageSquare,
   Accessibility,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -62,6 +63,7 @@ const upcomingMeetings = [
 ];
 
 export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast }: any) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [profile, setProfile] = useState<ProfileKey | null>(null);
   const [active, setActive] = useState("home");
@@ -100,15 +102,30 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
       {/* SIDEBAR */}
-      <aside className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-card/70 backdrop-blur-xl md:flex">
-        <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
-            <Sparkles className="h-6 w-6 text-white" />
+      <aside
+        className={cn(
+          "sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-border bg-card/70 backdrop-blur-xl transition-all duration-300 md:flex",
+          isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none px-0"
+        )}
+      >
+        <div className="flex items-center justify-between px-5 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <div className="text-base font-semibold tracking-tight">ClearIT</div>
+              <div className="text-xs text-muted-foreground">Smart Leading</div>
+            </div>
           </div>
-          <div>
-            <div className="text-base font-semibold tracking-tight">ClearIT</div>
-            <div className="text-xs text-muted-foreground">Smart Leading</div>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSidebarOpen(false)}
+            className="text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-2">
@@ -117,6 +134,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             { id: "team", label: "Equipe", icon: Users },
             { id: "meetings", label: "Reuniões", icon: Calendar },
             { id: "pdi", label: "Meu PDI", icon: Target },
+            { id: "my-performance", label: "Meu Desempenho", icon: TrendingUp },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = active === item.id;
@@ -176,14 +194,26 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         <div className="relative mx-auto max-w-7xl px-6 py-8">
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
-            <div>
-              <div className="text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bom dia, Rafael 👋</h1>
-              <p className="text-base text-muted-foreground">
-                {profile ? `Perfil ativo: ${labelFor(profile)}` : "Defina seu perfil para personalizar a experiência."}
-              </p>
+            <div className="flex items-center gap-4">
+              {!isSidebarOpen && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="hidden md:flex"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              )}
+              <div>
+                <div className="text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
+                <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bom dia, Rafael 👋</h1>
+              </div>
             </div>
             <div className="flex items-center gap-2">
+              <p className="text-base text-muted-foreground mr-4">
+                {profile ? `Perfil ativo: ${labelFor(profile)}` : "Defina seu perfil para personalizar a experiência."}
+              </p>
               <Button variant="outline" size="icon" className="border-border bg-secondary/60">
                 <Bell className="h-4 w-4" />
               </Button>
@@ -203,117 +233,174 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             </div>
           </div>
 
-          {/* KPIs + Pending */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
-              <KpiCard title="Saúde da Equipe" value="87%" trend="+4%" icon={HeartHandshake} accent="emerald" />
-              <KpiCard title="Metas Concluídas" value="12/18" trend="67%" icon={CheckCircle2} accent="blue" />
-              <KpiCard title="PDIs Ativos" value="8" trend="+2" icon={TrendingUp} accent="violet" />
-            </div>
+          {/* VIEW: HOME */}
+          {active === "home" && (
+            <>
+              {/* KPIs + Pending */}
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
+                  <KpiCard title="Saúde da Equipe" value="87%" trend="+4%" icon={HeartHandshake} accent="emerald" />
+                  <KpiCard title="Metas Concluídas" value="12/18" trend="67%" icon={CheckCircle2} accent="blue" />
+                  <KpiCard title="PDIs Ativos" value="8" trend="+2" icon={TrendingUp} accent="violet" />
+                </div>
 
-            <GlassCard className="p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-base font-semibold">Ações Pendentes</div>
-                <Badge className="bg-blue-600/15 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20">{pendingActions.length}</Badge>
+                <GlassCard className="p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-base font-semibold">Ações Pendentes</div>
+                    <Badge className="bg-blue-600/15 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20">{pendingActions.length}</Badge>
+                  </div>
+                  <ul className="space-y-2">
+                    {pendingActions.map((a, i) => {
+                      const Icon = a.icon;
+                      return (
+                        <li
+                          key={i}
+                          className="group flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 transition-all hover:border-blue-600/40 hover:bg-accent"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground group-hover:text-blue-400 dark:group-hover:text-blue-300">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <span className="flex-1 text-sm text-foreground">{a.label}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-400 dark:group-hover:text-blue-300" />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </GlassCard>
               </div>
-              <ul className="space-y-2">
-                {pendingActions.map((a, i) => {
-                  const Icon = a.icon;
-                  return (
-                    <li
-                      key={i}
-                      className="group flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 transition-all hover:border-blue-600/40 hover:bg-accent"
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground group-hover:text-blue-400 dark:group-hover:text-blue-300">
-                        <Icon className="h-4 w-4" />
+
+              {/* Team */}
+              <section className="mt-10">
+                <div className="mb-4 flex items-end justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold tracking-tight">Meus Liderados</h2>
+                    <p className="text-sm text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
+                  </div>
+                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                    Ver todos <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {team.map((m) => (
+                    <GlassCard key={m.name} className="group p-5 transition-all hover:-translate-y-0.5 hover:border-blue-600/40">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 ring-2 ring-blue-500/20">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+                            {m.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-semibold">{m.name}</div>
+                          <div className="truncate text-sm text-muted-foreground">{m.role}</div>
+                        </div>
                       </div>
-                      <span className="flex-1 text-sm text-foreground">{a.label}</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-400 dark:group-hover:text-blue-300" />
-                    </li>
-                  );
-                })}
-              </ul>
-            </GlassCard>
-          </div>
+                      <div className="mt-5">
+                        <div className="mb-1.5 flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Progresso PDI</span>
+                          <span className="font-medium">{m.pdi}%</span>
+                        </div>
+                        <Progress value={m.pdi} className="h-1.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-blue-400" />
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <Button size="sm" variant="outline" className="flex-1 border-border bg-secondary/60 text-sm">
+                          Ver perfil
+                        </Button>
+                        <Button size="sm" className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
+                          1:1
+                        </Button>
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </section>
 
-          {/* Team */}
-          <section className="mt-10">
-            <div className="mb-4 flex items-end justify-between">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight">Meus Liderados</h2>
-                <p className="text-sm text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
+              {/* Meetings */}
+              <section className="mt-10 grid gap-4 lg:grid-cols-2">
+                <GlassCard className="p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-base font-semibold">Reuniões Recentes</h3>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <ul className="space-y-2">
+                    {recentMeetings.map((m, i) => (
+                      <MeetingRow key={i} {...m} tone="slate" />
+                    ))}
+                  </ul>
+                </GlassCard>
+
+                <GlassCard className="p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-base font-semibold">Próximas Reuniões</h3>
+                    <Button
+                      size="sm"
+                      onClick={() => setNewMeetingOpen(true)}
+                      className="h-8 bg-blue-600 text-sm text-white hover:bg-blue-500"
+                    >
+                      <Plus className="mr-1 h-3.5 w-3.5" />
+                      Criar nova 1:1
+                    </Button>
+                  </div>
+                  <ul className="space-y-2">
+                    {upcomingMeetings.map((m, i) => (
+                      <MeetingRow key={i} {...m} tone="blue" />
+                    ))}
+                  </ul>
+                </GlassCard>
+              </section>
+            </>
+          )}
+
+          {/* VIEW: MEU DESEMPENHO */}
+          {active === "my-performance" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold tracking-tight text-violet-400">Minha Jornada (Liderado)</h2>
+                  <p className="text-sm text-muted-foreground">Acompanhe suas metas, 1:1s com seu gestor e feedbacks recebidos.</p>
+                </div>
               </div>
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-                Ver todos <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {team.map((m) => (
-                <GlassCard key={m.name} className="group p-5 transition-all hover:-translate-y-0.5 hover:border-blue-600/40">
+              
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <KpiCard title="Progresso do meu PDI" value="65%" trend="+5%" icon={Target} accent="violet" />
+                <KpiCard title="Feedbacks Recebidos" value="12" trend="+3" icon={MessageSquare} accent="blue" />
+                
+                <GlassCard className="p-5 ring-1 ring-violet-500/20">
+                  <div className="mb-2 text-sm font-semibold text-violet-400">Próxima 1:1 com Gestor</div>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12 ring-2 ring-blue-500/20">
-                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-                        {m.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="truncate text-base font-semibold">{m.name}</div>
-                      <div className="truncate text-sm text-muted-foreground">{m.role}</div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20 text-violet-300">
+                      <Calendar className="h-5 w-5" />
                     </div>
-                  </div>
-                  <div className="mt-5">
-                    <div className="mb-1.5 flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Progresso PDI</span>
-                      <span className="font-medium">{m.pdi}%</span>
+                    <div>
+                      <div className="text-base font-medium">Sexta-feira, 14h00</div>
+                      <div className="text-xs text-muted-foreground">com Diretoria</div>
                     </div>
-                    <Progress value={m.pdi} className="h-1.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-blue-400" />
-                  </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 border-border bg-secondary/60 text-sm">
-                      Ver perfil
-                    </Button>
-                    <Button size="sm" className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
-                      1:1
-                    </Button>
                   </div>
                 </GlassCard>
-              ))}
+              </div>
+
+              <div className="mt-6">
+                <GlassCard className="p-6">
+                  <h3 className="mb-4 text-lg font-semibold">Minhas Metas / Entregas (Q3)</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span>Aumentar retenção da equipe de engenharia em 15%</span>
+                        <span className="font-semibold text-violet-400">80%</span>
+                      </div>
+                      <Progress value={80} className="h-2 [&>div]:bg-violet-500" />
+                    </div>
+                    <div>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span>Lançar novo fluxo de Onboarding</span>
+                        <span className="font-semibold text-violet-400">40%</span>
+                      </div>
+                      <Progress value={40} className="h-2 [&>div]:bg-violet-500" />
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
             </div>
-          </section>
-
-          {/* Meetings */}
-          <section className="mt-10 grid gap-4 lg:grid-cols-2">
-            <GlassCard className="p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base font-semibold">Reuniões Recentes</h3>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <ul className="space-y-2">
-                {recentMeetings.map((m, i) => (
-                  <MeetingRow key={i} {...m} tone="slate" />
-                ))}
-              </ul>
-            </GlassCard>
-
-            <GlassCard className="p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base font-semibold">Próximas Reuniões</h3>
-                <Button
-                  size="sm"
-                  onClick={() => setNewMeetingOpen(true)}
-                  className="h-8 bg-blue-600 text-sm text-white hover:bg-blue-500"
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Criar nova 1:1
-                </Button>
-              </div>
-              <ul className="space-y-2">
-                {upcomingMeetings.map((m, i) => (
-                  <MeetingRow key={i} {...m} tone="blue" />
-                ))}
-              </ul>
-            </GlassCard>
-          </section>
+          )}
         </div>
       </main>
 

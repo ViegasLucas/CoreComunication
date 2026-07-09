@@ -3,10 +3,13 @@ import React, { useState, useEffect } from 'react';
 // Importa as Visões
 import LoginView from './views/LoginView';
 import LeaderDashboardView from './views/LeaderDashboardView';
+import EmployeeDashboardView from './views/EmployeeDashboardView';
+import HRDashboardView from './views/HRDashboardView';
 
 export default function App() {
   // Estado de Autenticação
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   // Acessibilidade e Tema (Globais)
   const [isDark, setIsDark] = useState(true);
@@ -25,16 +28,24 @@ export default function App() {
   
   // Renderização condicional: se não estiver logado, mostra o Login
   if (!isLoggedIn) {
-    return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} />;
+    return <LoginView onLoginSuccess={(role) => {
+      setUserRole(role);
+      setIsLoggedIn(true);
+    }} />;
   }
 
-  // Se estiver logado, exibe o mega dashboard
-  return (
-    <LeaderDashboardView 
-      isDark={isDark} 
-      setIsDark={setIsDark} 
-      isHighContrast={isHighContrast} 
-      setIsHighContrast={setIsHighContrast} 
-    />
-  );
+  // Props comuns a todos os dashboards
+  const dashboardProps = { isDark, setIsDark, isHighContrast, setIsHighContrast };
+
+  // Roteamento baseado no perfil
+  if (userRole === 'employee') {
+    return <EmployeeDashboardView {...dashboardProps} />;
+  }
+  
+  if (userRole === 'hr') {
+    return <HRDashboardView {...dashboardProps} />;
+  }
+
+  // Padrão (Líder)
+  return <LeaderDashboardView {...dashboardProps} />;
 }
