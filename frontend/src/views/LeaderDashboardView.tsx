@@ -22,6 +22,8 @@ import {
   MessageSquare,
   Accessibility,
   Menu,
+  Loader,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,6 +38,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getAuthToken } from "@/lib/auth";
 
 type ProfileKey = "tecnico" | "engajado" | "transicao";
 type ChatMsg = { from: "bot" | "user"; text: string };
@@ -77,6 +80,14 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     },
   ]);
   const [chatInput, setChatInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Novos estados para a geração do SBI
+  const [meetingTopics, setMeetingTopics] = useState("");
+  const [sbiScript, setSbiScript] = useState("");
+  const [isGeneratingSbi, setIsGeneratingSbi] = useState(false);
+  
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -85,18 +96,131 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
 
-  const sendChat = () => {
+  /**
+   * Envia a mensagem para o backend e processa a resposta
+   */
+  const sendChat = async () => {
     if (!chatInput.trim()) return;
-    setChat((c) => [
-      ...c,
-      { from: "user", text: chatInput },
-      {
-        from: "bot",
-        text:
-          "Ótimo! Baseado nisso, exploraremos como você costuma reagir sob pressão. Pode descrever uma situação recente?",
-      },
-    ]);
+
+    const userMessage = chatInput;
     setChatInput("");
+    setError(null);
+    setIsLoading(true);
+
+    // Monta o histórico (antes da nova mensagem do usuário)
+    const historyPayload = chat.map(msg => ({
+      role: msg.from === "bot" ? "model" : "user",
+      parts: [{ text: msg.text }]
+    }));
+
+    // Adiciona a mensagem do usuário imediatamente na UI
+    setChat((c) => [...c, { from: "user", text: userMessage }]);
+
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("Token de autenticação não encontrado. Faça login novamente.");
+      }
+
+      // Chamada ao backend
+      const response = await fetch("http://localhost:3001/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          message: userMessage, 
+          history: historyPayload,
+          type: "profile_discovery" 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const { reply, blocked } = data;
+
+      // Processa a resposta
+      if (blocked) {
+        // Quando há bloqueio LGPD, mostra como aviso especial
+        setChat((c) => [
+          ...c,
+          { from: "bot", text: reply },
+        ]);
+        setError("⚠️ Sua mensagem foi bloqueada por conformidade com LGPD. Remova dados sensíveis e tente novamente.");
+      } else {
+        // Resposta de descoberta de perfil
+        let finalReply = reply;
+        
+        // Verifica se a IA encontrou o perfil
+        if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
+           setProfile("tecnico");
+           finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
+        } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
+           setProfile("engajado");
+           finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
+        } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
+           setProfile("transicao");
+           finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
+        }
+
+        setChat((c) => [
+          ...c,
+          { from: "bot", text: finalReply },
+        ]);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao conectar com o servidor.";
+      console.error("[Chat] Erro:", errorMessage);
+      setError(errorMessage);
+      
+      // Adiciona mensagem de erro no chat
+      setChat((c) => [
+        ...c,
+        {
+          from: "bot",
+          text: `❌ Desculpe, ocorreu um erro: ${errorMessage}`,
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Envia os tópicos para gerar o script SBI
+   */
+  const handleGenerateSbi = async () => {
+    if (!meetingTopics.trim()) return;
+    setIsGeneratingSbi(true);
+    setSbiScript("");
+    setError(null);
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Token não encontrado.");
+
+      const response = await fetch("http://localhost:3001/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ 
+          message: meetingTopics, 
+          type: "sbi", 
+          profileTone: profile ? labelFor(profile) : "Técnico" 
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Erro na API.");
+      const data = await response.json();
+      setSbiScript(data.reply);
+    } catch(err) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
+    } finally {
+      setIsGeneratingSbi(false);
+    }
   };
 
   return (
@@ -220,7 +344,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               <Button
                 variant="outline"
                 onClick={() => setOnboardingOpen(true)}
-                className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20"
+                disabled={profile !== null}
+                className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={profile !== null ? "Perfil já mapeado. Procure o RH para refazer o teste." : ""}
               >
                 <Sparkles className="mr-1 h-4 w-4" /> Descobrir Perfil
               </Button>
@@ -472,20 +598,55 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     </div>
                   </div>
                 ))}
+
+                {/* Loading indicator */}
+                {isLoading && (
+                  <div className="flex gap-3 justify-start">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 animate-pulse">
+                      <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="bg-secondary text-foreground rounded-2xl px-4 py-3 flex items-center gap-2">
+                      <Loader className="h-4 w-4 animate-spin text-blue-400" />
+                      <span className="text-sm text-muted-foreground">Gerando roteiro...</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Sentinel element for auto-scroll anchor */}
                 <div ref={chatEndRef} aria-hidden className="h-0 w-0" />
               </div>
+
+              {/* Error message */}
+              {error && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                  <span className="text-xs text-red-400">{error}</span>
+                </div>
+              )}
 
               <div className="mt-4 flex shrink-0 gap-3">
                 <Input
                   value={chatInput}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && sendChat()}
-                  placeholder="Digite sua resposta..."
-                  className="border-border bg-secondary/60 text-base h-12"
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Enter" && !isLoading) {
+                      sendChat();
+                    }
+                  }}
+                  placeholder={isLoading ? "Aguardando resposta..." : "Digite sua resposta..."}
+                  disabled={isLoading}
+                  className="border-border bg-secondary/60 text-base h-12 disabled:opacity-60"
                 />
-                <Button onClick={sendChat} className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500">
-                  <Send className="h-5 w-5" />
+                <Button
+                  onClick={sendChat}
+                  disabled={isLoading || !chatInput.trim()}
+                  className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <Loader className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
 
@@ -541,28 +702,52 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Tópicos (opcional)</Label>
+              <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI</Label>
               <Textarea
-                rows={4}
-                placeholder="Feedback SBI, evolução PDI, bloqueios..."
+                rows={3}
+                placeholder="Ex: Não cumpriu o prazo de entrega da funcionalidade X..."
                 className="border-border bg-secondary/60"
+                value={meetingTopics}
+                onChange={(e) => setMeetingTopics(e.target.value)}
               />
             </div>
 
-            <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200">
-              Nossa IA sugerirá um roteiro personalizado baseado no seu perfil de liderança.
+            <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200 flex flex-col gap-2">
+              Nossa IA irá gerar um roteiro personalizado baseado no seu perfil de liderança.
+              <Button 
+                onClick={handleGenerateSbi} 
+                disabled={isGeneratingSbi || !meetingTopics.trim()}
+                className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 h-8"
+              >
+                {isGeneratingSbi ? <Loader className="h-4 w-4 animate-spin mr-2"/> : <Sparkles className="h-4 w-4 mr-2"/>}
+                Gerar Roteiro SBI
+              </Button>
             </div>
+
+            {sbiScript && (
+              <div className="mt-4 p-4 rounded-xl border border-border bg-secondary/40 text-sm h-64 overflow-y-auto whitespace-pre-wrap">
+                {sbiScript}
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
-                onClick={() => setNewMeetingOpen(false)}
+                onClick={() => {
+                  setNewMeetingOpen(false);
+                  setSbiScript("");
+                  setMeetingTopics("");
+                }}
                 className="flex-1 border-border bg-secondary/60"
               >
                 Cancelar
               </Button>
               <Button
-                onClick={() => setNewMeetingOpen(false)}
+                onClick={() => {
+                  setNewMeetingOpen(false);
+                  setSbiScript("");
+                  setMeetingTopics("");
+                }}
                 className="flex-1 bg-blue-600 text-white hover:bg-blue-500"
               >
                 Agendar 1:1

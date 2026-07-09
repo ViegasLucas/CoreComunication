@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { saveAuthToken } from "@/lib/auth";
 
 export default function LoginView({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -8,10 +9,10 @@ export default function LoginView({ onLoginSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const normalizedEmail = email.trim().toLowerCase();
     let role = null;
-    
+
     if (normalizedEmail === "visaolider@gmail.com") {
       role = "leader";
     } else if (normalizedEmail === "visaooperacional@gmail.com") {
@@ -23,6 +24,14 @@ export default function LoginView({ onLoginSuccess }) {
       return;
     }
 
+    try {
+      // Usando um UID mockado já que é um MVP sem banco real ainda
+      const mockUid = "user-mock-123";
+      saveAuthToken(mockUid, email);
+      console.log('[Auth] Token salvo com sucesso para:', email);
+    } catch (error) {
+      console.error('[Auth] Erro ao salvar token:', error);
+    }
     // TODO: wire auth logic with Firebase
     onLoginSuccess(role);
   };

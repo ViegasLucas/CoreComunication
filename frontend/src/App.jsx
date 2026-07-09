@@ -1,15 +1,39 @@
 import React, { useState, useEffect } from 'react';
 
+// Importa o Layout e Sidebar comuns
+import MainLayout from './layouts/MainLayout';
+import Sidebar from './components/features/Sidebar';
+
+// Importa as 3 Visões Demo do nosso Escopo
+import ConducaoView from './views/ConducaoView'; 
+import RhView from './views/rhView';             
+import LideradoView from './views/lideradoView';
+import SeparacaoUsuarioView from './views/SeparacaoUsuarioView';
+
 // Importa as Visões
 import LoginView from './views/LoginView';
 import LeaderDashboardView from './views/LeaderDashboardView';
 import EmployeeDashboardView from './views/EmployeeDashboardView';
 import HRDashboardView from './views/HRDashboardView';
 
+
+import { dadosIniciaisEquipe } from "./dados";
+
 export default function App() {
+
+  
+  // Estado que controla qual tela está ativa: 'separacao', 'conducao' (Líder), 'rh' ou 'liderado'
+
+  const [viewAtiva, setViewAtiva] = useState('separacao');
+  const [temaEscuro, setTemaEscuro] = useState(false);
+  const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
+  const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
+
   // Estado de Autenticação
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  
+
 
   // Acessibilidade e Tema (Globais)
   const [isDark, setIsDark] = useState(true);
@@ -25,6 +49,37 @@ export default function App() {
     if (isHighContrast) root.classList.add('high-contrast');
     else root.classList.remove('high-contrast');
   }, [isDark, isHighContrast]);
+
+  // Função para alternar tema escuro (usada pelo Sidebar)
+  const btnMudarTema = () => setTemaEscuro(prev => !prev);
+
+  // Deriva o liderado ativo a partir do id
+  const lideradoAtivo = listaLiderados.find(l => l.id === lideradoAtivoId) || null;
+
+  // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
+  const renderizaView = () => {
+    switch (viewAtiva) {
+      case 'separacao':
+        return <SeparacaoUsuarioView onSelecionarView={setViewAtiva} />;
+      case 'conducao':
+        return <ConducaoView lideradoAtivo={lideradoAtivo} />;
+      case 'rh':
+        return <RhView />;
+      case 'liderado':
+        return <LideradoView />;
+      default:
+        return <SeparacaoUsuarioView onSelecionarView={setViewAtiva} />;
+    }
+  };
+
+  const sidebarContent = viewAtiva === 'separacao' ? null : (
+    <Sidebar 
+      temaEscuro={temaEscuro} 
+      btnMudarTema={btnMudarTema} 
+      viewAtiva={viewAtiva}
+      setViewAtiva={setViewAtiva}
+    />
+  );
   
   // Renderização condicional: se não estiver logado, mostra o Login
   if (!isLoggedIn) {
