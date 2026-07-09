@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Home,
   Users,
@@ -75,6 +75,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     },
   ]);
   const [chatInput, setChatInput] = useState("");
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Auto-scroll to the latest message with smooth animation
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [chat]);
 
   const sendChat = () => {
     if (!chatInput.trim()) return;
@@ -94,13 +101,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     <div className="flex min-h-screen w-full bg-background text-foreground">
       {/* SIDEBAR */}
       <aside className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-card/70 backdrop-blur-xl md:flex">
-        <div className="flex items-center gap-2 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
-            <Sparkles className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-3 px-5 py-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
+            <Sparkles className="h-6 w-6 text-white" />
           </div>
           <div>
-            <div className="text-sm font-semibold tracking-tight">ClearIT</div>
-            <div className="text-[11px] text-muted-foreground">Smart Leading</div>
+            <div className="text-base font-semibold tracking-tight">ClearIT</div>
+            <div className="text-xs text-muted-foreground">Smart Leading</div>
           </div>
         </div>
 
@@ -118,13 +125,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 key={item.id}
                 onClick={() => setActive(item.id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base transition-all",
                   isActive
                     ? "bg-blue-600/15 text-blue-400 dark:text-blue-300 shadow-inner ring-1 ring-blue-500/30"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-5 w-5" />
                 {item.label}
               </button>
             );
@@ -133,20 +140,20 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
         <div className="border-t border-border p-3">
           <div className="rounded-xl bg-secondary/60 p-3 ring-1 ring-border">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground">
-              <Settings className="h-3.5 w-3.5" />
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+              <Settings className="h-4 w-4" />
               Configurações & Acessibilidade
             </div>
             <div className="flex items-center justify-between rounded-lg px-2 py-1.5">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 {isDark ? "Dark" : "Light"}
               </div>
               <Switch checked={isDark} onCheckedChange={setIsDark} />
             </div>
-            <div className="mt-1 flex items-center justify-between rounded-lg px-2 py-1.5 text-xs text-muted-foreground">
+            <div className="mt-1 flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <Accessibility className="h-3.5 w-3.5" />
+                <Accessibility className="h-4 w-4" />
                 Alto contraste
               </div>
               <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} />
@@ -170,15 +177,22 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <div className="text-xs uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight">Bom dia, Rafael 👋</h1>
-              <p className="text-sm text-muted-foreground">
+              <div className="text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
+              <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bom dia, Rafael 👋</h1>
+              <p className="text-base text-muted-foreground">
                 {profile ? `Perfil ativo: ${labelFor(profile)}` : "Defina seu perfil para personalizar a experiência."}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" className="border-border bg-secondary/60">
                 <Bell className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setOnboardingOpen(true)}
+                className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20"
+              >
+                <Sparkles className="mr-1 h-4 w-4" /> Descobrir Perfil
               </Button>
               <Button
                 onClick={() => setNewMeetingOpen(true)}
@@ -199,7 +213,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
             <GlassCard className="p-5">
               <div className="mb-3 flex items-center justify-between">
-                <div className="text-sm font-semibold">Ações Pendentes</div>
+                <div className="text-base font-semibold">Ações Pendentes</div>
                 <Badge className="bg-blue-600/15 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20">{pendingActions.length}</Badge>
               </div>
               <ul className="space-y-2">
@@ -213,7 +227,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground group-hover:text-blue-400 dark:group-hover:text-blue-300">
                         <Icon className="h-4 w-4" />
                       </div>
-                      <span className="flex-1 text-xs text-foreground">{a.label}</span>
+                      <span className="flex-1 text-sm text-foreground">{a.label}</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-400 dark:group-hover:text-blue-300" />
                     </li>
                   );
@@ -226,8 +240,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           <section className="mt-10">
             <div className="mb-4 flex items-end justify-between">
               <div>
-                <h2 className="text-lg font-semibold tracking-tight">Meus Liderados</h2>
-                <p className="text-xs text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
+                <h2 className="text-xl font-semibold tracking-tight">Meus Liderados</h2>
+                <p className="text-sm text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
               </div>
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
                 Ver todos <ChevronRight className="ml-1 h-4 w-4" />
@@ -243,22 +257,22 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold">{m.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">{m.role}</div>
+                      <div className="truncate text-base font-semibold">{m.name}</div>
+                      <div className="truncate text-sm text-muted-foreground">{m.role}</div>
                     </div>
                   </div>
                   <div className="mt-5">
-                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Progresso PDI</span>
                       <span className="font-medium">{m.pdi}%</span>
                     </div>
                     <Progress value={m.pdi} className="h-1.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-blue-400" />
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 border-border bg-secondary/60 text-xs">
+                    <Button size="sm" variant="outline" className="flex-1 border-border bg-secondary/60 text-sm">
                       Ver perfil
                     </Button>
-                    <Button size="sm" className="flex-1 bg-blue-600 text-xs text-white hover:bg-blue-500">
+                    <Button size="sm" className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
                       1:1
                     </Button>
                   </div>
@@ -271,7 +285,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           <section className="mt-10 grid gap-4 lg:grid-cols-2">
             <GlassCard className="p-5">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Reuniões Recentes</h3>
+                <h3 className="text-base font-semibold">Reuniões Recentes</h3>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </div>
               <ul className="space-y-2">
@@ -283,11 +297,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
             <GlassCard className="p-5">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Próximas Reuniões</h3>
+                <h3 className="text-base font-semibold">Próximas Reuniões</h3>
                 <Button
                   size="sm"
                   onClick={() => setNewMeetingOpen(true)}
-                  className="h-8 bg-blue-600 text-xs text-white hover:bg-blue-500"
+                  className="h-8 bg-blue-600 text-sm text-white hover:bg-blue-500"
                 >
                   <Plus className="mr-1 h-3.5 w-3.5" />
                   Criar nova 1:1
@@ -305,36 +319,30 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       {/* ONBOARDING MODAL */}
       <Dialog open={onboardingOpen} onOpenChange={setOnboardingOpen}>
-        <DialogContent className="max-w-4xl border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl">
-          <div className="grid gap-0 md:grid-cols-2">
+        <DialogContent className="max-w-[1300px] border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl">
+          <div className="grid h-[85vh] max-h-[800px] min-h-[500px] gap-0 md:grid-cols-2">
             {/* Left: quick profile */}
-            <div className="border-b border-border p-8 md:border-b-0 md:border-r">
-              <DialogHeader className="space-y-2 text-left">
-                <DialogTitle className="text-2xl">Defina seu Perfil de Liderança</DialogTitle>
-                <DialogDescription className="text-muted-foreground">
-                  Escolha manualmente ou descubra com nossa IA. Isso personaliza roteiros, feedbacks e 1:1s.
+            <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <DialogHeader className="space-y-3 text-left">
+                <DialogTitle className="text-3xl">Conheça os Perfis de Liderança</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Converse com nossa IA para descobrir qual perfil combina com você. Isso personaliza roteiros, feedbacks e 1:1s.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="mt-6 text-xs font-medium uppercase tracking-widest text-blue-400/80">Via Rápida</div>
-              <div className="mt-3 grid gap-3">
+              <div className="mt-8 text-sm font-medium uppercase tracking-widest text-blue-400/80">Perfis Disponíveis</div>
+              <div className="mt-5 flex flex-1 flex-col justify-center gap-5">
                 <ProfileCard
-                  active={profile === "tecnico"}
-                  onClick={() => setProfile("tecnico")}
                   icon={Wrench}
                   title="Técnico"
                   desc="Objetivo, orientado a fatos. Prefere roteiros diretos e curtos."
                 />
                 <ProfileCard
-                  active={profile === "engajado"}
-                  onClick={() => setProfile("engajado")}
                   icon={Rocket}
                   title="Engajado"
                   desc="Já pratica 1:1s. Busca eficiência e histórico organizado."
                 />
                 <ProfileCard
-                  active={profile === "transicao"}
-                  onClick={() => setProfile("transicao")}
                   icon={HeartHandshake}
                   title="Em Transição"
                   desc="Novo em gestão. Precisa de apoio passo a passo e validação."
@@ -343,28 +351,31 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             </div>
 
             {/* Right: AI chat */}
-            <div className="flex flex-col p-8">
-              <div className="text-xs font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
-              <div className="mt-1 text-lg font-semibold">Descubra seu perfil</div>
-              <p className="text-xs text-muted-foreground">Um agente irá mapear seu DISC em poucas perguntas.</p>
+            <div className="flex h-full min-h-0 flex-col p-8 md:p-10">
+              <div className="shrink-0 text-sm font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
+              <div className="mt-1 shrink-0 text-xl font-semibold">Descubra seu perfil</div>
+              <p className="shrink-0 text-sm text-muted-foreground">Um agente irá mapear seu DISC em poucas perguntas.</p>
 
-              <div className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl border border-border bg-secondary/40 p-4 max-h-72">
+              <div
+                ref={chatContainerRef}
+                className="mt-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-border bg-secondary/40 p-5 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              >
                 {chat.map((m, i) => (
                   <div
                     key={i}
                     className={cn(
-                      "flex gap-2",
+                      "flex gap-3",
                       m.from === "user" ? "justify-end" : "justify-start",
                     )}
                   >
                     {m.from === "bot" && (
-                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-800">
-                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-800">
+                        <Sparkles className="h-5 w-5 text-white" />
                       </div>
                     )}
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed",
+                        "max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed",
                         m.from === "bot"
                           ? "bg-secondary text-foreground"
                           : "bg-blue-600 text-white",
@@ -374,35 +385,30 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     </div>
                   </div>
                 ))}
+                {/* Sentinel element for auto-scroll anchor */}
+                <div ref={chatEndRef} aria-hidden className="h-0 w-0" />
               </div>
 
-              <div className="mt-3 flex gap-2">
+              <div className="mt-4 flex shrink-0 gap-3">
                 <Input
                   value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendChat()}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && sendChat()}
                   placeholder="Digite sua resposta..."
-                  className="border-border bg-secondary/60 text-sm"
+                  className="border-border bg-secondary/60 text-base h-12"
                 />
-                <Button onClick={sendChat} className="bg-blue-600 text-white hover:bg-blue-500">
-                  <Send className="h-4 w-4" />
+                <Button onClick={sendChat} className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500">
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
 
-              <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+              <div className="mt-3 flex shrink-0 items-center justify-end border-t border-border pt-3">
                 <button
                   onClick={() => setOnboardingOpen(false)}
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   Pular por agora
                 </button>
-                <Button
-                  disabled={!profile}
-                  onClick={() => setOnboardingOpen(false)}
-                  className="bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40"
-                >
-                  Confirmar perfil
-                </Button>
               </div>
             </div>
           </div>
@@ -524,9 +530,9 @@ function KpiCard({
       <div className={cn("absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br blur-2xl", accents)} />
       <div className="relative flex items-start justify-between">
         <div>
-          <div className="text-xs text-muted-foreground">{title}</div>
-          <div className="mt-2 text-2xl font-semibold tracking-tight">{value}</div>
-          <div className="mt-1 text-[11px] text-emerald-500 dark:text-emerald-400">{trend}</div>
+          <div className="text-sm text-muted-foreground">{title}</div>
+          <div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div>
+          <div className="mt-1 text-xs text-emerald-500 dark:text-emerald-400">{trend}</div>
         </div>
         <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-secondary ring-1", accents)}>
           <Icon className="h-4 w-4" />
@@ -537,42 +543,24 @@ function KpiCard({
 }
 
 function ProfileCard({
-  active,
-  onClick,
   icon: Icon,
   title,
   desc,
 }: {
-  active: boolean;
-  onClick: () => void;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   desc: string;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all",
-        active
-          ? "border-blue-500/60 bg-blue-600/10 ring-2 ring-blue-500/30"
-          : "border-border bg-secondary/40 hover:border-accent hover:bg-accent",
-      )}
-    >
-      <div
-        className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-lg",
-          active ? "bg-blue-600 text-white" : "bg-secondary text-muted-foreground",
-        )}
-      >
-        <Icon className="h-5 w-5" />
+    <div className="flex w-full items-start gap-5 rounded-xl border border-border bg-secondary/30 p-6 shadow-sm">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
+        <Icon className="h-7 w-7" />
       </div>
-      <div className="flex-1">
-        <div className="text-sm font-semibold">{title}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{desc}</div>
+      <div className="flex-1 pt-0.5">
+        <div className="text-lg font-semibold">{title}</div>
+        <div className="mt-1 text-base text-muted-foreground">{desc}</div>
       </div>
-      {active && <CheckCircle2 className="h-5 w-5 text-blue-400" />}
-    </button>
+    </div>
   );
 }
 
@@ -589,10 +577,10 @@ function MeetingRow({
 }) {
   return (
     <li className="flex items-center gap-3 rounded-lg border border-border bg-secondary/40 p-3 transition-colors hover:border-accent">
-      <Avatar className="h-9 w-9">
+      <Avatar className="h-10 w-10">
         <AvatarFallback
           className={cn(
-            "text-xs",
+            "text-sm",
             tone === "blue"
               ? "bg-gradient-to-br from-blue-600 to-blue-800 text-white"
               : "bg-secondary text-foreground",
@@ -602,10 +590,10 @@ function MeetingRow({
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{who}</div>
-        <div className="truncate text-xs text-muted-foreground">{topic}</div>
+        <div className="truncate text-base font-medium">{who}</div>
+        <div className="truncate text-sm text-muted-foreground">{topic}</div>
       </div>
-      <div className="text-right text-xs text-muted-foreground">{when}</div>
+      <div className="text-right text-sm text-muted-foreground">{when}</div>
     </li>
   );
 }

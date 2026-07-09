@@ -124,3 +124,26 @@
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Chat scrollbar — slim, themed, cross-browser */
+.chat-scrollbar {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+.chat-scrollbar:hover {
+  scrollbar-color: var(--color-muted-foreground) transparent;
+}
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 9999px;
+}
+.chat-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: var(--color-muted-foreground);
+}
