@@ -1,7 +1,23 @@
 # ==========================================
+# Dependências e Builds
+# ==========================================
+node_modules/
+dist/
+dist-ssr/
+package-lock.json
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+npm-debug.log*
+
+# ==========================================
 # Configurações de Ambiente
 # ==========================================
 .env
+.env.*
+!.env.example
 
 # ==========================================
 # Framework Onion (Arquivos de Sistema)
@@ -31,3 +47,17 @@ docs/INDEX.md
 
 # Arquivo de divisão de atividades por membros da equipe.
 docs/business-context/02-product/squadSprintPlan.md
+
+# ==========================================
+# Sistema Operacional e Editores
+# ==========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
