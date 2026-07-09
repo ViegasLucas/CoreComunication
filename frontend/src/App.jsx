@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+<<<<<<< HEAD
 // Importa o Layout e Sidebar comuns
 import MainLayout from './layouts/mainLayout';
 import Sidebar from './components/features/sidebar';
@@ -18,16 +19,30 @@ export default function App() {
   const [temaEscuro, setTemaEscuro] = useState(false);
   const [listaLiderados, setListaLiderados] = useState(dadosIniciaisEquipe);
   const [lideradoAtivoId, setLideradoAtivoId] = useState(1);
+=======
+// Importa as Visões
+import LoginView from './views/LoginView';
+import LeaderDashboardView from './views/LeaderDashboardView';
+import EmployeeDashboardView from './views/EmployeeDashboardView';
+import HRDashboardView from './views/HRDashboardView';
 
-  const lideradoAtivo = listaLiderados.find(l => l.id === lideradoAtivoId);
+export default function App() {
+  // Estado de Autenticação
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+>>>>>>> 617670c57639033446eddf42cacad88fffaaece2
 
-  const btnMudarTema = () => setTemaEscuro(!temaEscuro);
+  // Acessibilidade e Tema (Globais)
+  const [isDark, setIsDark] = useState(true);
+  const [isHighContrast, setIsHighContrast] = useState(false);
 
   useEffect(() => {
-    if (temaEscuro) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [temaEscuro]);
+    const root = document.documentElement;
+    // Dark mode
+    if (isDark) root.classList.add('dark');
+    else root.classList.remove('dark');
 
+<<<<<<< HEAD
   // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
   const renderizaView = () => {
     switch (viewAtiva) {
@@ -58,4 +73,33 @@ export default function App() {
       {renderizaView()}
     </MainLayout>
   );
+=======
+    // High contrast mode
+    if (isHighContrast) root.classList.add('high-contrast');
+    else root.classList.remove('high-contrast');
+  }, [isDark, isHighContrast]);
+  
+  // Renderização condicional: se não estiver logado, mostra o Login
+  if (!isLoggedIn) {
+    return <LoginView onLoginSuccess={(role) => {
+      setUserRole(role);
+      setIsLoggedIn(true);
+    }} />;
+  }
+
+  // Props comuns a todos os dashboards
+  const dashboardProps = { isDark, setIsDark, isHighContrast, setIsHighContrast };
+
+  // Roteamento baseado no perfil
+  if (userRole === 'employee') {
+    return <EmployeeDashboardView {...dashboardProps} />;
+  }
+  
+  if (userRole === 'hr') {
+    return <HRDashboardView {...dashboardProps} />;
+  }
+
+  // Padrão (Líder)
+  return <LeaderDashboardView {...dashboardProps} />;
+>>>>>>> 617670c57639033446eddf42cacad88fffaaece2
 }
