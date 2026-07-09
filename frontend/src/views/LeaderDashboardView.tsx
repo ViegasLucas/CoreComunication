@@ -38,6 +38,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getAuthToken } from "@/lib/auth";
 
 type ProfileKey = "tecnico" | "engajado" | "transicao";
 type ChatMsg = { from: "bot" | "user"; text: string };
@@ -88,26 +89,6 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     // Auto-scroll to the latest message with smooth animation
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
-
-  /**
-   * Obtém o token do Firebase do localStorage
-   */
-  const getAuthToken = (): string | null => {
-    try {
-      // Firebase armazena o token em: firebase_token ou no localStorage com a chave de auth
-      const token = localStorage.getItem('firebase_token');
-      if (token) return token;
-      
-      // Alternativa: procurar em sessionStorage
-      const sessionToken = sessionStorage.getItem('firebase_token');
-      if (sessionToken) return sessionToken;
-      
-      return null;
-    } catch (error) {
-      console.error('[Auth] Erro ao obter token:', error);
-      return null;
-    }
-  };
 
   /**
    * Envia a mensagem para o backend e processa a resposta
