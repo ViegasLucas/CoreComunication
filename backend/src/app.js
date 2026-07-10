@@ -8,13 +8,8 @@ const authMiddleware = require('./middlewares/authMiddleware');
 
 const app = express();
 
-// CORS: em produção, restringir para o domínio da Vercel via ALLOWED_ORIGIN no .env
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-app.use(cors(corsOptions));
+// CORS: Permitir todas as origens durante o desenvolvimento MVP
+app.use(cors());
 app.use(express.json());
 
 // Rota de healthcheck (sem auth) — útil para monitorar se o servidor está de pé

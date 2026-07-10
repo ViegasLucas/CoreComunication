@@ -2,17 +2,22 @@ const { GoogleGenAI } = require('@google/genai');
 
 // ── Constantes ────────────────────────────────────────────────
 const MODEL_SBI = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM rápido para validação LGPD
+const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM para validação LGPD
 
 // ── Lazy singleton ────────────────────────────────────────────
 let _genAI = null;
 function getGenAI() {
   if (!_genAI) {
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
       throw new Error('[Gemini] GEMINI_API_KEY não configurada. Adicione ao arquivo .env');
     }
-    _genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    console.log('[Gemini] ✅ Cliente SDK inicializado com sucesso.');
+    // Validação básica do formato da chave
+    if (!apiKey.startsWith('AIza')) {
+      console.warn('[Gemini] ⚠️  ATENÇÃO: Sua GEMINI_API_KEY não começa com "AIza". Chaves válidas do Google AI Studio começam com "AIza...". Verifique em: https://aistudio.google.com/app/apikey');
+    }
+    _genAI = new GoogleGenAI({ apiKey });
+    console.log(`[Gemini] ✅ Cliente SDK inicializado. Key prefix: ${apiKey.substring(0, 4)}...`);
   }
   return _genAI;
 }
@@ -42,13 +47,18 @@ Use o seguinte esquema JSON:
  * SYSTEM PROMPT — SMART LEADING (Modelo SBI Principal)
  * Segunda camada: gera roteiros estruturados após validação LGPD
  */
-const SBI_SYSTEM_PROMPT = `# SMART LEADING - Assistente de Feedback Estruturado
+const getSbiSystemPrompt = (profileTone) => {
+  const toneInstruction = profileTone 
+    ? `\n## 👤 Perfil do Líder: ${profileTone}\nAdapte o tom da mensagem, o quebra-gelo e as perguntas abertas para refletir o perfil "${profileTone}". Exemplo: Se técnico, seja direto e objetivo. Se engajado, seja motivador e focado em eficiência. Se em transição, adicione passos mais detalhados para dar segurança ao líder.` 
+    : '';
+
+  return `# SMART LEADING - Assistente de Feedback Estruturado
 
 Você é um especialista em liderança humanizada e gestão de pessoas. Seu propósito exclusivo é ajudar líderes a estruturar roteiros de feedback profissional usando o modelo **SBI (Situação → Comportamento → Impacto)**.
 
 ## 🎯 Sua Missão
 Transformar relatos brutos (frequentemente carregados de emoção) em roteiros estruturados, factuais e construtivos para reuniões 1:1.
-
+${toneInstruction}
 ## 📋 Estrutura Obrigatória da Resposta
 
 ### 1️⃣ SITUAÇÃO
@@ -115,6 +125,14 @@ Analise o relato do líder e gere o roteiro SBI estruturado.
 Sempre responda em português do Brasil.
 Seja direto e prático. O roteiro deve ser algo que o líder possa usar imediatamente na conversa.
 Ao final do roteiro, adicione uma seção "💡 Dica do Smart Leading" com uma sugestão de como abrir a conversa de forma empática.`.trim();
+};
+
+const PROFILE_DISCOVERY_PROMPT = `Você é um agente da ClearIT, especialista em perfis de liderança. 
+Sua missão é conduzir um teste de personalidade curto (3 a 5 perguntas) para mapear o perfil do líder.
+Os perfis possíveis são: "Técnico", "Engajado" ou "Em Transição".
+Faça uma pergunta por vez. Se você já tiver informações suficientes para definir o perfil do líder, encerre o teste dizendo: 
+"[RESULTADO_PERFIL: TÉCNICO]" ou "[RESULTADO_PERFIL: ENGAJADO]" ou "[RESULTADO_PERFIL: EM TRANSIÇÃO]" e dê uma breve explicação do motivo.
+Caso contrário, apenas responda com a próxima pergunta de forma natural e amigável.`;
 
 /**
  * RECUSA PADRÃO (LGPD Violation)
@@ -187,9 +205,10 @@ function checkLGPD(text) {
 /**
  * Gera um roteiro de feedback SBI usando o Gemini.
  * @param {string} userMessage - Descrição da situação pelo líder
+ * @param {string} profileTone - Tom do perfil do líder
  * @returns {Promise<{ reply: string, blocked: boolean }>}
  */
-async function generateSBIFeedback(userMessage) {
+async function generateSBIFeedback(userMessage, profileTone) {
   // 1. Filtro LGPD local (antes de enviar ao modelo)
   const lgpdCheck = checkLGPD(userMessage);
   if (lgpdCheck.blocked) {
@@ -223,7 +242,7 @@ async function generateSBIFeedback(userMessage) {
       model: MODEL_SBI,
       contents: userMessage,
       config: {
-        systemInstruction: SBI_SYSTEM_PROMPT,
+        systemInstruction: getSbiSystemPrompt(profileTone),
         temperature: 0.7,      // Criativo mas consistente
         topP: 0.9,
         maxOutputTokens: 1024, // Roteiros são concisos
@@ -241,4 +260,42 @@ async function generateSBIFeedback(userMessage) {
   }
 }
 
-module.exports = { generateSBIFeedback };
+/**
+ * Chat iterativo para descobrir o perfil do líder
+ * @param {string} userMessage - Mensagem do líder
+ * @returns {Promise<{ reply: string, blocked: boolean }>}
+ */
+async function generateProfileDiscovery(userMessage, history = []) {
+  try {
+    if (!userMessage || typeof userMessage !== 'string') {
+      return { reply: 'Por favor, envie uma mensagem válida.', blocked: false };
+    }
+
+    const localCheck = checkLGPD(userMessage);
+    if (localCheck.blocked) {
+      return { reply: LGPD_REFUSAL_MESSAGE, blocked: true };
+    }
+
+    const contents = [...history, { role: 'user', parts: [{ text: userMessage }] }];
+
+    const response = await getGenAI().models.generateContent({
+      model: MODEL_SBI, // Usamos o mesmo modelo base
+      contents,
+      config: {
+        systemInstruction: PROFILE_DISCOVERY_PROMPT,
+        temperature: 0.5, 
+        maxOutputTokens: 500,
+      },
+    });
+
+    return {
+      reply: response.text || '',
+      blocked: false,
+    };
+  } catch (error) {
+    console.error('[Gemini Profile] Erro ao processar:', error.message);
+    throw new Error('Falha ao processar solicitação de perfil na IA.');
+  }
+}
+
+module.exports = { generateSBIFeedback, generateProfileDiscovery, checkLGPD, redactLGPD };

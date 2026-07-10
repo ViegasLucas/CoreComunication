@@ -77,14 +77,20 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     },
   ]);
   const [chatInput, setChatInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Novos estados para a geração do SBI
+  const [meetingTopics, setMeetingTopics] = useState("");
+  const [sbiScript, setSbiScript] = useState("");
+  const [isGeneratingSbi, setIsGeneratingSbi] = useState(false);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
-
-  const [isLoading, setIsLoading] = useState(false);
 
   const sendChat = async () => {
     if (!chatInput.trim() || isLoading) return;
@@ -99,12 +105,22 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     ]);
     setIsLoading(true);
 
+    // Monta o histórico (antes da nova mensagem do usuário)
+    const historyPayload = chat.map(msg => ({
+      role: msg.from === "bot" ? "model" : "user",
+      parts: [{ text: msg.text }]
+    }));
+
     try {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
       const res = await fetch(`${API_BASE}/api/chat/dev`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg }),
+        body: JSON.stringify({ 
+          message: userMsg, 
+          history: historyPayload,
+          type: "profile_discovery" 
+        }),
       });
 
       if (!res.ok) {
@@ -114,11 +130,37 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       const data = await res.json();
 
-      // Substitui o "Analisando..." pela resposta real
-      setChat((c) => [
-        ...c.slice(0, -1),
-        { from: "bot", text: data.reply },
-      ]);
+      // Processa a resposta
+      const { reply, blocked } = data;
+
+      if (blocked) {
+        // Quando há bloqueio LGPD, mostra como aviso especial
+        setChat((c) => [
+          ...c.slice(0, -1),
+          { from: "bot", text: reply },
+        ]);
+        setError("⚠️ Sua mensagem foi bloqueada por conformidade com LGPD. Remova dados sensíveis e tente novamente.");
+      } else {
+        // Resposta de descoberta de perfil
+        let finalReply = reply;
+        
+        // Verifica se a IA encontrou o perfil
+        if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
+           setProfile("tecnico");
+           finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
+        } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
+           setProfile("engajado");
+           finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
+        } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
+           setProfile("transicao");
+           finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
+        }
+
+        setChat((c) => [
+          ...c.slice(0, -1),
+          { from: "bot", text: finalReply },
+        ]);
+      }
     } catch (error: any) {
       // Substitui o "Analisando..." pela mensagem de erro
       setChat((c) => [
@@ -127,6 +169,38 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  /**
+   * Envia os tópicos para gerar o script SBI
+   */
+  const handleGenerateSbi = async () => {
+    if (!meetingTopics.trim()) return;
+    setIsGeneratingSbi(true);
+    setSbiScript("");
+    setError(null);
+    try {
+      const token = localStorage.getItem("token") || "";
+      if (!token) throw new Error("Token não encontrado.");
+
+      const response = await fetch("http://localhost:3001/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ 
+          message: meetingTopics, 
+          type: "sbi", 
+          profileTone: profile ? labelFor(profile) : "Técnico" 
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Erro na API.");
+      const data = await response.json();
+      setSbiScript(data.reply);
+    } catch(err) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
+    } finally {
+      setIsGeneratingSbi(false);
     }
   };
 
@@ -251,7 +325,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               <Button
                 variant="outline"
                 onClick={() => setOnboardingOpen(true)}
-                className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20"
+                disabled={profile !== null}
+                className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={profile !== null ? "Perfil já mapeado. Procure o RH para refazer o teste." : ""}
               >
                 <Sparkles className="mr-1 h-4 w-4" /> Descobrir Perfil
               </Button>
@@ -572,28 +648,52 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Tópicos (opcional)</Label>
+              <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI</Label>
               <Textarea
-                rows={4}
-                placeholder="Feedback SBI, evolução PDI, bloqueios..."
+                rows={3}
+                placeholder="Ex: Não cumpriu o prazo de entrega da funcionalidade X..."
                 className="border-border bg-secondary/60"
+                value={meetingTopics}
+                onChange={(e) => setMeetingTopics(e.target.value)}
               />
             </div>
 
-            <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200">
-              Nossa IA sugerirá um roteiro personalizado baseado no seu perfil de liderança.
+            <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200 flex flex-col gap-2">
+              Nossa IA irá gerar um roteiro personalizado baseado no seu perfil de liderança.
+              <Button 
+                onClick={handleGenerateSbi} 
+                disabled={isGeneratingSbi || !meetingTopics.trim()}
+                className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 h-8"
+              >
+                {isGeneratingSbi ? "Gerando..." : <Sparkles className="h-4 w-4 mr-2"/>}
+                Gerar Roteiro SBI
+              </Button>
             </div>
+
+            {sbiScript && (
+              <div className="mt-4 p-4 rounded-xl border border-border bg-secondary/40 text-sm h-64 overflow-y-auto whitespace-pre-wrap">
+                {sbiScript}
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
-                onClick={() => setNewMeetingOpen(false)}
+                onClick={() => {
+                  setNewMeetingOpen(false);
+                  setSbiScript("");
+                  setMeetingTopics("");
+                }}
                 className="flex-1 border-border bg-secondary/60"
               >
                 Cancelar
               </Button>
               <Button
-                onClick={() => setNewMeetingOpen(false)}
+                onClick={() => {
+                  setNewMeetingOpen(false);
+                  setSbiScript("");
+                  setMeetingTopics("");
+                }}
                 className="flex-1 bg-blue-600 text-white hover:bg-blue-500"
               >
                 Agendar 1:1

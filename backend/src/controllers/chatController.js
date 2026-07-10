@@ -1,8 +1,8 @@
-const { generateSBIFeedback } = require('../services/geminiService');
+const { generateSBIFeedback, generateProfileDiscovery } = require('../services/geminiService');
 
 const handleChat = async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, type = 'sbi', profileTone, history = [] } = req.body;
     const user = req.user; // uid e email injetados pelo authMiddleware
 
     if (!message || typeof message !== 'string') {
@@ -11,8 +11,18 @@ const handleChat = async (req, res) => {
       });
     }
 
-    // Delega ao geminiService: filtro LGPD + geração SBI
-    const { reply, blocked } = await generateSBIFeedback(message);
+    let reply, blocked;
+
+    if (type === 'profile_discovery') {
+      const result = await generateProfileDiscovery(message, history);
+      reply = result.reply;
+      blocked = result.blocked;
+    } else {
+      // type === 'sbi' default
+      const result = await generateSBIFeedback(message, profileTone);
+      reply = result.reply;
+      blocked = result.blocked;
+    }
 
     return res.status(200).json({
       reply,

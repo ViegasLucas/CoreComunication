@@ -8,12 +8,28 @@ export default function LoginView({ onLoginSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    let role = "leader"; // Default fallback
-    if (email === "visaolider@gmail.com") role = "leader";
-    if (email === "visaooperacional@gmail.com") role = "employee";
-    if (email === "visaorh@gmail.com") role = "hr";
+    const normalizedEmail = email.trim().toLowerCase();
+    let role = null;
 
+    if (normalizedEmail === "visaolider@gmail.com") {
+      role = "leader";
+    } else if (normalizedEmail === "visaooperacional@gmail.com") {
+      role = "employee";
+    } else if (normalizedEmail === "visaorh@gmail.com") {
+      role = "hr";
+    } else {
+      alert("E-mail não autorizado! Para testar as telas, utilize: \n- visaolider@gmail.com\n- visaooperacional@gmail.com\n- visaorh@gmail.com");
+      return;
+    }
+
+    try {
+      const mockUid = "user-mock-123";
+      localStorage.setItem("token", mockUid);
+      localStorage.setItem("email", normalizedEmail);
+      console.log('[Auth] Token salvo com sucesso para:', normalizedEmail);
+    } catch (error) {
+      console.error('[Auth] Erro ao salvar token:', error);
+    }
     // TODO: wire auth logic with Firebase
     onLoginSuccess(role);
   };
