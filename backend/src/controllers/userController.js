@@ -1,7 +1,25 @@
 const { auth, db } = require('../config/firebase');
+const fs = require('fs');
+const path = require('path');
 
-// Memória local para rodar sem custo de banco de dados
-const memoryUsers = {};
+// Memória local persistente para rodar sem custo de banco de dados
+const DB_FILE = path.join(__dirname, '../../local_db.json');
+let memoryUsers = {};
+try {
+  if (fs.existsSync(DB_FILE)) {
+    memoryUsers = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+  }
+} catch (e) {
+  console.error("Erro ao carregar banco local:", e);
+}
+
+const saveMemory = () => {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(memoryUsers, null, 2), 'utf-8');
+  } catch (e) {
+    console.error("Erro ao salvar banco local:", e);
+  }
+};
 
 exports.createUser = async (req, res) => {
   try {
@@ -34,6 +52,7 @@ exports.createUser = async (req, res) => {
     if (req.body.assignedEmployees) {
       memoryUsers[userRecord.uid].assignedEmployees = req.body.assignedEmployees;
     }
+    saveMemory();
 
     await db.collection('users').doc(userRecord.uid).set(userDoc);
 
@@ -63,11 +82,19 @@ exports.getMe = async (req, res) => {
       
       // Fallback in-memory
       const memUser = memoryUsers[uid] || {};
+      
+      let finalRole = memUser.role;
+      if (!finalRole) {
+        if (req.user.email.toLowerCase().includes('rh')) finalRole = 'hr';
+        else if (req.user.email.toLowerCase().includes('lider')) finalRole = 'leader';
+        else finalRole = 'employee';
+      }
+
       return res.status(200).json({
         uid,
         name: req.user.name || req.user.email?.split('@')[0] || 'Líder',
         email: req.user.email,
-        role: memUser.role || 'employee',
+        role: finalRole,
         profile: memUser.profile || null
       });
     }
@@ -75,11 +102,19 @@ exports.getMe = async (req, res) => {
     if (!docSnap || !docSnap.exists) {
       // Fallback in-memory se não existir
       const memUser = memoryUsers[uid] || {};
+      
+      let finalRole = memUser.role;
+      if (!finalRole) {
+        if (req.user.email.toLowerCase().includes('rh')) finalRole = 'hr';
+        else if (req.user.email.toLowerCase().includes('lider')) finalRole = 'leader';
+        else finalRole = 'employee';
+      }
+
       return res.status(200).json({
         uid,
         name: req.user.name || req.user.email?.split('@')[0] || 'Líder',
         email: req.user.email,
-        role: memUser.role || 'employee',
+        role: finalRole,
         profile: memUser.profile || null
       });
     }
@@ -105,6 +140,7 @@ exports.updateMyProfile = async (req, res) => {
       memoryUsers[uid] = {};
     }
     memoryUsers[uid].profile = profile;
+    saveMemory();
 
     try {
       const userDocRef = db.collection('users').doc(uid);
@@ -127,11 +163,19 @@ exports.getAllUsers = async (req, res) => {
     const listUsersResult = await auth.listUsers(1000);
     const users = listUsersResult.users.map(u => {
       const mem = memoryUsers[u.uid] || {};
+      
+      let finalRole = mem.role;
+      if (!finalRole) {
+        if (u.email && u.email.toLowerCase().includes('rh')) finalRole = 'hr';
+        else if (u.email && u.email.toLowerCase().includes('lider')) finalRole = 'leader';
+        else finalRole = 'employee';
+      }
+
       return {
         uid: u.uid,
         name: u.displayName || u.email.split('@')[0],
         email: u.email,
-        role: mem.role || 'employee', // Padrão se não tiver na memória
+        role: finalRole,
         profile: mem.profile || null,
         assignedEmployees: mem.assignedEmployees || []
       };
@@ -160,6 +204,7 @@ exports.updateUser = async (req, res) => {
     if (!memoryUsers[uid]) memoryUsers[uid] = {};
     if (role) memoryUsers[uid].role = role;
     if (assignedEmployees) memoryUsers[uid].assignedEmployees = assignedEmployees;
+    saveMemory();
 
     return res.status(200).json({ message: 'Usuário atualizado com sucesso' });
   } catch (error) {

@@ -1,0 +1,20 @@
+{
+  "wxjSWyn8k3hSJEs3AZrEaoFFvk33": {
+    "role": "leader",
+    "assignedEmployees": [
+      "1MQ0unBAhYP6W8rqxBLTzuw3CDV2",
+      "I73z3AndKzU6p3dB4GB0viHTmZx2",
+      "xwT32fAF5gRclwV7X3pqQjD4O7x1"
+    ],
+    "profile": "engajado"
+  },
+  "1MQ0unBAhYP6W8rqxBLTzuw3CDV2": {
+    "pdi": 68
+  },
+  "I73z3AndKzU6p3dB4GB0viHTmZx2": {
+    "pdi": 74
+  },
+  "xwT32fAF5gRclwV7X3pqQjD4O7x1": {
+    "pdi": 52
+  }
+}
