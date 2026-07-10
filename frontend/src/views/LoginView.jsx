@@ -39,7 +39,11 @@ export default function LoginView({ onLoginSuccess }) {
       if (normalizedEmail === 'visaorh@gmail.com') fallbackRole = 'hr';
       else if (normalizedEmail === 'visaooperacional@gmail.com') fallbackRole = 'employee';
       
-      let userData = { role: fallbackRole, name: 'Usuário Demo', profile: null }; // Fallback
+      let userData = { 
+        role: fallbackRole, 
+        name: userCredential.user.displayName || 'Usuário', 
+        profile: null 
+      }; // Fallback
 
       if (res.ok) {
         const dbData = await res.json();

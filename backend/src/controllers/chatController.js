@@ -1,5 +1,8 @@
 const { generateSBIFeedback, generateProfileDiscovery } = require('../services/geminiService');
 
+// Memória local para rodar sem custo de banco de dados
+const memoryChatHistory = {};
+
 const handleChat = async (req, res) => {
   try {
     const { message, type = 'sbi', profileTone, history = [] } = req.body;
@@ -24,6 +27,20 @@ const handleChat = async (req, res) => {
       blocked = result.blocked;
     }
 
+    // Salvar no histórico in-memory
+    if (user && user.uid) {
+      if (!memoryChatHistory[user.uid]) {
+        memoryChatHistory[user.uid] = [];
+      }
+      memoryChatHistory[user.uid].unshift({
+        id: Date.now().toString(),
+        type,
+        message,
+        reply,
+        date: new Date().toISOString()
+      });
+    }
+
     return res.status(200).json({
       reply,
       blocked, // frontend pode usar para exibir mensagem específica de LGPD
@@ -36,5 +53,19 @@ const handleChat = async (req, res) => {
   }
 };
 
-module.exports = { handleChat };
+const getChatHistory = async (req, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) {
+      return res.status(401).json({ error: 'Não autorizado.' });
+    }
+    const history = memoryChatHistory[uid] || [];
+    return res.status(200).json(history);
+  } catch (error) {
+    console.error('[Chat] Erro ao buscar histórico:', error.message);
+    return res.status(500).json({ error: 'Erro interno.' });
+  }
+};
+
+module.exports = { handleChat, getChatHistory };
 

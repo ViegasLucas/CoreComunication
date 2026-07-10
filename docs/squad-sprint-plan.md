@@ -86,9 +86,9 @@ Para paralelizar o trabalho e evitar gargalos (bottlenecks), assumiremos os segu
 - [ ] **4.5** Deploy Produção (Vercel)
 
 ### Membro 2 (Front-end B)
-- [ ] **2.1** Conexão Real Firebase Auth (Front)
-- [ ] **3.2** Resgate de Histórico na UI
-- [ ] **4.1** Resgate de Histórico na UI (Refinamento)
+- [x] **2.1** Conexão Real Firebase Auth (Front)
+- [x] **3.2** Resgate de Histórico na UI
+- [x] **4.1** Resgate de Histórico na UI (Refinamento)
 - [ ] **4.5** Deploy Produção (Vercel)
 
 ### Membro 3 (Back-end A)

@@ -46,11 +46,15 @@ app.get('/api/test', exampleController.getExample);
 
 // Rotas de Usuário (protegidas pelo middleware JWT)
 app.post('/api/users', authMiddleware, userController.createUser);
+app.get('/api/users', authMiddleware, userController.getAllUsers);
 app.get('/api/users/me', authMiddleware, userController.getMe);
+app.get('/api/users/me/team', authMiddleware, userController.getMyTeam);
 app.patch('/api/users/me/profile', authMiddleware, userController.updateMyProfile);
+app.put('/api/users/:uid', authMiddleware, userController.updateUser);
 
 // Rota de chat (protegida pelo middleware JWT)
 app.post('/api/chat', authMiddleware, chatController.handleChat);
+app.get('/api/chat/history', authMiddleware, chatController.getChatHistory);
 
 const PORT = process.env.PORT || 3001;
 

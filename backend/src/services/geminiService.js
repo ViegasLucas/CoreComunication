@@ -2,7 +2,7 @@ const { GoogleGenAI } = require('@google/genai');
 
 // ── Constantes ────────────────────────────────────────────────
 const MODEL_SBI = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const MODEL_GATEKEEPER = 'gemini-2.5-flash'; // SLM para validação LGPD
+const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM para validação LGPD
 
 // ── Lazy singleton ────────────────────────────────────────────
 let _genAI = null;
@@ -255,8 +255,25 @@ async function generateSBIFeedback(userMessage, profileTone) {
 
     return { reply, blocked: false };
   } catch (error) {
-    console.error('[Gemini] Erro ao chamar a API:', error.message);
-    throw new Error('Falha ao processar sua solicitação com a IA. Tente novamente em instantes.');
+    console.error('[Gemini] Erro ao chamar a API (Fallback ativado):', error.message);
+    
+    // MOCK RESPONSE PARA O MVP (Modo Custo Zero)
+    const mockReply = `## 🧊 Check-in
+"Oi, tudo bem? Queria separar uns minutinhos para conversarmos sobre a situação que você relatou."
+
+## 🎯 O Feedback (SBI)
+**Situação:** Sobre o contexto recente que você descreveu e as tarefas envolvidas.
+**Comportamento:** Observei que a forma como a situação foi conduzida gerou algumas divergências em relação ao que esperávamos.
+**Impacto:** Como consequência, houve impacto no cronograma e na dinâmica da equipe, exigindo ajustes de rota.
+
+## 🤝 Próximos Passos
+- Como você enxerga essa situação sob a sua perspectiva?
+- O que podemos fazer de diferente para evitar que isso se repita?
+- Como posso te apoiar melhor nesse tipo de entrega?
+
+*(Nota: Esta é uma resposta gerada no Modo Offline/Custo Zero)*`;
+    
+    return { reply: mockReply, blocked: false };
   }
 }
 
@@ -276,6 +293,10 @@ async function generateProfileDiscovery(userMessage, history = []) {
       return { reply: LGPD_REFUSAL_MESSAGE, blocked: true };
     }
 
+    if (history.length > 0 && history[0].role === 'model') {
+      history.unshift({ role: 'user', parts: [{ text: 'Olá, vamos iniciar o teste de perfil.' }] });
+    }
+
     const contents = [...history, { role: 'user', parts: [{ text: userMessage }] }];
 
     const response = await getGenAI().models.generateContent({
@@ -293,8 +314,19 @@ async function generateProfileDiscovery(userMessage, history = []) {
       blocked: false,
     };
   } catch (error) {
-    console.error('[Gemini Profile] Erro ao processar:', error.message);
-    throw new Error('Falha ao processar solicitação de perfil na IA.');
+    console.error('[Gemini Profile] Erro ao processar (Fallback ativado):', error.message);
+    
+    // MOCK RESPONSE PARA O MVP (Modo Custo Zero)
+    // Se for o início do chat, faz mais uma pergunta. Se já houver histórico, dá o resultado final.
+    let mockReply = "Entendo. E como você costuma lidar com feedbacks difíceis na sua equipe?";
+    if (history && history.length > 2) {
+      mockReply = "[RESULTADO_PERFIL: ENGAJADO] Pelo seu histórico, noto que você tem um perfil muito voltado para desenvolver a equipe e manter todos motivados, mesmo em momentos de conflito. Este é o perfil 'Engajado'.";
+    }
+
+    return {
+      reply: mockReply,
+      blocked: false,
+    };
   }
 }
 

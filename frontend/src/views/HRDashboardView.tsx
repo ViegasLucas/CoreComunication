@@ -20,7 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 // --- MOCK DATA ---
 const companyAlerts = [
@@ -31,6 +33,33 @@ const companyAlerts = [
 export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [active, setActive] = useState("home");
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [selectedRole, setSelectedRole] = useState("leader");
+  const [assignedEmployees, setAssignedEmployees] = useState<string[]>([]);
+  
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsersList(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (active === "users") {
+      fetchUsers();
+    }
+  }, [active]);
 
   return (
     <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
@@ -255,7 +284,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: USUÁRIOS */}
           {active === "users" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 max-w-2xl">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 grid gap-6 lg:grid-cols-2">
               <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                   <UserPlus className="h-6 w-6 text-indigo-500" />
@@ -275,7 +304,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                           'Content-Type': 'application/json',
                           'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify(data)
+                        body: JSON.stringify({ ...data, assignedEmployees })
                       });
                       
                       if (!response.ok) {
@@ -285,7 +314,9 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       
                       alert('Usuário cadastrado com sucesso!');
                       e.currentTarget.reset();
-                    } catch (error) {
+                      setAssignedEmployees([]);
+                      fetchUsers();
+                    } catch (error: any) {
                       alert(error.message);
                     }
                   }}
@@ -305,19 +336,172 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Papel / Acesso</label>
-                    <select name="role" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                    <select 
+                      name="role" 
+                      required 
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                    >
                       <option value="leader">Líder</option>
                       <option value="employee">Liderado (Colaborador)</option>
                       <option value="hr">Recursos Humanos</option>
                     </select>
                   </div>
+
+                  {selectedRole === "leader" && (
+                    <div className="rounded-xl border border-border bg-secondary/30 p-4 mt-2">
+                      <label className="block text-sm font-medium mb-2">Vincular Liderados (Visão do Dashboard)</label>
+                      <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                        {usersList.filter(u => u.role === 'employee').length === 0 ? (
+                          <div className="text-xs text-muted-foreground">Nenhum liderado cadastrado ainda.</div>
+                        ) : (
+                          usersList.filter(u => u.role === 'employee').map(emp => (
+                            <label key={emp.uid} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/50 p-1.5 rounded-md transition-colors">
+                              <input 
+                                type="checkbox" 
+                                className="rounded text-indigo-600 focus:ring-indigo-500"
+                                checked={assignedEmployees.includes(emp.uid)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setAssignedEmployees([...assignedEmployees, emp.uid]);
+                                  else setAssignedEmployees(assignedEmployees.filter(id => id !== emp.uid));
+                                }}
+                              />
+                              {emp.name} <span className="text-muted-foreground text-xs">({emp.email})</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <Button type="submit" className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
                     Criar Conta
                   </Button>
                 </form>
               </div>
+
+              {/* Tabela de Usuários */}
+              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg h-fit">
+                <h3 className="text-lg font-semibold mb-4">Usuários Cadastrados</h3>
+                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                  {usersList.map((u) => (
+                    <div key={u.uid} className="flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30">
+                      <div>
+                        <div className="font-medium text-sm">{u.name}</div>
+                        <div className="text-xs text-muted-foreground">{u.email}</div>
+                        <div className="text-[10px] mt-1 font-semibold uppercase tracking-wider text-indigo-500">{u.role === 'leader' ? 'Líder' : (u.role === 'hr' ? 'RH' : 'Colaborador')}</div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setEditingUser(u);
+                          setEditModalOpen(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
+
+          {/* EDIT MODAL */}
+          <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+            <DialogContent className="sm:max-w-md border-border bg-background text-foreground">
+              <DialogHeader>
+                <DialogTitle>Editar Usuário</DialogTitle>
+                <DialogDescription>
+                  Altere os dados de acesso ou reatribua liderados.
+                </DialogDescription>
+              </DialogHeader>
+              
+              {editingUser && (
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const data = Object.fromEntries(formData);
+                    // Filter empty password
+                    if (!data.password) delete data.password;
+
+                    try {
+                      const token = localStorage.getItem("token");
+                      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${editingUser.uid}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          ...data,
+                          assignedEmployees: editingUser.assignedEmployees || []
+                        })
+                      });
+                      
+                      if (!response.ok) throw new Error('Erro ao salvar edição');
+                      
+                      alert('Usuário atualizado!');
+                      setEditModalOpen(false);
+                      fetchUsers();
+                    } catch (error: any) {
+                      alert(error.message);
+                    }
+                  }}
+                  className="space-y-4 mt-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome Completo</label>
+                    <input name="name" defaultValue={editingUser.name} required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">E-mail</label>
+                    <input name="email" defaultValue={editingUser.email} type="email" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nova Senha (Opcional)</label>
+                    <input name="password" type="password" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="Deixe em branco para não alterar" minLength={6} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Papel</label>
+                    <select name="role" defaultValue={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value})} required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="leader">Líder</option>
+                      <option value="employee">Liderado (Colaborador)</option>
+                      <option value="hr">Recursos Humanos</option>
+                    </select>
+                  </div>
+
+                  {editingUser.role === "leader" && (
+                    <div className="rounded-xl border border-border bg-secondary/30 p-3 mt-2 max-h-40 overflow-y-auto space-y-1">
+                      <label className="block text-sm font-medium mb-2">Liderados Vinculados</label>
+                      {usersList.filter(u => u.role === 'employee').map(emp => (
+                        <label key={emp.uid} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/50 p-1 rounded transition-colors">
+                          <input 
+                            type="checkbox" 
+                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                            checked={(editingUser.assignedEmployees || []).includes(emp.uid)}
+                            onChange={(e) => {
+                              const curr = editingUser.assignedEmployees || [];
+                              const newArr = e.target.checked ? [...curr, emp.uid] : curr.filter((id: string) => id !== emp.uid);
+                              setEditingUser({...editingUser, assignedEmployees: newArr});
+                            }}
+                          />
+                          {emp.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white mt-4">
+                    Salvar Alterações
+                  </Button>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Placeholder for other views */}
           {active !== "home" && (

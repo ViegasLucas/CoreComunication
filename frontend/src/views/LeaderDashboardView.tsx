@@ -40,11 +40,7 @@ import { cn } from "@/lib/utils";
 type ProfileKey = "tecnico" | "engajado" | "transicao";
 type ChatMsg = { from: "bot" | "user"; text: string };
 
-const team = [
-  { name: "Ana Ribeiro", role: "Desenvolvedora Pleno", pdi: 72, initials: "AR" },
-  { name: "Bruno Alves", role: "QA Engineer", pdi: 45, initials: "BA" },
-  { name: "Carla Nunes", role: "Product Designer", pdi: 88, initials: "CN" },
-];
+// Removido const team fixo. Será carregado do backend.
 
 const pendingActions = [
   { icon: ClipboardList, label: "Aprovar PDI de Bruno", tone: "blue" },
@@ -90,12 +86,63 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [sbiScript, setSbiScript] = useState("");
   const [isGeneratingSbi, setIsGeneratingSbi] = useState(false);
 
+  // Novos estados para o Histórico de IA
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  const [team, setTeam] = useState<any[]>([]);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
+
+  const fetchHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("token") || "";
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE}/api/chat/history`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChatHistory(data);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar histórico:", e);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const fetchTeam = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("token") || "";
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE}/api/users/me/team`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTeam(data);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar equipe:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+    fetchTeam();
+  }, []);
 
   const sendChat = async () => {
     if (!chatInput.trim() || isLoading) return;
@@ -227,6 +274,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       if (!response.ok) throw new Error("Erro na API.");
       const data = await response.json();
       setSbiScript(data.reply);
+      fetchHistory(); // Atualiza o histórico após gerar um novo roteiro
     } catch(err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
@@ -362,6 +410,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 <Sparkles className="mr-1 h-4 w-4" /> Descobrir Perfil
               </Button>
               <Button
+                variant="outline"
+                onClick={() => { setIsHistoryOpen(true); fetchHistory(); }}
+                className="border-border bg-secondary/60"
+              >
+                <Clock className="mr-2 h-4 w-4" /> Histórico de IA
+              </Button>
+              <Button
                 onClick={() => setNewMeetingOpen(true)}
                 className="bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/30"
               >
@@ -418,8 +473,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   </Button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
-                  {team.map((m) => (
-                    <GlassCard key={m.name} className="group p-5 transition-all hover:-translate-y-0.5 hover:border-blue-600/40">
+                  {team.length === 0 ? (
+                    <div className="col-span-3 py-10 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
+                      Você ainda não possui liderados vinculados. Peça ao RH para adicioná-los no seu painel.
+                    </div>
+                  ) : team.map((m) => (
+                    <GlassCard key={m.uid} className="group p-5 transition-all hover:-translate-y-0.5 hover:border-blue-600/40">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 ring-2 ring-blue-500/20">
                           <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-800 text-white">
@@ -442,7 +501,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                         <Button size="sm" variant="outline" className="flex-1 border-border bg-secondary/60 text-sm">
                           Ver perfil
                         </Button>
-                        <Button size="sm" className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
+                        <Button size="sm" onClick={() => setNewMeetingOpen(true)} className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
                           1:1
                         </Button>
                       </div>
@@ -657,8 +716,10 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   <SelectValue placeholder="Selecione um liderado" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-popover-foreground">
-                  {team.map((m) => (
-                    <SelectItem key={m.name} value={m.name}>
+                  {team.length === 0 ? (
+                    <SelectItem value="none" disabled>Nenhum liderado vinculado</SelectItem>
+                  ) : team.map((m) => (
+                    <SelectItem key={m.uid} value={m.name}>
                       {m.name}
                     </SelectItem>
                   ))}
@@ -729,6 +790,45 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 Agendar 1:1
               </Button>
             </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* HISTORY SLIDE-OVER */}
+      <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <SheetContent className="w-full border-border bg-background/95 text-foreground backdrop-blur-2xl sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Histórico de IA</SheetTitle>
+            <SheetDescription className="text-muted-foreground">
+              Seus últimos roteiros e mapeamentos de perfil.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            {isLoadingHistory && chatHistory.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-10">Carregando histórico...</div>
+            ) : chatHistory.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-10 border border-dashed border-border rounded-xl">
+                Nenhuma interação encontrada na memória.
+              </div>
+            ) : (
+              chatHistory.map((item: any) => (
+                <div key={item.id} className="rounded-xl border border-border bg-secondary/40 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className={item.type === 'profile_discovery' ? "text-violet-400 border-violet-500/30" : "text-blue-400 border-blue-500/30"}>
+                      {item.type === 'profile_discovery' ? "Perfil" : "Roteiro SBI"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(item.date).toLocaleDateString()} às {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="text-sm font-medium">Input: {item.message}</div>
+                  <div className="rounded-lg bg-background p-3 text-xs text-muted-foreground whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {item.reply}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </SheetContent>
       </Sheet>
