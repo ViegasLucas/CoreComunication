@@ -39,6 +39,33 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
   
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  
+  const [metrics, setMetrics] = useState({
+    averageEngagement: 82,
+    adoptionRate: 64,
+    completedPDIs: 124
+  });
+
+  const fetchMetrics = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/metrics`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (active === "home") {
+      fetchMetrics();
+    }
+  }, [active]);
 
   const fetchUsers = async () => {
     try {
@@ -164,7 +191,11 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, {userData?.name?.split(' ')[0] || 'RH'}</h1>
               </div>
             </div>
-            <Button variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20">
+            <Button 
+              variant="outline" 
+              onClick={() => alert("Funcionalidade de geração de relatório em desenvolvimento!")}
+              className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+            >
               Gerar Relatório Escrito
             </Button>
           </div>
@@ -180,7 +211,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   <div className="relative flex items-start justify-between">
                     <div>
                       <div className="text-sm text-muted-foreground dark:text-slate-400">Engajamento Médio</div>
-                      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground dark:text-white">82%</div>
+                      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground dark:text-white">{metrics.averageEngagement}%</div>
                       <div className="mt-1 text-xs text-indigo-600 dark:text-indigo-400">Saudável (+2%)</div>
                     </div>
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary dark:bg-slate-800 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-400">
@@ -195,7 +226,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   <div className="relative flex items-start justify-between">
                     <div>
                       <div className="text-sm text-muted-foreground dark:text-slate-400">Adoção de 1:1s</div>
-                      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground dark:text-white">64%</div>
+                      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground dark:text-white">{metrics.adoptionRate}%</div>
                       <div className="mt-1 text-xs text-amber-600 dark:text-amber-500">Atenção (meta: 80%)</div>
                     </div>
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary dark:bg-slate-800 ring-1 ring-blue-500/20 text-blue-600 dark:text-blue-400">
@@ -210,7 +241,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   <div className="relative flex items-start justify-between">
                     <div>
                       <div className="text-sm text-muted-foreground dark:text-slate-400">PDIs Concluídos (Mês)</div>
-                      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground dark:text-white">124</div>
+                      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground dark:text-white">{metrics.completedPDIs}</div>
                       <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">Em alta (+14)</div>
                     </div>
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary dark:bg-slate-800 ring-1 ring-emerald-500/20 text-emerald-600 dark:text-emerald-400">
@@ -245,7 +276,11 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       </li>
                     ))}
                   </ul>
-                  <Button variant="outline" className="mt-4 w-full border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/5 dark:text-indigo-400 dark:hover:bg-indigo-500/10">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => alert("A IA de análise preditiva de retenção estará disponível em breve.")}
+                    className="mt-4 w-full border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/5 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                  >
                     Analisar Causa Raiz com IA
                   </Button>
                 </div>
@@ -504,7 +539,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
           </Dialog>
 
           {/* Placeholder for other views */}
-          {active !== "home" && (
+          {active !== "home" && active !== "users" && (
             <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-border dark:border-slate-700 bg-secondary/50 dark:bg-slate-900/50 mt-6">
               <p className="text-muted-foreground dark:text-slate-400">O conteúdo da aba <span className="font-semibold text-foreground dark:text-white">{active}</span> será exibido aqui pela sua colega.</p>
             </div>

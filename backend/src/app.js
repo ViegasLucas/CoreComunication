@@ -10,6 +10,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // 2. Inicia
 const exampleController = require('./controllers/exampleController');
 const chatController = require('./controllers/chatController');
 const userController = require('./controllers/userController');
+const metricsController = require('./controllers/metricsController');
 const authMiddleware = require('./middlewares/authMiddleware');
 
 // 3. Função de teste rápido para rodar assim que o servidor ligar
@@ -55,6 +56,11 @@ app.put('/api/users/:uid', authMiddleware, userController.updateUser);
 // Rota de chat (protegida pelo middleware JWT)
 app.post('/api/chat', authMiddleware, chatController.handleChat);
 app.get('/api/chat/history', authMiddleware, chatController.getChatHistory);
+
+// Rotas de Métricas
+app.post('/api/users/me/sentiment', authMiddleware, metricsController.logSentiment);
+app.get('/api/users/me/metrics', authMiddleware, metricsController.getMyMetrics);
+app.get('/api/metrics', authMiddleware, metricsController.getGlobalMetrics);
 
 const PORT = process.env.PORT || 3001;
 

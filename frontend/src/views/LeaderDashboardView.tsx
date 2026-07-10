@@ -53,7 +53,7 @@ const recentMeetings = [
   { who: "Carla Nunes", when: "3 dias atrás", topic: "Feedback SBI" },
 ];
 
-const upcomingMeetings = [
+const upcomingMeetingsMock = [
   { who: "Bruno Alves", when: "Hoje · 17:30", topic: "1:1 quinzenal" },
   { who: "Ana Ribeiro", when: "Sex · 10:00", topic: "Revisão de PDI" },
 ];
@@ -92,6 +92,16 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const [team, setTeam] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState({
+    averageEngagement: 87,
+    completedPDIs: 12
+  });
+
+  const [upcomingMeetingsList, setUpcomingMeetingsList] = useState(upcomingMeetingsMock);
+  const [selectedMember, setSelectedMember] = useState("");
+  const [meetingDate, setMeetingDate] = useState("");
+  const [meetingTime, setMeetingTime] = useState("");
+  const [meetingSubject, setMeetingSubject] = useState("");
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -139,9 +149,27 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     }
   };
 
+  const fetchMetrics = async () => {
+    try {
+      const token = localStorage.getItem("token") || "";
+      if (!token) return;
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/metrics`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics(data);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar métricas:", e);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
     fetchTeam();
+    fetchMetrics();
   }, []);
 
   const sendChat = async () => {
@@ -280,6 +308,37 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     } finally {
       setIsGeneratingSbi(false);
     }
+  };
+
+  const handleScheduleMeeting = () => {
+    if (!selectedMember) {
+      alert("Por favor, selecione um liderado para agendar.");
+      return;
+    }
+    
+    // Formatar data (ex: 2026-07-15 -> 15/07)
+    let formattedDate = "Em breve";
+    if (meetingDate) {
+      const [y, m, d] = meetingDate.split("-");
+      if (d && m) formattedDate = `${d}/${m}`;
+    }
+
+    const whenStr = meetingDate || meetingTime ? `${formattedDate} · ${meetingTime || "a definir"}` : "A definir";
+    const finalTopic = meetingSubject.trim() ? meetingSubject.trim() : (meetingTopics ? "Pauta definida com IA" : "1:1 Agendada");
+    
+    setUpcomingMeetingsList(prev => [
+      { who: selectedMember, when: whenStr, topic: finalTopic },
+      ...prev
+    ]);
+
+    // Reseta form
+    setNewMeetingOpen(false);
+    setSbiScript("");
+    setMeetingTopics("");
+    setMeetingSubject("");
+    setSelectedMember("");
+    setMeetingDate("");
+    setMeetingTime("");
   };
 
   return (
@@ -431,9 +490,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               {/* KPIs + Pending */}
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
-                  <KpiCard title="Saúde da Equipe" value="87%" trend="+4%" icon={HeartHandshake} accent="emerald" />
-                  <KpiCard title="Metas Concluídas" value="12/18" trend="67%" icon={CheckCircle2} accent="blue" />
-                  <KpiCard title="PDIs Ativos" value="8" trend="+2" icon={TrendingUp} accent="violet" />
+                  <KpiCard title="Saúde da Equipe" value={`${metrics.averageEngagement}%`} trend="+4%" icon={HeartHandshake} accent="emerald" />
+                  <KpiCard title="PDIs Concluídos" value={`${metrics.completedPDIs}`} trend="Em alta" icon={CheckCircle2} accent="blue" />
+                  <KpiCard title="Membros" value={team.length.toString()} trend="Ativos" icon={Users} accent="violet" />
                 </div>
 
                 <GlassCard className="p-5">
@@ -468,7 +527,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     <h2 className="text-xl font-semibold tracking-tight">Meus Liderados</h2>
                     <p className="text-sm text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
                   </div>
-                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setActive("team")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
                     Ver todos <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </div>
@@ -498,7 +561,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                         <Progress value={m.pdi} className="h-1.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-blue-400" />
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1 border-border bg-secondary/60 text-sm">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setActive("team")}
+                          className="flex-1 border-border bg-secondary/60 text-sm"
+                        >
                           Ver perfil
                         </Button>
                         <Button size="sm" onClick={() => setNewMeetingOpen(true)} className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
@@ -537,7 +605,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     </Button>
                   </div>
                   <ul className="space-y-2">
-                    {upcomingMeetings.map((m, i) => (
+                    {upcomingMeetingsList.map((m, i) => (
                       <MeetingRow key={i} {...m} tone="blue" />
                     ))}
                   </ul>
@@ -597,6 +665,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               </div>
             </div>
           )}
+          {/* Placeholder for other views */}
+          {active !== "home" && active !== "my-performance" && (
+            <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-border dark:border-slate-700 bg-secondary/50 dark:bg-slate-900/50 mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <p className="text-muted-foreground dark:text-slate-400">O conteúdo da aba <span className="font-semibold text-foreground dark:text-white uppercase">{active}</span> está em desenvolvimento para o próximo ciclo.</p>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -711,7 +786,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           <div className="mt-6 space-y-5">
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Liderado</Label>
-              <Select>
+              <Select value={selectedMember} onValueChange={setSelectedMember}>
                 <SelectTrigger className="border-border bg-secondary/60">
                   <SelectValue placeholder="Selecione um liderado" />
                 </SelectTrigger>
@@ -730,16 +805,26 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Data</Label>
-                <Input type="date" className="border-border bg-secondary/60" />
+                <Input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} className="border-border bg-secondary/60" />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Hora</Label>
-                <Input type="time" className="border-border bg-secondary/60" />
+                <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} className="border-border bg-secondary/60" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI</Label>
+              <Label className="text-xs text-muted-foreground">Pauta (Assunto Principal)</Label>
+              <Input 
+                placeholder="Ex: Alinhamento trimestral, Revisão de PDI..." 
+                value={meetingSubject} 
+                onChange={(e) => setMeetingSubject(e.target.value)} 
+                className="border-border bg-secondary/60" 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI (IA)</Label>
               <Textarea
                 rows={3}
                 placeholder="Ex: Não cumpriu o prazo de entrega da funcionalidade X..."
@@ -774,17 +859,17 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   setNewMeetingOpen(false);
                   setSbiScript("");
                   setMeetingTopics("");
+                  setMeetingSubject("");
+                  setSelectedMember("");
+                  setMeetingDate("");
+                  setMeetingTime("");
                 }}
                 className="flex-1 border-border bg-secondary/60"
               >
                 Cancelar
               </Button>
               <Button
-                onClick={() => {
-                  setNewMeetingOpen(false);
-                  setSbiScript("");
-                  setMeetingTopics("");
-                }}
+                onClick={handleScheduleMeeting}
                 className="flex-1 bg-blue-600 text-white hover:bg-blue-500"
               >
                 Agendar 1:1

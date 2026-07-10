@@ -54,7 +54,7 @@ Para paralelizar o trabalho e evitar gargalos (bottlenecks), assumiremos os segu
 | **3.2. Resgate de Histórico na UI** | Membro 2 (Front) | ✅ Feito |
 | **3.3. Refinamento de Prompts (Tuning)** | Membro 4 (Back) | ✅ Feito (Prompt alinhado estritamente ao SBI e Mock Offline aprimorado). |
 | **3.4. Testes de API e Red Teaming** | Membro 5 (QA) | ✅ Feito (Script de Red Teaming executado e vulnerabilidades LGPD bloqueadas). |
-| **3.5. UX Review e Bugs Finais** | Membro 5 (QA) | 🚧 A FAZER: Navegar pelo sistema de ponta a ponta logando com os 3 e-mails configurados. Apontar e exigir correção de falhas de navegação. |
+| **3.5. UX Review e Bugs Finais** | Membro 5 (QA) | ✅ Feito (Navegação polida, tratamento de links órfãos e placeholders). |
 
 ---
 
@@ -106,6 +106,6 @@ Para paralelizar o trabalho e evitar gargalos (bottlenecks), assumiremos os segu
 
 ### Membro 5 (QA / Produto)
 - [x] **3.4** Testes de API e Red Teaming
-- [ ] **3.5** UX Review e Bugs Finais
+- [x] **3.5** UX Review e Bugs Finais
 - [ ] **4.4** Testes End-to-End e Red Teaming
 - [ ] **4.5** Deploy Produção (Vercel)

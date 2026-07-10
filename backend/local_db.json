@@ -4,20 +4,50 @@
     "assignedEmployees": [
       "1MQ0unBAhYP6W8rqxBLTzuw3CDV2",
       "I73z3AndKzU6p3dB4GB0viHTmZx2",
-      "xwT32fAF5gRclwV7X3pqQjD4O7x1"
+      "xwT32fAF5gRclwV7X3pqQjD4O7x1",
+      "gFy7aqD7ARbhHFhkWWBuhhtmWAI3"
     ],
     "profile": "engajado"
   },
   "1MQ0unBAhYP6W8rqxBLTzuw3CDV2": {
-    "pdi": 68
+    "pdi": 68,
+    "sentiments": [
+      {
+        "sentiment": "good",
+        "date": "2026-07-10T22:06:38.168Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-10T22:06:41.916Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-10T22:06:43.145Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-10T22:06:44.517Z"
+      }
+    ],
+    "role": "employee",
+    "assignedEmployees": []
   },
   "I73z3AndKzU6p3dB4GB0viHTmZx2": {
-    "pdi": 74
+    "pdi": 74,
+    "role": "employee",
+    "assignedEmployees": []
   },
   "xwT32fAF5gRclwV7X3pqQjD4O7x1": {
-    "pdi": 52
+    "pdi": 52,
+    "role": "employee",
+    "assignedEmployees": []
   },
   "OWsCXCYMJ6azdKvAqTGZkPuykcM2": {
     "profile": "engajado"
+  },
+  "gFy7aqD7ARbhHFhkWWBuhhtmWAI3": {
+    "role": "employee",
+    "assignedEmployees": [],
+    "pdi": 61
   }
 }

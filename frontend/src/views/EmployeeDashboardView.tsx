@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Home,
   Target,
@@ -36,7 +36,7 @@ const recentFeedbacks = [
   { from: "Carla (Designer)", text: "Obrigada por ajudar na validação das telas.", date: "Semana passada" },
 ];
 
-const wellbeingData = [
+const wellbeingDataMock = [
   { name: 'Semana 1', value: 60 },
   { name: 'Semana 2', value: 50 },
   { name: 'Semana 3', value: 80 },
@@ -48,6 +48,60 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
   const [active, setActive] = useState("home");
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('feedbacks'); // 'feedbacks' | 'kudos'
+  
+  const [metrics, setMetrics] = useState({
+    wellbeingData: wellbeingDataMock,
+    pdiProgress: 72,
+    chatCount: 0
+  });
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/metrics`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMetrics(data);
+          if (data.currentSentiment) {
+            setSentiment(data.currentSentiment);
+          }
+        }
+      } catch(e) {
+        console.error(e);
+      }
+    };
+    fetchMetrics();
+  }, []);
+
+  const handleSentiment = async (val: string) => {
+    setSentiment(val);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/sentiment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ sentiment: val })
+      });
+      if (res.ok) {
+        // Refetch to update graph
+        const metricsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/metrics`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (metricsRes.ok) {
+          const data = await metricsRes.json();
+          setMetrics(data);
+        }
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
@@ -151,7 +205,11 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                 <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Bom dia, {userData?.name?.split(' ')[0] || 'Liderado'} 👋</h1>
               </div>
             </div>
-            <Button variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-[#00e676]/40 dark:bg-[#00e676]/10 dark:text-[#00e676] dark:hover:bg-[#00e676]/20">
+            <Button 
+              variant="outline" 
+              onClick={() => alert("O ciclo formal de feedbacks será aberto na próxima semana!")}
+              className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-[#00e676]/40 dark:bg-[#00e676]/10 dark:text-[#00e676] dark:hover:bg-[#00e676]/20"
+            >
               Solicitar Feedback
             </Button>
           </div>
@@ -163,33 +221,71 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 
                 {/* Widget 1: Humor e Bem-Estar */}
-                <div className="col-span-1 lg:col-span-2 p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
-                  <h3 className="font-semibold mb-4 text-foreground dark:text-slate-200">Como você está se sentindo hoje?</h3>
+                <div className="col-span-1 lg:col-span-2 p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg relative overflow-hidden">
+                  {/* Fundo decorativo sutil */}
+                  <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-emerald-500/5 dark:bg-[#00e676]/5 rounded-full blur-2xl"></div>
+                  
+                  <h3 className="font-semibold mb-6 text-foreground dark:text-slate-200 flex items-center gap-2">
+                    Como você está se sentindo hoje?
+                  </h3>
                   <div className="flex gap-4">
                     <button 
-                      className={cn("flex-1 py-3 flex items-center justify-center gap-2 rounded-xl bg-secondary dark:bg-slate-800 border transition-all", sentiment === 'good' ? 'border-emerald-500 bg-emerald-50 dark:border-[#00e676] dark:bg-slate-800/80' : 'border-transparent hover:border-emerald-300 dark:hover:border-[#00e676] hover:bg-secondary/80 dark:hover:bg-slate-700')}
-                      onClick={() => setSentiment('good')}
+                      className={cn(
+                        "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                        sentiment === 'good' 
+                          ? 'border-emerald-500 bg-emerald-50/50 dark:border-[#00e676] dark:bg-emerald-900/20 shadow-md ring-4 ring-emerald-500/10' 
+                          : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
+                        sentiment && sentiment !== 'good' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                      )}
+                      onClick={() => handleSentiment('good')}
                     >
-                      <Smile className="w-5 h-5 text-emerald-600 dark:text-[#00e676]" />
-                      <span className="text-sm font-medium">Muito bem!</span>
+                      <div className={cn("p-3 rounded-full transition-all duration-300", sentiment === 'good' ? "bg-emerald-100 dark:bg-emerald-800/40 scale-110" : "bg-emerald-100/50 dark:bg-emerald-900/20 group-hover:scale-110")}>
+                        <Smile className={cn("w-8 h-8 transition-colors", sentiment === 'good' ? "text-emerald-600 dark:text-[#00e676]" : "text-emerald-500/70 dark:text-[#00e676]/70")} />
+                      </div>
+                      <span className={cn("text-sm font-semibold transition-colors", sentiment === 'good' ? "text-emerald-700 dark:text-[#00e676]" : "text-muted-foreground dark:text-slate-400")}>Muito bem!</span>
                     </button>
+                    
                     <button 
-                      className={cn("flex-1 py-3 flex items-center justify-center gap-2 rounded-xl bg-secondary dark:bg-slate-800 border transition-all", sentiment === 'neutral' ? 'border-blue-500 bg-blue-50 dark:bg-slate-800/80' : 'border-transparent hover:border-slate-300 dark:hover:border-slate-500 hover:bg-secondary/80 dark:hover:bg-slate-700')}
-                      onClick={() => setSentiment('neutral')}
+                      className={cn(
+                        "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                        sentiment === 'neutral' 
+                          ? 'border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20 shadow-md ring-4 ring-blue-500/10' 
+                          : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
+                        sentiment && sentiment !== 'neutral' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                      )}
+                      onClick={() => handleSentiment('neutral')}
                     >
-                      <Meh className="w-5 h-5 text-muted-foreground dark:text-slate-400" />
-                      <span className="text-sm font-medium">Normal</span>
+                      <div className={cn("p-3 rounded-full transition-all duration-300", sentiment === 'neutral' ? "bg-blue-100 dark:bg-blue-800/40 scale-110" : "bg-blue-100/50 dark:bg-blue-900/20 group-hover:scale-110")}>
+                        <Meh className={cn("w-8 h-8 transition-colors", sentiment === 'neutral' ? "text-blue-600 dark:text-blue-400" : "text-blue-500/70 dark:text-blue-400/70")} />
+                      </div>
+                      <span className={cn("text-sm font-semibold transition-colors", sentiment === 'neutral' ? "text-blue-700 dark:text-blue-400" : "text-muted-foreground dark:text-slate-400")}>Normal</span>
                     </button>
+                    
                     <button 
-                      className={cn("flex-1 py-3 flex items-center justify-center gap-2 rounded-xl bg-secondary dark:bg-slate-800 border transition-all", sentiment === 'bad' ? 'border-red-500 bg-red-50 dark:bg-slate-800/80' : 'border-transparent hover:border-red-300 dark:hover:border-red-500 hover:bg-secondary/80 dark:hover:bg-slate-700')}
-                      onClick={() => setSentiment('bad')}
+                      className={cn(
+                        "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                        sentiment === 'bad' 
+                          ? 'border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-900/20 shadow-md ring-4 ring-red-500/10' 
+                          : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
+                        sentiment && sentiment !== 'bad' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                      )}
+                      onClick={() => handleSentiment('bad')}
                     >
-                      <Frown className="w-5 h-5 text-red-500 dark:text-red-400" />
-                      <span className="text-sm font-medium">Estressado</span>
+                      <div className={cn("p-3 rounded-full transition-all duration-300", sentiment === 'bad' ? "bg-red-100 dark:bg-red-800/40 scale-110" : "bg-red-100/50 dark:bg-red-900/20 group-hover:scale-110")}>
+                        <Frown className={cn("w-8 h-8 transition-colors", sentiment === 'bad' ? "text-red-600 dark:text-red-400" : "text-red-500/70 dark:text-red-400/70")} />
+                      </div>
+                      <span className={cn("text-sm font-semibold transition-colors", sentiment === 'bad' ? "text-red-700 dark:text-red-400" : "text-muted-foreground dark:text-slate-400")}>Estressado</span>
                     </button>
                   </div>
-                  <div className="mt-4 flex justify-end">
-                     <button className="flex items-center gap-2 text-xs text-muted-foreground dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00e676] transition-colors">
+                  
+                  {sentiment && (
+                    <div className="absolute top-6 right-6 animate-in fade-in slide-in-from-top-2 duration-500 text-xs font-medium text-emerald-600 dark:text-[#00e676] bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
+                      Obrigado por compartilhar! 💙
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex justify-end">
+                     <button className="flex items-center gap-2 text-xs font-medium text-muted-foreground dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00e676] transition-colors">
                        <TrendingUp className="w-4 h-4" />
                        Histórico de Bem-Estar (Sentiment Trend)
                      </button>
@@ -201,11 +297,11 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                    <h3 className="text-sm font-medium text-emerald-600 dark:text-[#00e676] mb-4 flex items-center gap-2">
                       Progresso PDI <Target className="h-4 w-4 ml-auto" />
                    </h3>
-                   <div className="text-4xl font-bold text-foreground dark:text-white mb-4">72%</div>
+                   <div className="text-4xl font-bold text-foreground dark:text-white mb-4">{metrics.pdiProgress}%</div>
                    <div className="w-full bg-secondary dark:bg-slate-800 rounded-full h-2 mb-4">
-                     <div className="bg-gradient-to-r from-blue-500 to-emerald-500 dark:to-[#00e676] h-2 rounded-full" style={{ width: '72%' }}></div>
+                     <div className="bg-gradient-to-r from-blue-500 to-emerald-500 dark:to-[#00e676] h-2 rounded-full" style={{ width: `${metrics.pdiProgress}%` }}></div>
                    </div>
-                   <p className="text-xs text-muted-foreground dark:text-slate-400 mb-6">3 de 5 metas concluídas neste trimestre.</p>
+                   <p className="text-xs text-muted-foreground dark:text-slate-400 mb-6">Baseado nas suas ações e feedbacks.</p>
                    
                    <div className="bg-secondary/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-lg p-3">
                       <div className="flex items-start gap-2">
@@ -241,7 +337,10 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                           </div>
                         </div>
                       ))}
-                      <button className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-[#00e676] hover:text-emerald-700 dark:hover:text-white transition-colors">
+                      <button 
+                        onClick={() => alert("A gestão de pautas de 1:1 estará disponível em breve.")}
+                        className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-[#00e676] hover:text-emerald-700 dark:hover:text-white transition-colors"
+                      >
                         <Plus className="w-4 h-4" /> Adicionar pauta
                       </button>
                     </div>
@@ -253,7 +352,10 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                         className="flex-1 w-full bg-background dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg p-3 text-sm text-foreground dark:text-slate-200 placeholder-muted-foreground dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-[#00e676] resize-none"
                         placeholder="Anote aqui os pontos que deseja discutir na próxima reunião..."
                       ></textarea>
-                      <button className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 self-end transition-colors">
+                      <button 
+                        onClick={() => alert("Funcionalidade de conversão inteligente com IA em desenvolvimento!")}
+                        className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 self-end transition-colors"
+                      >
                         Converter notas privadas em pauta
                       </button>
                     </div>
@@ -296,7 +398,10 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                   </div>
                   
                   {activeTab === 'kudos' && (
-                    <button className="mt-4 w-full py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-sm font-medium rounded-lg text-foreground dark:text-slate-200 flex items-center justify-center gap-2 transition-colors">
+                    <button 
+                      onClick={() => alert("A lojinha de Kudos e envios entre pares abrirá em breve!")}
+                      className="mt-4 w-full py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-sm font-medium rounded-lg text-foreground dark:text-slate-200 flex items-center justify-center gap-2 transition-colors"
+                    >
                       <Send className="w-4 h-4" /> Enviar Kudos para Colega
                     </button>
                   )}
@@ -307,7 +412,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                   <h3 className="font-semibold mb-6 text-foreground dark:text-slate-200">Tendência de Sentimento (Bem-Estar)</h3>
                   <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={wellbeingData}>
+                      <LineChart data={metrics.wellbeingData}>
                         <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                         <YAxis hide />
                         <Tooltip 
