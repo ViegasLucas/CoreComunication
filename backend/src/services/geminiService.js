@@ -2,7 +2,7 @@ const { GoogleGenAI } = require('@google/genai');
 
 // ── Constantes ────────────────────────────────────────────────
 const MODEL_SBI = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM para validação LGPD
+const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM rápido para validação LGPD
 
 // ── Lazy singleton ────────────────────────────────────────────
 let _genAI = null;
@@ -21,7 +21,7 @@ function getGenAI() {
  * SYSTEM PROMPT — SLM GATEKEEPER (DLP & LGPD Firewall)
  * Primeira camada de validação: detecta dados sensíveis ANTES do processamento
  */
-const GATEKEEPER_SYSTEM_PROMPT = `Você é um firewall de segurança e conformidade (DLP - Data Loss Prevention) operando sob a Lei Geral de Proteção de Dados (LGPD).
+const GATEKEEPER_PROMPT = `Você é um firewall de segurança e conformidade (DLP - Data Loss Prevention) operando sob a Lei Geral de Proteção de Dados (LGPD).
 Sua ÚNICA função é analisar o texto de entrada fornecido pelo usuário e determinar se ele contém dados sensíveis.
 
 **DADOS SENSÍVEIS SÃO DEFINIDOS COMO:**
@@ -81,6 +81,7 @@ Transformar relatos brutos (frequentemente carregados de emoção) em roteiros e
 
 Use **Markdown** e organize assim:
 
+\`\`\`
 ## 🧊 Check-in
 [Sugestão de quebra-gelo para iniciar a conversa]
 
@@ -93,15 +94,30 @@ Use **Markdown** e organize assim:
 - [Pergunta aberta 1]
 - [Pergunta aberta 2]
 - [Pergunta aberta 3]
-
-## 💡 Dica do Smart Leading
-[Sugestão prática de como abrir a conversa de forma empática]
+\`\`\`
 
 ## 🚀 Comece!
-Analise o relato do líder e gere o roteiro SBI estruturado.`;
+Analise o relato do líder e gere o roteiro SBI estruturado.
+
+## ⚠️ Guardrails Adicionais
+- Nunca armazene, repita nem mencione dados pessoais sensíveis na sua resposta.
+
+### Foco e escopo
+- Responda SOMENTE sobre situações de feedback profissional em ambiente de trabalho.
+- RECUSE pedidos fora deste escopo: código, receitas, notícias, opiniões políticas etc.
+- NUNCA faça diagnósticos médicos ou psicológicos do colaborador.
+- Mantenha sempre um tom empático, respeitoso e profissional.
+
+## Mensagem de recusa padrão (use textualmente quando necessário)
+"Não posso processar esta solicitação pois ela contém dados pessoais sensíveis protegidos pela LGPD. Por favor, descreva a situação de forma anônima, usando apenas o cargo ou função do colaborador (ex: 'desenvolvedor do time', 'analista de marketing')."
+
+## Formato de resposta
+Sempre responda em português do Brasil.
+Seja direto e prático. O roteiro deve ser algo que o líder possa usar imediatamente na conversa.
+Ao final do roteiro, adicione uma seção "💡 Dica do Smart Leading" com uma sugestão de como abrir a conversa de forma empática.`.trim();
 
 /**
- * MENSAGEM DE RECUSA PADRÃO (LGPD Violation)
+ * RECUSA PADRÃO (LGPD Violation)
  */
 const LGPD_REFUSAL_MESSAGE = `⚠️ **ALERTA DE COMPLIANCE (LGPD):** O seu relato contém dados sensíveis (informações médicas, laudos ou documentos). Para a nossa segurança, a política da ClearIT impede o processamento destas informações na IA.
 
@@ -115,43 +131,30 @@ Por favor, **remova esses dados** e envie apenas os comportamentos e entregas qu
 **Exemplos do que MANTER:**
 - ✅ "Não cumpriu o prazo da entrega"
 - ✅ "A apresentação teve erros técnicos"
-- ✅ "O time relatou falta de comunicação"`;
+- ✅ "O time relatou falta de comunicação"
+`;
 
-// ── Padrões LGPD ───────────────────────────────────────────────
+// ── Filtro LGPD (pré-processamento do input) ─────────────────
 
 /**
- * Padrões regex para detectar dados pessoais sensíveis
+ * Padrões de dados pessoais sensíveis que devem ser bloqueados antes
+ * de enviar ao modelo (defesa em profundidade — o modelo também filtra,
+ * mas é melhor nunca enviar ao servidor da Google).
  */
 const LGPD_PATTERNS = [
-  { name: 'CPF', regex: /\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11}/g },
-  { name: 'RG', regex: /\d{1,2}\.\d{3}\.\d{3}-[A-Za-z0-9]/g },
-  { name: 'Telefone', regex: /(\+55\s?)?(\(?\d{2}\)?[\s-]?)?\d{4,5}-?\d{4}/g },
-  { name: 'CEP', regex: /\d{5}-\d{3}/g },
-  { name: 'CID', regex: /\b[A-Z]\d{2}(\.\d+)?\b/g },
-  { name: 'Diagnóstico Médico', regex: /\b(depressão|burnout|ansiedade|psicológ|transtorno|psiquiátric|diagnóstic|internamento|doença|cirurgia|patologia|síndrome|distúrbio)\b/ig },
-  { name: 'Processo Disciplinar', regex: /\b(processo disciplinar|demissão por justa causa|sindicato|jurídic|legal|advogado|tribunal)\b/ig },
+  { name: 'CPF',        regex: /\d{3}\.??\d{3}\.??\d{3}-?\d{2}/g },
+  { name: 'RG',         regex: /\d{1,2}\.??\d{3}\.??\d{3}-?[A-Za-z0-9]?/g },
+  { name: 'Telefone',   regex: /(\+55\s?)?(\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}/g },
+  { name: 'E-mail',     regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g },
+  { name: 'CEP',        regex: /\d{5}-?\d{3}/g },
+  { name: 'Endereço',   regex: /(rua|avenida|av\.?|travessa|r\.|alameda)\s+[\w\d\s,.-]{3,100}/ig },
+  { name: 'Salário',    regex: /R\$\s?\d{1,3}(?:\.\d{3})*(?:,\d{2})?/g },
+  { name: 'Saúde',      regex: /\b(doença|internamento|hospital|diagnóstico|sintoma|tratamento)\b/ig },
 ];
 
 /**
- * Verifica se o texto contém dados pessoais sensíveis
- * @param {string} text
- * @returns {{ blocked: boolean, reason: string | null }}
- */
-function checkLGPD(text) {
-  for (const pattern of LGPD_PATTERNS) {
-    if (pattern.regex.test(text)) {
-      pattern.regex.lastIndex = 0; // Reset para regex com flag /g
-      return { blocked: true, reason: pattern.name };
-    }
-    pattern.regex.lastIndex = 0;
-  }
-  return { blocked: false, reason: null };
-}
-
-/**
- * Redigir (substituir) dados sensíveis por placeholders
- * @param {string} text
- * @returns {string}
+ * Redige (substitui) dados sensíveis por placeholders antes de enviar ao provedor.
+ * Substituições são do tipo: [DADO_REMOVIDO:TIPO]
  */
 function redactLGPD(text) {
   let redacted = text;
@@ -162,38 +165,21 @@ function redactLGPD(text) {
   return redacted;
 }
 
-// ── Validação com SLM Gatekeeper ──────────────────────────────
-
 /**
- * Valida o input usando SLM Gatekeeper (camada extra de segurança)
- * @param {string} userMessage
- * @returns {Promise<{ is_sensitive: boolean, reason: string | null }>}
+ * Verifica se o texto contém dados pessoais sensíveis.
+ * @param {string} text
+ * @returns {{ blocked: boolean, reason: string | null }}
  */
-async function validateWithGatekeeper(userMessage) {
-  try {
-    const response = await getGenAI().models.generateContent({
-      model: MODEL_GATEKEEPER,
-      contents: userMessage,
-      config: {
-        systemInstruction: GATEKEEPER_SYSTEM_PROMPT,
-        temperature: 0.1, // Muito baixo para determinismo
-        maxOutputTokens: 100,
-      },
-    });
-
-    const rawOutput = response.text.trim();
-    console.log(`[Gatekeeper] Raw output: ${rawOutput}`);
-
-    const parsed = JSON.parse(rawOutput);
-    return {
-      is_sensitive: parsed.is_sensitive || false,
-      reason: parsed.reason || null,
-    };
-  } catch (error) {
-    console.error('[Gatekeeper] Erro na validação SLM:', error.message);
-    // Falha aberta: em caso de erro, permitir prosseguir (não bloquear por erro técnico)
-    return { is_sensitive: false, reason: null };
+function checkLGPD(text) {
+  for (const pattern of LGPD_PATTERNS) {
+    if (pattern.regex.test(text)) {
+      // Reset lastIndex para regex com flag /g
+      pattern.regex.lastIndex = 0;
+      return { blocked: true, reason: pattern.name };
+    }
+    pattern.regex.lastIndex = 0;
   }
+  return { blocked: false, reason: null };
 }
 
 // ── Função principal ──────────────────────────────────────────
@@ -204,87 +190,55 @@ async function validateWithGatekeeper(userMessage) {
  * @returns {Promise<{ reply: string, blocked: boolean }>}
  */
 async function generateSBIFeedback(userMessage) {
+  // 1. Filtro LGPD local (antes de enviar ao modelo)
+  const lgpdCheck = checkLGPD(userMessage);
+  if (lgpdCheck.blocked) {
+    // Comportamento configurável via env: se LGPD_REDACT=true, redigimos e prosseguimos,
+    // caso contrário recusamos a requisição (padrão seguro).
+    if (process.env.LGPD_REDACT === 'true') {
+      const redacted = redactLGPD(userMessage);
+      console.warn(`[Gemini] Input continha ${lgpdCheck.reason} — redigido antes do envio.`);
+      // adiciona nota para o modelo/contexto
+      userMessage = `${redacted}\n\n(Nota: algumas informações sensíveis foram removidas por conformidade com a LGPD.)`;
+    } else {
+      console.warn(`[Gemini] Requisição bloqueada por LGPD: ${lgpdCheck.reason} detectado no input.`);
+      return {
+        reply: 'Não posso processar esta solicitação pois ela contém dados pessoais sensíveis protegidos pela LGPD. Por favor, descreva a situação de forma anônima, usando apenas o cargo ou função do colaborador (ex: "desenvolvedor do time", "analista de marketing").',
+        blocked: true,
+      };
+    }
+  }
+
+  // 2. Validação básica do tamanho do input
+  if (userMessage.trim().length < 10) {
+    return {
+      reply: 'Por favor, descreva a situação com mais detalhes para que eu possa gerar um roteiro de feedback adequado.',
+      blocked: false,
+    };
+  }
+
+  // 3. Chamada ao Gemini
   try {
-    // 1. Validação básica do input
-    if (!userMessage || typeof userMessage !== 'string') {
-      return {
-        reply: 'Por favor, descreva a situação para que eu possa gerar um roteiro de feedback.',
-        blocked: false,
-      };
-    }
-
-    userMessage = userMessage.trim();
-
-    if (userMessage.length < 10) {
-      return {
-        reply: 'A descrição é muito curta. Por favor, compartilhe mais detalhes sobre a situação que deseja discutir.',
-        blocked: false,
-      };
-    }
-
-    if (userMessage.length > 5000) {
-      return {
-        reply: 'A descrição é muito longa (máximo 5000 caracteres). Por favor, resuma a situação.',
-        blocked: false,
-      };
-    }
-
-    // 2. Filtro LGPD local (rápido, regex-based)
-    const localCheck = checkLGPD(userMessage);
-    if (localCheck.blocked) {
-      console.warn(`[Gemini] Bloqueado pela validação local LGPD: ${localCheck.reason}`);
-      return {
-        reply: LGPD_REFUSAL_MESSAGE,
-        blocked: true,
-      };
-    }
-
-    // 3. Validação com SLM Gatekeeper (DLP adicional)
-    const gatekeeperResult = await validateWithGatekeeper(userMessage);
-    if (gatekeeperResult.is_sensitive) {
-      console.warn(`[Gemini] Bloqueado pela validação Gatekeeper: ${gatekeeperResult.reason}`);
-      return {
-        reply: LGPD_REFUSAL_MESSAGE,
-        blocked: true,
-      };
-    }
-
-    // 4. Chamada ao Gemini (Modelo SBI Principal)
-    console.log('[Gemini] Gerando roteiro SBI...');
-
     const response = await getGenAI().models.generateContent({
       model: MODEL_SBI,
       contents: userMessage,
       config: {
         systemInstruction: SBI_SYSTEM_PROMPT,
-        temperature: 0.7, // Criativo mas consistente
+        temperature: 0.7,      // Criativo mas consistente
         topP: 0.9,
-        maxOutputTokens: 1500, // Roteiros estruturados podem ser mais longos
+        maxOutputTokens: 1024, // Roteiros são concisos
       },
     });
 
-    const reply = response.text || '';
+    const reply = response.text;
 
-    if (!reply) {
-      throw new Error('Resposta vazia do modelo Gemini');
-    }
-
-    console.log(`[Gemini] ✅ Roteiro gerado com sucesso. Tamanho: ${reply.length} caracteres.`);
+    console.log(`[Gemini] Resposta gerada com sucesso. Tokens usados: ~${Math.ceil(reply.length / 4)}`);
 
     return { reply, blocked: false };
   } catch (error) {
-    console.error('[Gemini] ❌ Erro ao gerar feedback:', error.message);
-
-    // Não vazar detalhes de erro ao cliente
-    const userFriendlyMessage = error.message.includes('API')
-      ? 'Erro ao conectar com o serviço de IA. Tente novamente em alguns instantes.'
-      : error.message;
-
-    return {
-      reply: `Desculpe, houve um erro ao processar sua solicitação: ${userFriendlyMessage}`,
-      blocked: false,
-    };
+    console.error('[Gemini] Erro ao chamar a API:', error.message);
+    throw new Error('Falha ao processar sua solicitação com a IA. Tente novamente em instantes.');
   }
 }
 
-module.exports = { generateSBIFeedback, checkLGPD, redactLGPD, validateWithGatekeeper };
+module.exports = { generateSBIFeedback };

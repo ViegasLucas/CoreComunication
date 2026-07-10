@@ -22,8 +22,6 @@ import {
   MessageSquare,
   Accessibility,
   Menu,
-  Loader,
-  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,7 +36,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getAuthToken } from "@/lib/auth";
 
 type ProfileKey = "tecnico" | "engajado" | "transicao";
 type ChatMsg = { from: "bot" | "user"; text: string };
@@ -80,87 +77,53 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     },
   ]);
   const [chatInput, setChatInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Auto-scroll to the latest message with smooth animation
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
 
-  /**
-   * Envia a mensagem para o backend e processa a resposta
-   */
-  const sendChat = async () => {
-    if (!chatInput.trim()) return;
+  const [isLoading, setIsLoading] = useState(false);
 
-    const userMessage = chatInput;
+  const sendChat = async () => {
+    if (!chatInput.trim() || isLoading) return;
+    const userMsg = chatInput;
     setChatInput("");
-    setError(null);
+
+    // Adiciona mensagem do usuário + indicador de typing
+    setChat((c) => [
+      ...c,
+      { from: "user", text: userMsg },
+      { from: "bot", text: "⏳ Analisando..." },
+    ]);
     setIsLoading(true);
 
-    // Adiciona a mensagem do usuário imediatamente
-    setChat((c) => [...c, { from: "user", text: userMessage }]);
-
     try {
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error("Token de autenticação não encontrado. Faça login novamente.");
-      }
-
-      // Chamada ao backend
-      const response = await fetch("http://localhost:3001/api/chat", {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/chat/dev`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ message: userMessage }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erro desconhecido" }));
+        throw new Error(err.error || `Erro ${res.status}`);
       }
 
-      const data = await response.json();
-      const { reply, blocked } = data;
+      const data = await res.json();
 
-      // Processa a resposta
-      if (blocked) {
-        // Quando há bloqueio LGPD, mostra como aviso especial
-        setChat((c) => [
-          ...c,
-          {
-            from: "bot",
-            text: reply,
-          },
-        ]);
-        setError("⚠️ Sua mensagem foi bloqueada por conformidade com LGPD. Remova dados sensíveis e tente novamente.");
-      } else {
-        // Resposta normal do SBI
-        setChat((c) => [
-          ...c,
-          {
-            from: "bot",
-            text: reply,
-          },
-        ]);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao conectar com o servidor.";
-      console.error("[Chat] Erro:", errorMessage);
-      setError(errorMessage);
-      
-      // Adiciona mensagem de erro no chat
+      // Substitui o "Analisando..." pela resposta real
       setChat((c) => [
-        ...c,
-        {
-          from: "bot",
-          text: `❌ Desculpe, ocorreu um erro: ${errorMessage}`,
-        },
+        ...c.slice(0, -1),
+        { from: "bot", text: data.reply },
+      ]);
+    } catch (error: any) {
+      // Substitui o "Analisando..." pela mensagem de erro
+      setChat((c) => [
+        ...c.slice(0, -1),
+        { from: "bot", text: `❌ Não foi possível obter resposta: ${error.message}` },
       ]);
     } finally {
       setIsLoading(false);
@@ -540,55 +503,20 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     </div>
                   </div>
                 ))}
-
-                {/* Loading indicator */}
-                {isLoading && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 animate-pulse">
-                      <Sparkles className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="bg-secondary text-foreground rounded-2xl px-4 py-3 flex items-center gap-2">
-                      <Loader className="h-4 w-4 animate-spin text-blue-400" />
-                      <span className="text-sm text-muted-foreground">Gerando roteiro...</span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Sentinel element for auto-scroll anchor */}
                 <div ref={chatEndRef} aria-hidden className="h-0 w-0" />
               </div>
-
-              {/* Error message */}
-              {error && (
-                <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
-                  <span className="text-xs text-red-400">{error}</span>
-                </div>
-              )}
 
               <div className="mt-4 flex shrink-0 gap-3">
                 <Input
                   value={chatInput}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === "Enter" && !isLoading) {
-                      sendChat();
-                    }
-                  }}
-                  placeholder={isLoading ? "Aguardando resposta..." : "Digite sua resposta..."}
-                  disabled={isLoading}
-                  className="border-border bg-secondary/60 text-base h-12 disabled:opacity-60"
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && sendChat()}
+                  placeholder="Digite sua resposta..."
+                  className="border-border bg-secondary/60 text-base h-12"
                 />
-                <Button
-                  onClick={sendChat}
-                  disabled={isLoading || !chatInput.trim()}
-                  className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <Loader className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
+                <Button onClick={sendChat} className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500">
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
 

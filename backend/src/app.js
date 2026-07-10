@@ -28,6 +28,12 @@ app.get('/api/test', exampleController.getExample);
 // Rota de chat (protegida pelo middleware JWT)
 app.post('/api/chat', authMiddleware, chatController.handleChat);
 
+// Rota de chat para desenvolvimento (SEM autenticação)
+// TODO: Remover quando Firebase Auth estiver implementado no frontend
+if (process.env.NODE_ENV !== 'production') {
+  app.post('/api/chat/dev', chatController.handleChat);
+}
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {

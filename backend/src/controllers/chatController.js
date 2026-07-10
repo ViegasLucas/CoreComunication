@@ -17,7 +17,7 @@ const handleChat = async (req, res) => {
     return res.status(200).json({
       reply,
       blocked, // frontend pode usar para exibir mensagem específica de LGPD
-      user: user.uid,
+      user: user?.uid || 'dev',
     });
 
   } catch (error) {

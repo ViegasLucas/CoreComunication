@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { saveAuthToken } from "@/lib/auth";
 
 export default function LoginView({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -11,20 +10,11 @@ export default function LoginView({ onLoginSuccess }) {
     e.preventDefault();
     
     let role = "leader"; // Default fallback
-    let uid = "user-" + Date.now(); // ID único para testes
-    
     if (email === "visaolider@gmail.com") role = "leader";
     if (email === "visaooperacional@gmail.com") role = "employee";
     if (email === "visaorh@gmail.com") role = "hr";
 
-    // Salva o token de autenticação no localStorage
-    try {
-      saveAuthToken(uid, email);
-      console.log('[Auth] Token salvo com sucesso para:', email);
-    } catch (error) {
-      console.error('[Auth] Erro ao salvar token:', error);
-    }
-
+    // TODO: wire auth logic with Firebase
     onLoginSuccess(role);
   };
 
