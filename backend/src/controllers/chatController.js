@@ -1,7 +1,26 @@
 const { generateSBIFeedback, generateProfileDiscovery } = require('../services/geminiService');
+const { db } = require('../config/firebase');
+const fs = require('fs');
+const path = require('path');
 
-// Memória local para rodar sem custo de banco de dados
-const memoryChatHistory = {};
+// Memória local persistente para rodar sem custo de banco de dados
+const DB_FILE = path.join(__dirname, '../../local_chat_db.json');
+let memoryChatHistory = {};
+try {
+  if (fs.existsSync(DB_FILE)) {
+    memoryChatHistory = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+  }
+} catch (e) {
+  console.error("Erro ao carregar banco local de chats:", e);
+}
+
+const saveMemory = () => {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(memoryChatHistory, null, 2), 'utf-8');
+  } catch (e) {
+    console.error("Erro ao salvar banco local de chats:", e);
+  }
+};
 
 const handleChat = async (req, res) => {
   try {
@@ -27,18 +46,29 @@ const handleChat = async (req, res) => {
       blocked = result.blocked;
     }
 
-    // Salvar no histórico in-memory
+    // Salvar no histórico
     if (user && user.uid) {
-      if (!memoryChatHistory[user.uid]) {
-        memoryChatHistory[user.uid] = [];
-      }
-      memoryChatHistory[user.uid].unshift({
+      const chatDoc = {
         id: Date.now().toString(),
         type,
         message,
         reply,
         date: new Date().toISOString()
-      });
+      };
+
+      // Tentar salvar no Firestore (Item 3.1)
+      try {
+        await db.collection('users').doc(user.uid).collection('chatHistory').doc(chatDoc.id).set(chatDoc);
+      } catch (e) {
+        console.warn('[Chat] Erro no Firestore, salvando apenas no histórico local:', e.message);
+      }
+
+      // Salvar in-memory / local_db sempre
+      if (!memoryChatHistory[user.uid]) {
+        memoryChatHistory[user.uid] = [];
+      }
+      memoryChatHistory[user.uid].unshift(chatDoc);
+      saveMemory();
     }
 
     return res.status(200).json({
@@ -59,7 +89,25 @@ const getChatHistory = async (req, res) => {
     if (!uid) {
       return res.status(401).json({ error: 'Não autorizado.' });
     }
-    const history = memoryChatHistory[uid] || [];
+
+    let history = [];
+    try {
+      const snapshot = await db.collection('users').doc(uid).collection('chatHistory').orderBy('date', 'desc').get();
+      if (!snapshot.empty) {
+        snapshot.forEach(doc => {
+          history.push(doc.data());
+        });
+        return res.status(200).json(history);
+      }
+    } catch (e) {
+      console.warn('[Chat] Erro ao buscar histórico do Firestore, caindo para memória local:', e.message);
+    }
+
+    // Fallback: se não achar ou der erro no DB, pega da memória local
+    if (history.length === 0) {
+      history = memoryChatHistory[uid] || [];
+    }
+    
     return res.status(200).json(history);
   } catch (error) {
     console.error('[Chat] Erro ao buscar histórico:', error.message);

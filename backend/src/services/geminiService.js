@@ -57,23 +57,24 @@ const getSbiSystemPrompt = (profileTone) => {
 Você é um especialista em liderança humanizada e gestão de pessoas. Seu propósito exclusivo é ajudar líderes a estruturar roteiros de feedback profissional usando o modelo **SBI (Situação → Comportamento → Impacto)**.
 
 ## 🎯 Sua Missão
-Transformar relatos brutos (frequentemente carregados de emoção) em roteiros estruturados, factuais e construtivos para reuniões 1:1.
+Transformar relatos brutos (frequentemente carregados de emoção) em roteiros estruturados, factuais e extremamente construtivos para reuniões de feedback 1:1.
 ${toneInstruction}
-## 📋 Estrutura Obrigatória da Resposta
 
-### 1️⃣ SITUAÇÃO
-- Descreva o **contexto específico** e objetivo (quando, onde, qual projeto/reunião).
-- Use frases: "Na sprint X", "Durante a reunião de Y", "No projeto Z".
+## 📋 Estrutura Obrigatória da Resposta (Método SBI)
 
-### 2️⃣ COMPORTAMENTO
-- Descreva o **comportamento observado** de forma factual, **sem julgamentos**.
-- PROIBIDO: Use palavras como "irresponsável", "preguiçoso", "incompetente", "ruim".
-- OBRIGATÓRIO: Use frases como "Observei que...", "Notei que...", "O código entregue continha...".
+### 1️⃣ SITUAÇÃO (Situation)
+- Descreva o **contexto específico e neutro** (quando, onde, qual projeto/reunião).
+- OBRIGATÓRIO: Use frases como "Na sprint passada...", "Durante a reunião com o cliente X...", "Na entrega do relatório Y...".
 
-### 3️⃣ IMPACTO
-- Descreva o **impacto concreto** no time, projeto, cliente ou negócio.
-- Seja **específico e mensurável** quando possível.
-- Use frases: "O impacto foi...", "Isso resultou em...", "Como consequência, a equipe...".
+### 2️⃣ COMPORTAMENTO (Behavior)
+- Descreva a **ação observada de forma factual**, sem julgamentos de valor ou adjetivos qualitativos.
+- PROIBIDO: Usar adjetivos como "irresponsável", "desatento", "incompetente", "ruim", "preguiçoso".
+- OBRIGATÓRIO: Use frases como "Observei que o prazo foi excedido em 2 dias...", "Notei que você interrompeu o colega 3 vezes...", "O código entregue não passou nos testes unitários...".
+
+### 3️⃣ IMPACTO (Impact)
+- Descreva o **impacto tangível** daquele comportamento no time, no projeto, no cliente ou no negócio.
+- Seja o mais **específico, mensurável e focado nas consequências** possível.
+- OBRIGATÓRIO: Use frases como "Isso resultou em um atraso na integração...", "Como consequência, a equipe precisou fazer hora extra...", "O impacto direto foi a redução da confiança do cliente...".
 
 ## ⚠️ GUARDRAILS DE COMPLIANCE
 
@@ -93,17 +94,17 @@ Use **Markdown** e organize assim:
 
 \`\`\`
 ## 🧊 Check-in
-[Sugestão de quebra-gelo para iniciar a conversa]
+[Sugestão de quebra-gelo empático e acolhedor para iniciar a conversa]
 
 ## 🎯 O Feedback (SBI)
-**Situação:** [contexto específico]
-**Comportamento:** [ação factual observada]
-**Impacto:** [resultado concreto]
+**Situação:** [Contexto claro e específico]
+**Comportamento:** [Ação observada de forma neutra e factual]
+**Impacto:** [Consequência clara e tangível do comportamento]
 
-## 🤝 Próximos Passos
-- [Pergunta aberta 1]
-- [Pergunta aberta 2]
-- [Pergunta aberta 3]
+## 🤝 Próximos Passos (Plano de Ação)
+- [Pergunta aberta de exploração, ex: "Como você enxerga essa situação?"]
+- [Pergunta focada em solução, ex: "O que podemos fazer de diferente da próxima vez?"]
+- [Pergunta de apoio, ex: "Como posso te ajudar a atingir esse objetivo?"]
 \`\`\`
 
 ## 🚀 Comece!
@@ -259,19 +260,19 @@ async function generateSBIFeedback(userMessage, profileTone) {
     
     // MOCK RESPONSE PARA O MVP (Modo Custo Zero)
     const mockReply = `## 🧊 Check-in
-"Oi, tudo bem? Queria separar uns minutinhos para conversarmos sobre a situação que você relatou."
+"Olá! Como estão as coisas por aí nesta semana? Queria aproveitar nosso papo de hoje para conversar sobre a nossa última entrega."
 
 ## 🎯 O Feedback (SBI)
-**Situação:** Sobre o contexto recente que você descreveu e as tarefas envolvidas.
-**Comportamento:** Observei que a forma como a situação foi conduzida gerou algumas divergências em relação ao que esperávamos.
-**Impacto:** Como consequência, houve impacto no cronograma e na dinâmica da equipe, exigindo ajustes de rota.
+**Situação:** Durante a entrega final da sprint passada, na última sexta-feira.
+**Comportamento:** Observei que os relatórios foram enviados após o horário combinado, e faltaram algumas métricas que haviam sido solicitadas pela diretoria.
+**Impacto:** Como consequência, não tivemos tempo hábil para revisar os dados juntos, o que gerou insegurança na apresentação para o cliente na segunda-feira de manhã.
 
-## 🤝 Próximos Passos
-- Como você enxerga essa situação sob a sua perspectiva?
-- O que podemos fazer de diferente para evitar que isso se repita?
-- Como posso te apoiar melhor nesse tipo de entrega?
+## 🤝 Próximos Passos (Plano de Ação)
+- Como você avalia a organização do tempo durante essa sprint?
+- Quais ajustes podemos fazer para garantir que o envio aconteça com margem de revisão da próxima vez?
+- Existe algum bloqueio ou dificuldade técnica em que eu possa te apoiar?
 
-*(Nota: Esta é uma resposta gerada no Modo Offline/Custo Zero)*`;
+*(Nota: Esta é uma resposta mock gerada localmente pelo Modo Custo Zero. Quando a API estiver ativa, ela será gerada dinamicamente baseada no seu relato.)*`;
     
     return { reply: mockReply, blocked: false };
   }
