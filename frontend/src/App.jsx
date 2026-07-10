@@ -31,7 +31,7 @@ export default function App() {
 
   // Estado de Autenticação
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userData, setUserData] = useState(null);
   
 
 
@@ -83,21 +83,21 @@ export default function App() {
   
   // Renderização condicional: se não estiver logado, mostra o Login
   if (!isLoggedIn) {
-    return <LoginView onLoginSuccess={(role) => {
-      setUserRole(role);
+    return <LoginView onLoginSuccess={(data) => {
+      setUserData(data);
       setIsLoggedIn(true);
     }} />;
   }
 
   // Props comuns a todos os dashboards
-  const dashboardProps = { isDark, setIsDark, isHighContrast, setIsHighContrast };
+  const dashboardProps = { isDark, setIsDark, isHighContrast, setIsHighContrast, userData };
 
   // Roteamento baseado no perfil
-  if (userRole === 'employee') {
+  if (userData?.role === 'employee') {
     return <EmployeeDashboardView {...dashboardProps} />;
   }
   
-  if (userRole === 'hr') {
+  if (userData?.role === 'hr') {
     return <HRDashboardView {...dashboardProps} />;
   }
 

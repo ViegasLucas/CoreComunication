@@ -43,7 +43,7 @@ const wellbeingData = [
   { name: 'Semana 4', value: 95 },
 ];
 
-export default function EmployeeDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast }: any) {
+export default function EmployeeDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [active, setActive] = useState("home");
   const [sentiment, setSentiment] = useState<string | null>(null);
@@ -147,8 +147,8 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                 </Button>
               )}
               <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-[#00e676]">Dashboard do Colaborador</div>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, Ana 👋</h1>
+                <div className="text-xs font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">Portal do Colaborador</div>
+                <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Bom dia, {userData?.name?.split(' ')[0] || 'Liderado'} 👋</h1>
               </div>
             </div>
             <Button variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-[#00e676]/40 dark:bg-[#00e676]/10 dark:text-[#00e676] dark:hover:bg-[#00e676]/20">

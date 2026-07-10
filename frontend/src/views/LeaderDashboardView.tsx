@@ -62,10 +62,15 @@ const upcomingMeetings = [
   { who: "Ana Ribeiro", when: "Sex · 10:00", topic: "Revisão de PDI" },
 ];
 
-export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast }: any) {
+export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [onboardingOpen, setOnboardingOpen] = useState(true);
-  const [profile, setProfile] = useState<ProfileKey | null>(null);
+  
+  // Se o usuário já tiver perfil no banco, inicializa com ele
+  const initialProfile = userData?.profile || null;
+  const [profile, setProfile] = useState<ProfileKey | null>(initialProfile);
+  
+  // Só abre o onboarding automaticamente se NÃO tiver perfil
+  const [onboardingOpen, setOnboardingOpen] = useState(initialProfile === null);
   const [active, setActive] = useState("home");
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
 
@@ -113,9 +118,15 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
     try {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await fetch(`${API_BASE}/api/chat/dev`, {
+      const token = localStorage.getItem("token") || "";
+      if (!token) throw new Error("Token não encontrado.");
+
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           message: userMsg, 
           history: historyPayload,
@@ -143,17 +154,35 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       } else {
         // Resposta de descoberta de perfil
         let finalReply = reply;
+        let newProfile: ProfileKey | null = null;
         
         // Verifica se a IA encontrou o perfil
         if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
-           setProfile("tecnico");
+           newProfile = "tecnico";
            finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
         } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
-           setProfile("engajado");
+           newProfile = "engajado";
            finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
         } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
-           setProfile("transicao");
+           newProfile = "transicao";
            finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
+        }
+
+        if (newProfile) {
+          setProfile(newProfile);
+          // Salva o perfil no banco de dados
+          try {
+            await fetch(`${API_BASE}/api/users/me/profile`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ profile: newProfile })
+            });
+          } catch(err) {
+            console.error('Falha ao salvar perfil no banco:', err);
+          }
         }
 
         setChat((c) => [
@@ -184,7 +213,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       const token = localStorage.getItem("token") || "";
       if (!token) throw new Error("Token não encontrado.");
 
-      const response = await fetch("http://localhost:3001/api/chat", {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ 
@@ -312,7 +342,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               )}
               <div>
                 <div className="text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
-                <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bom dia, Rafael 👋</h1>
+                <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bom dia, {userData?.name?.split(' ')[0] || 'Líder'} 👋</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">

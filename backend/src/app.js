@@ -1,12 +1,36 @@
 require('dotenv').config(); // DEVE ser a primeira linha — carrega .env antes de qualquer outro módulo
 
 const express = require('express');
+const { GoogleGenAI } = require('@google/genai');
 const cors = require('cors');
-const exampleController = require('./controllers/exampleController');
-const chatController = require('./controllers/chatController');
-const authMiddleware = require('./middlewares/authMiddleware');
 
 const app = express();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // 2. Inicializa o Gemini
+
+const exampleController = require('./controllers/exampleController');
+const chatController = require('./controllers/chatController');
+const userController = require('./controllers/userController');
+const authMiddleware = require('./middlewares/authMiddleware');
+
+// 3. Função de teste rápido para rodar assim que o servidor ligar
+async function testarGemini() {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'Oi',
+    });
+    console.log("🟢 Gemini funcionando! Resposta:", response.text);
+  } catch (error) {
+    console.log("\n❌ O ERRO REAL DO GEMINI É ESTE:");
+    console.error(error); // Aqui vai mostrar se o problema é a chave, rede, etc.
+  }
+}
+
+// Chame o teste
+testarGemini();
+
+
+
 
 // CORS: Permitir todas as origens durante o desenvolvimento MVP
 app.use(cors());
@@ -20,14 +44,13 @@ app.get('/api/health', (req, res) => {
 // Rota de teste
 app.get('/api/test', exampleController.getExample);
 
+// Rotas de Usuário (protegidas pelo middleware JWT)
+app.post('/api/users', authMiddleware, userController.createUser);
+app.get('/api/users/me', authMiddleware, userController.getMe);
+app.patch('/api/users/me/profile', authMiddleware, userController.updateMyProfile);
+
 // Rota de chat (protegida pelo middleware JWT)
 app.post('/api/chat', authMiddleware, chatController.handleChat);
-
-// Rota de chat para desenvolvimento (SEM autenticação)
-// TODO: Remover quando Firebase Auth estiver implementado no frontend
-if (process.env.NODE_ENV !== 'production') {
-  app.post('/api/chat/dev', chatController.handleChat);
-}
 
 const PORT = process.env.PORT || 3001;
 

@@ -14,7 +14,8 @@ import {
   TrendingUp,
   ChevronRight,
   ShieldAlert,
-  Target
+  Target,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +28,7 @@ const companyAlerts = [
   { team: "Marketing", issue: "Queda no sentimento médio nas últimas 2 semanas", severity: "medium" as const },
 ];
 
-export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast }: any) {
+export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [active, setActive] = useState("home");
 
@@ -66,6 +67,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
             { id: "engagement", label: "Engajamento", icon: Activity },
             { id: "meetings", label: "Adoção de 1:1s", icon: Calendar },
             { id: "teams", label: "Diretorias", icon: Users },
+            { id: "users", label: "Cadastrar Usuários", icon: UserPlus },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = active === item.id;
@@ -130,7 +132,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               )}
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Painel Executivo de RH</div>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Visão Geral da Empresa</h1>
+                <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, {userData?.name?.split(' ')[0] || 'RH'}</h1>
               </div>
             </div>
             <Button variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20">
@@ -248,6 +250,72 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* VIEW: USUÁRIOS */}
+          {active === "users" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 max-w-2xl">
+              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
+                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                  <UserPlus className="h-6 w-6 text-indigo-500" />
+                  Cadastrar Novo Usuário
+                </h2>
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const data = Object.fromEntries(formData);
+                    
+                    try {
+                      const token = localStorage.getItem("token");
+                      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(data)
+                      });
+                      
+                      if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || 'Erro ao cadastrar');
+                      }
+                      
+                      alert('Usuário cadastrado com sucesso!');
+                      e.currentTarget.reset();
+                    } catch (error) {
+                      alert(error.message);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome Completo</label>
+                    <input name="name" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="Nome do colaborador" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">E-mail</label>
+                    <input name="email" type="email" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="email@empresa.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Senha Provisória</label>
+                    <input name="password" type="password" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="••••••••" minLength={6} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Papel / Acesso</label>
+                    <select name="role" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="leader">Líder</option>
+                      <option value="employee">Liderado (Colaborador)</option>
+                      <option value="hr">Recursos Humanos</option>
+                    </select>
+                  </div>
+                  <Button type="submit" className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
+                    Criar Conta
+                  </Button>
+                </form>
+              </div>
             </div>
           )}
 

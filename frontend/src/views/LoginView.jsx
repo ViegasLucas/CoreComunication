@@ -1,37 +1,63 @@
 import React, { useState } from "react";
 import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function LoginView({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setIsLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
-    let role = null;
-
-    if (normalizedEmail === "visaolider@gmail.com") {
-      role = "leader";
-    } else if (normalizedEmail === "visaooperacional@gmail.com") {
-      role = "employee";
-    } else if (normalizedEmail === "visaorh@gmail.com") {
-      role = "hr";
-    } else {
-      alert("E-mail não autorizado! Para testar as telas, utilize: \n- visaolider@gmail.com\n- visaooperacional@gmail.com\n- visaorh@gmail.com");
-      return;
-    }
+    
+    // Não há mais regra chumbada. Buscaremos do banco.
 
     try {
-      const mockUid = "user-mock-123";
-      localStorage.setItem("token", mockUid);
+      // Faz o login real com o Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+      
+      // Obtém o token JWT
+      const token = await userCredential.user.getIdToken();
+      
+      // Salva no localStorage para uso posterior na API
+      localStorage.setItem("token", token);
       localStorage.setItem("email", normalizedEmail);
-      console.log('[Auth] Token salvo com sucesso para:', normalizedEmail);
+      
+      // Busca as informações do usuário no banco de dados (Nome, Role, Perfil)
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Regra de fallback baseada no email, caso o usuário ainda não exista no Firestore
+      let fallbackRole = 'leader';
+      if (normalizedEmail === 'visaorh@gmail.com') fallbackRole = 'hr';
+      else if (normalizedEmail === 'visaooperacional@gmail.com') fallbackRole = 'employee';
+      
+      let userData = { role: fallbackRole, name: 'Usuário Demo', profile: null }; // Fallback
+
+      if (res.ok) {
+        const dbData = await res.json();
+        userData = { ...userData, ...dbData }; // Mescla os dados do banco
+      } else {
+        console.warn('[Auth] Não foi possível carregar perfil do banco, usando fallback.');
+      }
+
+      console.log('[Auth] Usuário autenticado e token salvo com sucesso.', userData);
+      
+      // Dispara sucesso para o App.jsx
+      onLoginSuccess(userData);
     } catch (error) {
-      console.error('[Auth] Erro ao salvar token:', error);
+      console.error('[Auth] Erro ao autenticar:', error.message);
+      setError("Falha ao fazer login. Verifique seu e-mail e senha.");
+    } finally {
+      setIsLoading(false);
     }
-    // TODO: wire auth logic with Firebase
-    onLoginSuccess(role);
   };
 
   return (
@@ -111,12 +137,19 @@ export default function LoginView({ onLoginSuccess }) {
               </div>
             </div>
 
+            {error && (
+              <div className="rounded-xl bg-destructive/15 p-3 text-sm text-destructive border border-destructive/30">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98]"
+              disabled={isLoading}
+              className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Entrar
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+              {isLoading ? "Entrando..." : "Entrar"}
+              {!isLoading && <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>
 

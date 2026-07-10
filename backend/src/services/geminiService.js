@@ -2,7 +2,7 @@ const { GoogleGenAI } = require('@google/genai');
 
 // ── Constantes ────────────────────────────────────────────────
 const MODEL_SBI = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM para validação LGPD
+const MODEL_GATEKEEPER = 'gemini-2.5-flash'; // SLM para validação LGPD
 
 // ── Lazy singleton ────────────────────────────────────────────
 let _genAI = null;
@@ -48,8 +48,8 @@ Use o seguinte esquema JSON:
  * Segunda camada: gera roteiros estruturados após validação LGPD
  */
 const getSbiSystemPrompt = (profileTone) => {
-  const toneInstruction = profileTone 
-    ? `\n## 👤 Perfil do Líder: ${profileTone}\nAdapte o tom da mensagem, o quebra-gelo e as perguntas abertas para refletir o perfil "${profileTone}". Exemplo: Se técnico, seja direto e objetivo. Se engajado, seja motivador e focado em eficiência. Se em transição, adicione passos mais detalhados para dar segurança ao líder.` 
+  const toneInstruction = profileTone
+    ? `\n## 👤 Perfil do Líder: ${profileTone}\nAdapte o tom da mensagem, o quebra-gelo e as perguntas abertas para refletir o perfil "${profileTone}". Exemplo: Se técnico, seja direto e objetivo. Se engajado, seja motivador e focado em eficiência. Se em transição, adicione passos mais detalhados para dar segurança ao líder.`
     : '';
 
   return `# SMART LEADING - Assistente de Feedback Estruturado
@@ -160,14 +160,14 @@ Por favor, **remova esses dados** e envie apenas os comportamentos e entregas qu
  * mas é melhor nunca enviar ao servidor da Google).
  */
 const LGPD_PATTERNS = [
-  { name: 'CPF',        regex: /\d{3}\.??\d{3}\.??\d{3}-?\d{2}/g },
-  { name: 'RG',         regex: /\d{1,2}\.??\d{3}\.??\d{3}-?[A-Za-z0-9]?/g },
-  { name: 'Telefone',   regex: /(\+55\s?)?(\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}/g },
-  { name: 'E-mail',     regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g },
-  { name: 'CEP',        regex: /\d{5}-?\d{3}/g },
-  { name: 'Endereço',   regex: /(rua|avenida|av\.?|travessa|r\.|alameda)\s+[\w\d\s,.-]{3,100}/ig },
-  { name: 'Salário',    regex: /R\$\s?\d{1,3}(?:\.\d{3})*(?:,\d{2})?/g },
-  { name: 'Saúde',      regex: /\b(doença|internamento|hospital|diagnóstico|sintoma|tratamento)\b/ig },
+  { name: 'CPF', regex: /\d{3}\.??\d{3}\.??\d{3}-?\d{2}/g },
+  { name: 'RG', regex: /\d{1,2}\.??\d{3}\.??\d{3}-?[A-Za-z0-9]?/g },
+  { name: 'Telefone', regex: /(\+55\s?)?(\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}/g },
+  { name: 'E-mail', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g },
+  { name: 'CEP', regex: /\d{5}-?\d{3}/g },
+  { name: 'Endereço', regex: /(rua|avenida|av\.?|travessa|r\.|alameda)\s+[\w\d\s,.-]{3,100}/ig },
+  { name: 'Salário', regex: /R\$\s?\d{1,3}(?:\.\d{3})*(?:,\d{2})?/g },
+  { name: 'Saúde', regex: /\b(doença|internamento|hospital|diagnóstico|sintoma|tratamento)\b/ig },
 ];
 
 /**
@@ -283,7 +283,7 @@ async function generateProfileDiscovery(userMessage, history = []) {
       contents,
       config: {
         systemInstruction: PROFILE_DISCOVERY_PROMPT,
-        temperature: 0.5, 
+        temperature: 0.5,
         maxOutputTokens: 500,
       },
     });
