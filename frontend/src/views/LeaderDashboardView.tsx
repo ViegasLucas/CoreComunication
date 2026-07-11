@@ -236,6 +236,28 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     fetchMetrics();
   }, []);
 
+  const openChatWithIntent = (intent: "profile_discovery" | "sbi" | "one_on_one" | "pdi") => {
+    setChatIntent(intent);
+    let initialMessage = "";
+    if (intent === "profile_discovery") {
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Bem-vindo(a) ao seu mapeamento de perfil de liderança. Para descobrirmos o seu perfil DISC, vamos começar: Quanto tempo de experiência com gestão de pessoas você possui?`;
+    } else if (intent === "sbi") {
+      initialMessage = "Olá! Vamos preparar um roteiro de feedback. Sobre qual situação ou liderado você gostaria de falar?";
+    } else if (intent === "one_on_one") {
+      initialMessage = "Olá! Vamos estruturar a pauta da sua próxima 1:1. Com quem será a reunião e quais são os pontos principais?";
+    } else if (intent === "pdi") {
+      initialMessage = "Olá! Vamos elaborar um PDI. Qual liderado estamos desenvolvendo e qual a competência alvo?";
+    }
+    
+    setChat([
+      {
+        from: "bot",
+        text: initialMessage,
+      },
+    ]);
+    setIsChatOpen(true);
+  };
+
   const sendChat = async () => {
     if (!chatInput.trim() || isLoading) return;
     const userMsg = chatInput;
@@ -1394,35 +1416,6 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 className="border-border bg-secondary/60"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI (IA)</Label>
-              <Textarea
-                rows={3}
-                placeholder="Ex: Não cumpriu o prazo de entrega da funcionalidade X..."
-                className="border-border bg-secondary/60"
-                value={meetingTopics}
-                onChange={(e) => setMeetingTopics(e.target.value)}
-              />
-            </div>
-
-            <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200 flex flex-col gap-2">
-              Nossa IA irá gerar um roteiro personalizado baseado no seu perfil de liderança.
-              <Button
-                onClick={handleGenerateSbi}
-                disabled={isGeneratingSbi || !meetingTopics.trim()}
-                className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 h-8"
-              >
-                {isGeneratingSbi ? "Gerando..." : <Sparkles className="h-4 w-4 mr-2" />}
-                Gerar Roteiro SBI
-              </Button>
-            </div>
-
-            {sbiScript && (
-              <div className="mt-4 p-4 rounded-xl border border-border bg-secondary/40 text-sm h-64 overflow-y-auto whitespace-pre-wrap">
-                {sbiScript}
-              </div>
-            )}
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
