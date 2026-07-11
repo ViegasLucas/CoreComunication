@@ -589,17 +589,14 @@ export default function TeamsTab() {
       )}
 
       {/* LGPD Compliance Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background dark:from-[#0a101f] via-background/80 dark:via-[#0a101f]/80 to-transparent p-6 border-t border-border dark:border-slate-800/50 backdrop-blur-md z-20">
-        <div className="max-w-7xl mx-auto flex items-start gap-3">
+      <div className="mt-12 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="flex items-start gap-3">
           <Lock className="h-4 w-4 text-slate-400 dark:text-slate-500 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
             Dados individuais mostram apenas status de adesão às 1:1s. Conteúdo de conversas permanece acessível apenas ao líder direto e ao colaborador, em conformidade com a LGPD.
           </p>
         </div>
       </div>
-
-      {/* Spacing for fixed footer */}
-      <div className="h-20"></div>
     </div>
   );
 }

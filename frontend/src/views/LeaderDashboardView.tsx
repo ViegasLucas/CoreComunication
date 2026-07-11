@@ -25,6 +25,7 @@ import {
   Search,
   ChevronDown,
   X,
+  XCircle,
   HeartPulse,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -398,15 +399,22 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
+      {/* OVERLAY MOBILE */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 sm:hidden backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-border bg-card/70 backdrop-blur-xl transition-all duration-300 md:flex",
-          isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none px-0"
+          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 sm:bg-card/70 backdrop-blur-xl transition-all duration-300 flex",
+          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
         )}
       >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-3">
+        <div className={cn("flex items-center justify-between py-5", isSidebarOpen ? "px-5" : "px-0 justify-center")}>
+          <div className={cn("flex items-center gap-3", !isSidebarOpen && "sm:hidden")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
@@ -415,17 +423,24 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               <div className="text-xs text-muted-foreground">Smart Leading</div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(false)}
-            className="text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {(!isSidebarOpen) ? (
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-5 w-5 sm:hidden" />
+              <Menu className="h-5 w-5 hidden sm:block" />
+            </Button>
+          )}
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-2">
+        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto">
           {[
             { id: "home", label: "Home", icon: Home },
             { id: "team", label: "Equipe", icon: Users },
@@ -438,40 +453,48 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             return (
               <button
                 key={item.id}
-                onClick={() => setActive(item.id)}
+                onClick={() => { setActive(item.id); if (window.innerWidth < 640) setIsSidebarOpen(false); }}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base transition-all",
+                  "flex w-full items-center rounded-lg transition-all min-h-[44px]",
+                  isSidebarOpen ? "gap-3 px-3 py-3 text-base" : "justify-center p-3",
                   isActive
                     ? "bg-blue-600/15 text-blue-400 dark:text-blue-300 shadow-inner ring-1 ring-blue-500/30"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
+                title={!isSidebarOpen ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                {item.label}
+                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "h-6 w-6")} />
+                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "hidden")}>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         <div className="border-t border-border p-3">
-          <div className="rounded-xl bg-secondary/60 p-3 ring-1 ring-border">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-              <Settings className="h-4 w-4" />
-              Configurações & Acessibilidade
-            </div>
-            <div className="flex items-center justify-between rounded-lg px-2 py-1.5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className={cn("rounded-xl bg-secondary/60 ring-1 ring-border", isSidebarOpen ? "p-3" : "p-1.5 flex flex-col items-center gap-3")}>
+            {isSidebarOpen && (
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                <Settings className="h-4 w-4" />
+                Configurações & Acessibilidade
+              </div>
+            )}
+            
+            <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5" : "w-full justify-center")}>
+              <div className={cn("flex items-center gap-2 text-sm text-muted-foreground", !isSidebarOpen && "hidden")}>
                 {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 {isDark ? "Dark" : "Light"}
               </div>
-              <Switch checked={isDark} onCheckedChange={setIsDark} />
+              {!isSidebarOpen && (isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />)}
+              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "hidden")} />
             </div>
-            <div className="mt-1 flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
+            
+            <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5 mt-1" : "w-full justify-center")}>
+              <div className={cn("flex items-center gap-2 text-sm text-muted-foreground", !isSidebarOpen && "hidden")}>
                 <Accessibility className="h-4 w-4" />
                 Alto contraste
               </div>
-              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} />
+              {!isSidebarOpen && <Accessibility className="h-5 w-5 text-muted-foreground" />}
+              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "hidden")} />
             </div>
           </div>
         </div>
@@ -488,54 +511,57 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               "radial-gradient(1000px 500px at 10% -10%, rgba(37,99,235,0.15), transparent 60%), radial-gradient(800px 400px at 100% 0%, rgba(59,130,246,0.10), transparent 60%)",
           }}
         />
-        <div className="relative mx-auto max-w-7xl px-6 py-8">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center justify-between">
             <div className="flex items-center gap-4">
               {!isSidebarOpen && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="hidden md:flex"
+                  className="flex shrink-0 -ml-2"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 </Button>
               )}
               <div>
-                <div className="text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
-                <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bom dia, {userData?.name?.split(' ')[0] || 'Líder'} 👋</h1>
+                <div className="text-xs sm:text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
+                <h1 className="mt-1 text-2xl md:text-3xl font-semibold tracking-tight">Bom dia, {userData?.name?.split(' ')[0] || 'Líder'} 👋</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <p className="text-base text-muted-foreground mr-4">
+            <div className="flex items-center flex-wrap gap-2">
+              <p className="text-xs sm:text-sm md:text-base text-muted-foreground mr-2 w-full sm:w-auto text-left sm:text-right hidden lg:block">
                 {profile ? `Perfil ativo: ${labelFor(profile)}` : "Defina seu perfil para personalizar a experiência."}
               </p>
-              <Button variant="outline" size="icon" className="border-border bg-secondary/60">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setOnboardingOpen(true)}
-                disabled={profile !== null}
-                className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={profile !== null ? "Perfil já mapeado. Procure o RH para refazer o teste." : ""}
-              >
-                <Sparkles className="mr-1 h-4 w-4" /> Descobrir Perfil
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => { setIsHistoryOpen(true); fetchHistory(); }}
-                className="border-border bg-secondary/60"
-              >
-                <Clock className="mr-2 h-4 w-4" /> Histórico de IA
-              </Button>
-              <Button
-                onClick={() => setNewMeetingOpen(true)}
-                className="bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/30"
-              >
-                <Plus className="mr-1 h-4 w-4" /> Nova 1:1
-              </Button>
+              
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto mt-2 sm:mt-0 hide-scrollbar">
+                <Button variant="outline" size="icon" className="border-border bg-secondary/60 shrink-0 min-h-[44px] min-w-[44px]">
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setOnboardingOpen(true)}
+                  disabled={profile !== null}
+                  className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 min-h-[44px] px-3"
+                  title={profile !== null ? "Perfil já mapeado. Procure o RH para refazer o teste." : ""}
+                >
+                  <Sparkles className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Descobrir Perfil</span><span className="sm:hidden">Perfil</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setIsHistoryOpen(true); fetchHistory(); }}
+                  className="border-border bg-secondary/60 shrink-0 min-h-[44px] px-3"
+                >
+                  <Clock className="sm:mr-2 h-4 w-4" /> <span className="hidden sm:inline">Histórico de IA</span>
+                </Button>
+                <Button
+                  onClick={() => setNewMeetingOpen(true)}
+                  className="bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/30 shrink-0 min-h-[44px] px-3 ml-auto sm:ml-0"
+                >
+                  <Plus className="sm:mr-1 h-4 w-4" /> <span className="hidden sm:inline">Nova 1:1</span>
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -577,7 +603,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
               {/* Team */}
               <section className="mt-10">
-                <div className="mb-4 flex items-end justify-between">
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-semibold tracking-tight">Meus Liderados</h2>
                     <p className="text-sm text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
@@ -585,14 +611,14 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   <Button
                     variant="ghost"
                     onClick={() => setActive("team")}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground w-full sm:w-auto justify-center sm:justify-end"
                   >
                     Ver todos <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {team.length === 0 ? (
-                    <div className="col-span-3 py-10 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 py-10 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
                       Você ainda não possui liderados vinculados. Peça ao RH para adicioná-los no seu painel.
                     </div>
                   ) : team.map((m) => (
@@ -620,11 +646,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                           size="sm"
                           variant="outline"
                           onClick={() => setActive("team")}
-                          className="flex-1 border-border bg-secondary/60 text-sm"
+                          className="flex-1 border-border bg-secondary/60 text-sm min-h-[44px] sm:min-h-0"
                         >
                           Ver perfil
                         </Button>
-                        <Button size="sm" onClick={() => setNewMeetingOpen(true)} className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500">
+                        <Button size="sm" onClick={() => setNewMeetingOpen(true)} className="flex-1 bg-blue-600 text-sm text-white hover:bg-blue-500 min-h-[44px] sm:min-h-0">
                           1:1
                         </Button>
                       </div>
@@ -634,7 +660,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               </section>
 
               {/* Meetings */}
-              <section className="mt-10 grid gap-4 lg:grid-cols-2">
+              <section className="mt-10 grid gap-4 grid-cols-1 lg:grid-cols-2">
                 <GlassCard className="p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-base font-semibold">Reuniões Recentes</h3>
@@ -657,7 +683,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     <p className="text-sm text-muted-foreground mb-4">Gerencie as pautas e roteiros com IA</p>
                     <Button
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
                       onClick={() => setActive("meetings")}
                     >
                       Ir para Reuniões
@@ -679,11 +705,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <KpiCard title="Progresso do meu PDI" value="65%" trend="+5%" icon={Target} accent="violet" />
                 <KpiCard title="Feedbacks Recebidos" value="12" trend="+3" icon={MessageSquare} accent="blue" />
 
-                <GlassCard className="p-5 ring-1 ring-violet-500/20">
+                <GlassCard className="p-5 ring-1 ring-violet-500/20 md:col-span-2 lg:col-span-1">
                   <div className="mb-2 text-sm font-semibold text-violet-400">Próxima 1:1 com Gestor</div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20 text-violet-300">
@@ -1049,7 +1075,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   </Badge>
                 </div>
 
-                <div className="h-[240px] w-full -ml-4">
+                <div className="h-[200px] sm:h-[240px] w-full -ml-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={metrics?.wellbeingData || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <defs>
@@ -1065,6 +1091,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                         tickLine={false}
                         axisLine={false}
                         dy={10}
+                        tickFormatter={(val) => window.innerWidth < 640 ? val.replace("Sem ", "S") : val}
                       />
                       <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
                       <Tooltip
@@ -1113,7 +1140,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       {/* ONBOARDING MODAL */}
       <Dialog open={onboardingOpen} onOpenChange={setOnboardingOpen}>
-        <DialogContent className="max-w-[1300px] border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl">
+        <DialogContent className="max-w-[1300px] w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl overflow-hidden flex flex-col">
           <div className="grid h-[85vh] max-h-[800px] min-h-[500px] gap-0 md:grid-cols-2">
             {/* Left: quick profile */}
             <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r">
@@ -1211,7 +1238,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       {/* NEW MEETING SLIDE-OVER */}
       <Sheet open={newMeetingOpen} onOpenChange={setNewMeetingOpen}>
-        <SheetContent className="w-full border-border bg-background/95 text-foreground backdrop-blur-2xl sm:max-w-md">
+        <SheetContent className="w-full sm:max-w-md border-border bg-background/95 text-foreground backdrop-blur-2xl h-[100dvh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Criar nova 1:1</SheetTitle>
             <SheetDescription className="text-muted-foreground">
@@ -1317,7 +1344,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       {/* HISTORY SLIDE-OVER */}
       <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <SheetContent className="w-full border-border bg-background/95 text-foreground backdrop-blur-2xl sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md border-border bg-background/95 text-foreground backdrop-blur-2xl overflow-y-auto h-[100dvh]">
           <SheetHeader>
             <SheetTitle>Histórico de IA</SheetTitle>
             <SheetDescription className="text-muted-foreground">

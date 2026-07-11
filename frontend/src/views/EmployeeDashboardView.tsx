@@ -17,7 +17,8 @@ import {
   Plus,
   Award,
   CheckSquare,
-  Send
+  Send,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -106,15 +107,22 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
 
   return (
     <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
+      {/* OVERLAY MOBILE */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 sm:hidden backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-border dark:border-slate-800 bg-card dark:bg-[#0f172a] transition-all duration-300 md:flex",
-          isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none px-0"
+          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border dark:border-slate-800 bg-card/95 sm:bg-card dark:bg-[#0f172a]/95 sm:dark:bg-[#0f172a] backdrop-blur-xl transition-all duration-300 flex",
+          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
         )}
       >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-3">
+        <div className={cn("flex items-center justify-between py-5", isSidebarOpen ? "px-5" : "px-0 justify-center")}>
+          <div className={cn("flex items-center gap-3", !isSidebarOpen && "sm:hidden")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-900/40">
               <Heart className="h-6 w-6 text-white" />
             </div>
@@ -123,17 +131,24 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
               <div className="text-xs text-muted-foreground dark:text-slate-400">Meu Espaço</div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(false)}
-            className="text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {(!isSidebarOpen) ? (
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-900/40">
+              <Heart className="h-6 w-6 text-white" />
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              <X className="h-5 w-5 sm:hidden" />
+              <Menu className="h-5 w-5 hidden sm:block" />
+            </Button>
+          )}
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-2">
+        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto">
           {[
             { id: "home", label: "Home", icon: Home },
             { id: "pdi", label: "Meu PDI", icon: Target },
@@ -145,40 +160,46 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
             return (
               <button
                 key={item.id}
-                onClick={() => setActive(item.id)}
+                onClick={() => { setActive(item.id); if (window.innerWidth < 640) setIsSidebarOpen(false); }}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base transition-all",
+                  "flex w-full items-center rounded-lg transition-all min-h-[44px]",
+                  isSidebarOpen ? "gap-3 px-3 py-3 text-base" : "justify-center p-3",
                   isActive
                     ? "bg-emerald-100 text-emerald-700 dark:bg-[#00e676]/15 dark:text-[#00e676] shadow-inner ring-1 ring-[#00e676]/30"
                     : "text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white",
                 )}
+                title={!isSidebarOpen ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                {item.label}
+                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "h-6 w-6")} />
+                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "hidden")}>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         <div className="border-t border-border dark:border-slate-800 p-3">
-          <div className="rounded-xl bg-secondary/50 dark:bg-slate-900/60 p-3 ring-1 ring-border dark:ring-slate-800">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground dark:text-white">
-              <Settings className="h-4 w-4" />
-              Configurações
-            </div>
-            <div className="flex items-center justify-between rounded-lg px-2 py-1.5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400">
+          <div className={cn("rounded-xl bg-secondary/50 dark:bg-slate-900/60 ring-1 ring-border dark:ring-slate-800", isSidebarOpen ? "p-3" : "p-1.5 flex flex-col items-center gap-3")}>
+            {isSidebarOpen && (
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground dark:text-white">
+                <Settings className="h-4 w-4" />
+                Configurações
+              </div>
+            )}
+            <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5" : "w-full justify-center")}>
+              <div className={cn("flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400", !isSidebarOpen && "hidden")}>
                 {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 {isDark ? "Dark" : "Light"}
               </div>
-              <Switch checked={isDark} onCheckedChange={setIsDark} />
+              {!isSidebarOpen && (isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />)}
+              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "hidden")} />
             </div>
-            <div className="mt-1 flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted-foreground dark:text-slate-400">
-              <div className="flex items-center gap-2">
+            <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5 mt-1" : "w-full justify-center")}>
+              <div className={cn("flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400", !isSidebarOpen && "hidden")}>
                 <Accessibility className="h-4 w-4" />
                 Alto contraste
               </div>
-              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} />
+              {!isSidebarOpen && <Accessibility className="h-5 w-5 text-muted-foreground" />}
+              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "hidden")} />
             </div>
           </div>
         </div>
@@ -187,29 +208,29 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
       {/* MAIN */}
       <main className="relative flex-1 overflow-x-hidden bg-background dark:bg-[#0a101f]">
         
-        <div className="relative mx-auto max-w-7xl px-6 py-8">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center gap-4">
               {!isSidebarOpen && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="hidden md:flex text-muted-foreground hover:text-foreground dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
+                  className="flex shrink-0 -ml-2 text-muted-foreground hover:text-foreground dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 </Button>
               )}
               <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">Portal do Colaborador</div>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Bom dia, {userData?.name?.split(' ')[0] || 'Liderado'} 👋</h1>
+                <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">Portal do Colaborador</div>
+                <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-foreground dark:text-white">Bom dia, {userData?.name?.split(' ')[0] || 'Liderado'} 👋</h1>
               </div>
             </div>
             <Button 
               variant="outline" 
               onClick={() => toast.info("O ciclo formal de feedbacks será aberto na próxima semana!")}
-              className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-[#00e676]/40 dark:bg-[#00e676]/10 dark:text-[#00e676] dark:hover:bg-[#00e676]/20"
+              className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-[#00e676]/40 dark:bg-[#00e676]/10 dark:text-[#00e676] dark:hover:bg-[#00e676]/20 w-full sm:w-auto min-h-[44px]"
             >
               Solicitar Feedback
             </Button>
@@ -229,7 +250,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                   <h3 className="font-semibold mb-6 text-foreground dark:text-slate-200 flex items-center gap-2">
                     Como você está se sentindo hoje?
                   </h3>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     <button 
                       className={cn(
                         "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
@@ -324,7 +345,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                     <Calendar className="w-5 h-5 text-muted-foreground dark:text-slate-500" />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Esquerda: Agendamento */}
                     <div>
                       {upcomingMeetings.map((m, i) => (
@@ -347,10 +368,10 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                     </div>
                     
                     {/* Direita: Bloco de Notas */}
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full mt-4 lg:mt-0">
                       <h4 className="text-sm font-medium mb-2 text-foreground dark:text-slate-300">Meu Bloco de Notas Privado (1:1)</h4>
                       <textarea 
-                        className="flex-1 w-full bg-background dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg p-3 text-sm text-foreground dark:text-slate-200 placeholder-muted-foreground dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-[#00e676] resize-none"
+                        className="flex-1 w-full min-h-[120px] bg-background dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg p-3 text-sm text-foreground dark:text-slate-200 placeholder-muted-foreground dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-[#00e676] resize-none"
                         placeholder="Anote aqui os pontos que deseja discutir na próxima reunião..."
                       ></textarea>
                       <button 
