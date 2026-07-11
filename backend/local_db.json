@@ -29,8 +29,12 @@
         "date": "2026-07-10T22:06:44.517Z"
       }
     ],
-    "role": "employee",
-    "assignedEmployees": []
+    "role": "leader",
+    "assignedEmployees": [
+      "1MQ0unBAhYP6W8rqxBLTzuw3CDV2",
+      "I73z3AndKzU6p3dB4GB0viHTmZx2",
+      "Lrb9hJXLCTMxlpj13P40mw88NEN2"
+    ]
   },
   "I73z3AndKzU6p3dB4GB0viHTmZx2": {
     "pdi": 74,

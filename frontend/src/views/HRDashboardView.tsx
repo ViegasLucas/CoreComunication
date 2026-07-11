@@ -23,6 +23,9 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import EngagementTab from "@/components/features/EngagementTab";
+import AdoptionTab from "@/components/features/AdoptionTab";
+import TeamsTab from "@/components/features/TeamsTab";
 
 // --- MOCK DATA ---
 const companyAlerts = [
@@ -199,6 +202,21 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               Gerar Relatório Escrito
             </Button>
           </div>
+
+          {/* VIEW: ENGAGEMENT */}
+          {active === "engagement" && (
+            <EngagementTab />
+          )}
+
+          {/* VIEW: ADOPTION */}
+          {active === "meetings" && (
+            <AdoptionTab />
+          )}
+
+          {/* VIEW: TEAMS */}
+          {active === "teams" && (
+            <TeamsTab />
+          )}
 
           {/* VIEW: HOME */}
           {active === "home" && (
@@ -539,7 +557,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
           </Dialog>
 
           {/* Placeholder for other views */}
-          {active !== "home" && active !== "users" && (
+          {active !== "home" && active !== "users" && active !== "engagement" && active !== "meetings" && active !== "teams" && (
             <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-border dark:border-slate-700 bg-secondary/50 dark:bg-slate-900/50 mt-6">
               <p className="text-muted-foreground dark:text-slate-400">O conteúdo da aba <span className="font-semibold text-foreground dark:text-white">{active}</span> será exibido aqui pela sua colega.</p>
             </div>

@@ -13,22 +13,22 @@ const userController = require('./controllers/userController');
 const metricsController = require('./controllers/metricsController');
 const authMiddleware = require('./middlewares/authMiddleware');
 
-// 3. Função de teste rápido para rodar assim que o servidor ligar
-async function testarGemini() {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: 'Oi',
-    });
-    console.log("🟢 Gemini funcionando! Resposta:", response.text);
-  } catch (error) {
-    console.log("\n❌ O ERRO REAL DO GEMINI É ESTE:");
-    console.error(error); // Aqui vai mostrar se o problema é a chave, rede, etc.
-  }
-}
+// 3. Função de teste rápido para rodar assim que o servidor ligar (comentada por enquanto)
+// async function testarGemini() {
+//   try {
+//     const response = await ai.models.generateContent({
+//       model: 'gemini-2.5-flash',
+//       contents: 'Oi',
+//     });
+//     console.log("🟢 Gemini funcionando! Resposta:", response.text);
+//   } catch (error) {
+//     console.log("\n❌ O ERRO REAL DO GEMINI É ESTE:");
+//     console.error(error); // Aqui vai mostrar se o problema é a chave, rede, etc.
+//   }
+// }
 
 // Chame o teste
-testarGemini();
+// testarGemini();
 
 
 

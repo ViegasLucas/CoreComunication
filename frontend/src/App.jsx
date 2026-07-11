@@ -18,7 +18,6 @@ import LoginView from './views/LoginView';
 import LeaderDashboardView from './views/LeaderDashboardView';
 import EmployeeDashboardView from './views/EmployeeDashboardView';
 import HRDashboardView from './views/HRDashboardView';
-import ResetPasswordView from './views/ResetPasswordView';
 
 
 import { dadosIniciaisEquipe } from "./dados";
@@ -147,24 +146,6 @@ export default function App() {
     />
   );
   
-  // Intercepta rotas de ação do Firebase (ex: reset de senha)
-  const queryParams = new URLSearchParams(window.location.search);
-  const mode = queryParams.get('mode');
-  const oobCode = queryParams.get('oobCode');
-
-  if (mode === 'resetPassword' && oobCode) {
-    return (
-      <ResetPasswordView 
-        oobCode={oobCode} 
-        onPasswordResetSuccess={() => {
-          // Remove os parâmetros da URL e volta para o login
-          window.history.replaceState({}, document.title, "/");
-          window.location.reload();
-        }} 
-      />
-    );
-  }
-
   // Tela de despedida
   if (isLoggingOut) {
     return (

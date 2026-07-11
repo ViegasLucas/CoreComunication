@@ -79,5 +79,14 @@
       "reply": "Por favor, descreva a situação com mais detalhes para que eu possa gerar um roteiro de feedback adequado.",
       "date": "2026-07-10T21:28:51.012Z"
     }
+  ],
+  "1MQ0unBAhYP6W8rqxBLTzuw3CDV2": [
+    {
+      "id": "1783738371271",
+      "type": "sbi",
+      "message": "Agatha contribui muito com a equipe essa semana e ajudou a entregar o projeto final",
+      "reply": "## 🧊 Check-in\n\"Olá! Como estão as coisas por aí nesta semana? Queria aproveitar nosso papo de hoje para conversar sobre a nossa última entrega.\"\n\n## 🎯 O Feedback (SBI)\n**Situação:** Durante a entrega final da sprint passada, na última sexta-feira.\n**Comportamento:** Observei que os relatórios foram enviados após o horário combinado, e faltaram algumas métricas que haviam sido solicitadas pela diretoria.\n**Impacto:** Como consequência, não tivemos tempo hábil para revisar os dados juntos, o que gerou insegurança na apresentação para o cliente na segunda-feira de manhã.\n\n## 🤝 Próximos Passos (Plano de Ação)\n- Como você avalia a organização do tempo durante essa sprint?\n- Quais ajustes podemos fazer para garantir que o envio aconteça com margem de revisão da próxima vez?\n- Existe algum bloqueio ou dificuldade técnica em que eu possa te apoiar?\n\n*(Nota: Esta é uma resposta mock gerada localmente pelo Modo Custo Zero. Quando a API estiver ativa, ela será gerada dinamicamente baseada no seu relato.)*",
+      "date": "2026-07-11T02:52:51.271Z"
+    }
   ]
 }
