@@ -56,6 +56,8 @@ app.get('/api/users/me', authMiddleware, userController.getMe);
 app.get('/api/users/me/team', authMiddleware, userController.getMyTeam);
 app.patch('/api/users/me/profile', authMiddleware, userController.updateMyProfile);
 app.put('/api/users/:uid', authMiddleware, userController.updateUser);
+app.delete('/api/users/:uid', authMiddleware, userController.deleteUser);
+app.patch('/api/users/:uid/status', authMiddleware, userController.toggleUserStatus);
 
 // Rota de chat (protegida pelo middleware JWT)
 app.post('/api/chat', authMiddleware, chatController.handleChat);

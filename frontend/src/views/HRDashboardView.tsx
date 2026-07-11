@@ -15,7 +15,11 @@ import {
   ChevronRight,
   ShieldAlert,
   Target,
-  UserPlus
+  UserPlus,
+  Trash2,
+  Ban,
+  CheckCircle2,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -99,17 +103,68 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
     }
   }, [active]);
 
+  const handleToggleStatus = async (uid: string, currentDisabledStatus: boolean) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${uid}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ disabled: !currentDisabledStatus })
+      });
+      
+      if (!res.ok) throw new Error("Erro ao alterar status");
+      
+      toast.success(currentDisabledStatus ? "Usuário reativado!" : "Usuário inativado!");
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteUser = async (uid: string, name: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o usuário ${name}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${uid}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) throw new Error("Erro ao excluir usuário");
+      
+      toast.success("Usuário excluído com sucesso!");
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
+      {/* OVERLAY MOBILE */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 sm:hidden backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-border dark:border-slate-800 bg-card dark:bg-[#0f172a] transition-all duration-300 md:flex",
-          isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none px-0"
+          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border dark:border-slate-800 bg-card/95 sm:bg-card dark:bg-[#0f172a]/95 sm:dark:bg-[#0f172a] backdrop-blur-xl transition-all duration-300 flex",
+          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
         )}
       >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-3">
+        <div className={cn("flex items-center justify-between py-5", isSidebarOpen ? "px-5" : "px-0 justify-center")}>
+          <div className={cn("flex items-center gap-3", !isSidebarOpen && "sm:hidden")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-900/40">
               <PieChart className="h-6 w-6 text-white" />
             </div>
@@ -118,17 +173,24 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               <div className="text-xs text-muted-foreground dark:text-slate-400">RH & Pessoas</div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(false)}
-            className="text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {(!isSidebarOpen) ? (
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-900/40">
+              <PieChart className="h-6 w-6 text-white" />
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              <X className="h-5 w-5 sm:hidden" />
+              <Menu className="h-5 w-5 hidden sm:block" />
+            </Button>
+          )}
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-2">
+        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto">
           {[
             { id: "home", label: "Visão Geral", icon: Home },
             { id: "engagement", label: "Engajamento", icon: Activity },
@@ -141,40 +203,46 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
             return (
               <button
                 key={item.id}
-                onClick={() => setActive(item.id)}
+                onClick={() => { setActive(item.id); if (window.innerWidth < 640) setIsSidebarOpen(false); }}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base transition-all",
+                  "flex w-full items-center rounded-lg transition-all min-h-[44px]",
+                  isSidebarOpen ? "gap-3 px-3 py-3 text-base" : "justify-center p-3",
                   isActive
                     ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-600/15 dark:text-indigo-400 shadow-inner ring-1 ring-indigo-500/30"
                     : "text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white",
                 )}
+                title={!isSidebarOpen ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                {item.label}
+                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "h-6 w-6")} />
+                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "hidden")}>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         <div className="border-t border-border dark:border-slate-800 p-3">
-          <div className="rounded-xl bg-secondary/50 dark:bg-slate-900/60 p-3 ring-1 ring-border dark:ring-slate-800">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground dark:text-white">
-              <Settings className="h-4 w-4" />
-              Configurações
-            </div>
-            <div className="flex items-center justify-between rounded-lg px-2 py-1.5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400">
+          <div className={cn("rounded-xl bg-secondary/50 dark:bg-slate-900/60 ring-1 ring-border dark:ring-slate-800", isSidebarOpen ? "p-3" : "p-1.5 flex flex-col items-center gap-3")}>
+            {isSidebarOpen && (
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground dark:text-white">
+                <Settings className="h-4 w-4" />
+                Configurações
+              </div>
+            )}
+            <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5" : "w-full justify-center")}>
+              <div className={cn("flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400", !isSidebarOpen && "hidden")}>
                 {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 {isDark ? "Dark" : "Light"}
               </div>
-              <Switch checked={isDark} onCheckedChange={setIsDark} />
+              {!isSidebarOpen && (isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />)}
+              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "hidden")} />
             </div>
-            <div className="mt-1 flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted-foreground dark:text-slate-400">
-              <div className="flex items-center gap-2">
+            <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5 mt-1" : "w-full justify-center")}>
+              <div className={cn("flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400", !isSidebarOpen && "hidden")}>
                 <Accessibility className="h-4 w-4" />
                 Alto contraste
               </div>
-              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} />
+              {!isSidebarOpen && <Accessibility className="h-5 w-5 text-muted-foreground" />}
+              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "hidden")} />
             </div>
           </div>
         </div>
@@ -183,29 +251,29 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       {/* MAIN */}
       <main className="relative flex-1 overflow-x-hidden bg-background dark:bg-[#0a101f]">
         
-        <div className="relative mx-auto max-w-7xl px-6 py-8">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center gap-4">
               {!isSidebarOpen && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="hidden md:flex text-muted-foreground hover:bg-secondary dark:hover:text-white dark:hover:bg-slate-800"
+                  className="flex shrink-0 -ml-2 text-muted-foreground hover:bg-secondary dark:hover:text-white dark:hover:bg-slate-800"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 </Button>
               )}
               <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Painel Executivo de RH</div>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, {userData?.name?.split(' ')[0] || 'RH'}</h1>
+                <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Painel Executivo de RH</div>
+                <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, {userData?.name?.split(' ')[0] || 'RH'}</h1>
               </div>
             </div>
             <Button 
               variant="outline" 
               onClick={() => toast.info("Funcionalidade de geração de relatório em desenvolvimento!")}
-              className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+              className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 w-full sm:w-auto min-h-[44px]"
             >
               Gerar Relatório Escrito
             </Button>
@@ -230,7 +298,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
           {active === "home" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100">
               
-              <div className="grid gap-4 md:grid-cols-3 mb-8">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
                 {/* Metric 1 */}
                 <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg relative overflow-hidden">
                   <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-indigo-500/10 dark:from-indigo-500/20 to-transparent blur-2xl" />
@@ -277,7 +345,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 </div>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
                 {/* Alertas Inteligentes */}
                 <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg ring-1 ring-rose-500/10">
                   <div className="mb-4 flex items-center justify-between">
@@ -352,7 +420,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: USUÁRIOS */}
           {active === "users" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 grid gap-6 lg:grid-cols-2">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 grid gap-6 grid-cols-1 lg:grid-cols-2">
               <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                   <UserPlus className="h-6 w-6 text-indigo-500" />
@@ -454,22 +522,49 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 <h3 className="text-lg font-semibold mb-4">Usuários Cadastrados</h3>
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                   {usersList.map((u) => (
-                    <div key={u.uid} className="flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30">
+                    <div key={u.uid} className={cn("flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30", u.disabled && "opacity-75 bg-rose-500/5 border-rose-500/10")}>
                       <div>
-                        <div className="font-medium text-sm">{u.name}</div>
-                        <div className="text-xs text-muted-foreground">{u.email}</div>
+                        <div className="font-medium text-sm sm:text-base flex items-center gap-2 flex-wrap">
+                          {u.name}
+                          {u.disabled && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">INATIVO</span>
+                          )}
+                        </div>
+                        <div className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{u.email}</div>
                         <div className="text-[10px] mt-1 font-semibold uppercase tracking-wider text-indigo-500">{u.role === 'leader' ? 'Líder' : (u.role === 'hr' ? 'RH' : 'Colaborador')}</div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setEditingUser(u);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        Editar
-                      </Button>
+                      <div className="flex items-center gap-1.5 sm:gap-2 ml-2 shrink-0">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="min-h-[44px] sm:min-h-0 text-xs px-2 sm:px-3"
+                          onClick={() => {
+                            setEditingUser(u);
+                            setEditModalOpen(true);
+                          }}
+                        >
+                          <span className="hidden sm:inline">Editar</span>
+                          <span className="sm:hidden">Ed</span>
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-11 w-11 sm:h-8 sm:w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-500/20 shrink-0"
+                          title={u.disabled ? "Reativar Acesso" : "Inativar Acesso"}
+                          onClick={() => handleToggleStatus(u.uid, u.disabled)}
+                        >
+                          {u.disabled ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-11 w-11 sm:h-8 sm:w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-500/20 border-rose-200 dark:border-rose-900 shrink-0"
+                          title="Excluir Definitivamente"
+                          onClick={() => handleDeleteUser(u.uid, u.name)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -479,7 +574,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* EDIT MODAL */}
           <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-            <DialogContent className="sm:max-w-md border-border bg-background text-foreground">
+            <DialogContent className="sm:max-w-md w-[100dvw] h-[100dvh] sm:h-auto rounded-none sm:rounded-xl border-border bg-background text-foreground overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Editar Usuário</DialogTitle>
                 <DialogDescription>

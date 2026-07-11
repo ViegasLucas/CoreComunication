@@ -100,11 +100,11 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-900 dark:text-slate-100 space-y-8 pb-24">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 ring-1 ring-indigo-300 dark:ring-indigo-500/30">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 ring-1 ring-indigo-300 dark:ring-indigo-500/30 w-fit">
             <Calendar className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Adoção de 1:1s</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Adoção de 1:1s</h1>
         </div>
         <p className="text-slate-500 dark:text-slate-400 text-sm">
           Acompanhamento de cadência — quem está em dia e quem precisa de atenção
@@ -113,7 +113,7 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
 
       {/* Card Resumo */}
       <div className="p-6 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Taxa Geral de Adoção</p>
             <div className="flex items-baseline gap-3">
@@ -140,7 +140,7 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
               comparado ao período anterior
             </p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-200 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Cobertura</p>
             <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
               {sortedLeaders.length}/{leaders.length}
@@ -210,21 +210,21 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
 
       {/* Tabela de Status */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Status por Líder</h2>
 
           {/* Filtros */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {/* Filtro Squad */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-slate-200 dark:border-slate-700"
+                  className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
                 >
-                  <Filter className="h-4 w-4 mr-2" />
-                  {selectedSquad === "all" ? "Todos os Squads" : selectedSquad}
+                  <Filter className="h-4 w-4 mr-2 shrink-0" />
+                  <span className="truncate max-w-[120px]">{selectedSquad === "all" ? "Todos os Squads" : selectedSquad}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -246,9 +246,10 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-slate-200 dark:border-slate-700"
+                  className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
                 >
-                  <Filter className="h-4 w-4 mr-2" />
+                  <Filter className="h-4 w-4 mr-2 shrink-0" />
+                  <span className="truncate max-w-[120px]">
                   {selectedStatus === "all"
                     ? "Todos os Status"
                     : selectedStatus === "on-time"
@@ -256,6 +257,7 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
                       : selectedStatus === "attention"
                         ? "Atenção"
                         : "Atrasado"}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -276,8 +278,50 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
           </div>
         </div>
 
-        {/* Tabela */}
-        <div className="overflow-x-auto bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl">
+        {/* Tabela (Desktop) e Cards (Mobile) */}
+        
+        {/* Mobile View */}
+        <div className="grid grid-cols-1 gap-4 sm:hidden">
+          {sortedLeaders.map((leader) => (
+            <div key={leader.id} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white">{leader.name}</h3>
+                  <p className="text-sm text-slate-500">{leader.squad}</p>
+                </div>
+                <StatusBadge status={leader.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm border-t border-slate-100 dark:border-slate-800 pt-3">
+                <div>
+                  <span className="text-slate-500 block text-xs">Última 1:1</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {leader.lastOneOnOne !== "N/A" ? new Date(leader.lastOneOnOne).toLocaleDateString("pt-BR") : "Nunca"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-xs flex items-center gap-1">
+                    Próxima <Info className="h-3 w-3 text-slate-400" title="Calculado automaticamente" />
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {new Date(leader.nextExpected).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full mt-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 min-h-[44px]"
+                onClick={() => toast.success(`Lembrete enviado para ${leader.name}!`)}
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Lembrar Líder
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden sm:block overflow-x-auto bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl">
           <table className="w-full">
             <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
               <tr>

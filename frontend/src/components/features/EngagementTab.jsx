@@ -226,17 +226,14 @@ export default function EngagementTab() {
       </div>
 
       {/* LGPD Compliance footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white dark:from-[#0a101f] to-transparent p-6 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto flex items-start gap-3">
+      <div className="mt-12 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="flex items-start gap-3">
           <Lock className="h-4 w-4 text-slate-400 dark:text-slate-500 mt-0.5 shrink-0" />
           <p className="text-xs text-slate-500 dark:text-slate-500">
             Estes números são agregados de toda a empresa. O RH não tem acesso ao conteúdo das conversas individuais de 1:1, apenas a indicadores consolidados, em conformidade com a LGPD.
           </p>
         </div>
       </div>
-
-      {/* Spacing para o footer fixo */}
-      <div className="h-24"></div>
     </div>
   );
 }
