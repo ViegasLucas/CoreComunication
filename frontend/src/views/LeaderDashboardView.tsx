@@ -1211,15 +1211,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         </div>
       </main>
 
-<<<<<<< HEAD
       {/* ONBOARDING MODAL / ASSISTANT MODAL */}
       <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-        <DialogContent className="max-w-[1300px] border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl">
-=======
-      {/* ONBOARDING MODAL */}
-      <Dialog open={onboardingOpen} onOpenChange={setOnboardingOpen}>
         <DialogContent className="max-w-[1300px] w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl overflow-hidden flex flex-col">
->>>>>>> 258f2aa0b5abc3034a2578d2a822d623f8395eec
           <div className="grid h-[85vh] max-h-[800px] min-h-[500px] gap-0 md:grid-cols-2">
             {/* Left: quick profile */}
             <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r">
@@ -1401,8 +1395,6 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               />
             </div>
 
-<<<<<<< HEAD
-=======
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI (IA)</Label>
               <Textarea
@@ -1431,8 +1423,6 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 {sbiScript}
               </div>
             )}
-
->>>>>>> 258f2aa0b5abc3034a2578d2a822d623f8395eec
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
