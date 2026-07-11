@@ -59,9 +59,20 @@ app.put('/api/users/:uid', authMiddleware, userController.updateUser);
 app.delete('/api/users/:uid', authMiddleware, userController.deleteUser);
 app.patch('/api/users/:uid/status', authMiddleware, userController.toggleUserStatus);
 
+const meetingController = require('./controllers/meetingController');
+const documentController = require('./controllers/documentController');
+
 // Rota de chat (protegida pelo middleware JWT)
 app.post('/api/chat', authMiddleware, chatController.handleChat);
 app.get('/api/chat/history', authMiddleware, chatController.getChatHistory);
+
+// Rotas de Reuniões 1:1
+app.post('/api/meetings', authMiddleware, meetingController.createMeeting);
+app.get('/api/meetings', authMiddleware, meetingController.getMeetings);
+
+// Rotas de Documentos (PDI/SBI)
+app.post('/api/documents', authMiddleware, documentController.createDocument);
+app.get('/api/documents/:employeeId', authMiddleware, documentController.getDocuments);
 
 // Rotas de Métricas
 app.post('/api/users/me/sentiment', authMiddleware, metricsController.logSentiment);

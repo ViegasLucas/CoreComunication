@@ -48,7 +48,67 @@
     "assignedEmployees": []
   },
   "OWsCXCYMJ6azdKvAqTGZkPuykcM2": {
-    "profile": "engajado"
+    "profile": "engajado",
+    "role": "leader",
+    "assignedEmployees": [
+      "Lc8iraRxtiTjhK7DYPWOsPLToss1",
+      "PL5kOFYJPgc97Sle44O0ZzN3Dt42",
+      "NazoqxRQ3Edc8ErsrnpqnQ1xg7G2"
+    ],
+    "sentiments": [
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T10:03:52.872Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T10:03:53.347Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T10:03:53.914Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T10:03:54.156Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T10:03:54.575Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T10:03:54.786Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T10:03:55.345Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T10:03:55.625Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T10:03:56.060Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T10:03:56.807Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T10:03:57.284Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T10:03:57.630Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T10:03:58.055Z"
+      }
+    ]
   },
   "gFy7aqD7ARbhHFhkWWBuhhtmWAI3": {
     "role": "employee",
@@ -85,6 +145,30 @@
   },
   "faNxybmTY3TPpPPbHtUF5zLV2wv2": {
     "role": "leader",
+    "assignedEmployees": []
+  },
+  "Lc8iraRxtiTjhK7DYPWOsPLToss1": {
+    "role": "employee",
+    "assignedEmployees": []
+  },
+  "ZsdaT72cGoTWt0VXafAsgp2sck13": {
+    "role": "employee",
+    "assignedEmployees": []
+  },
+  "PL5kOFYJPgc97Sle44O0ZzN3Dt42": {
+    "role": "employee",
+    "assignedEmployees": []
+  },
+  "mweC0NfGArMoZiD6O1nS4ZgM6SF2": {
+    "role": "employee",
+    "assignedEmployees": []
+  },
+  "NazoqxRQ3Edc8ErsrnpqnQ1xg7G2": {
+    "role": "employee",
+    "assignedEmployees": []
+  },
+  "ivQQcWZ4NPPrQju92QmDWYRr0qC2": {
+    "role": "employee",
     "assignedEmployees": []
   }
 }

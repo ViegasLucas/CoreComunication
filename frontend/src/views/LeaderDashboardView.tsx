@@ -29,6 +29,7 @@ import {
   X,
   XCircle,
   HeartPulse,
+  Copy,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [chatIntent, setChatIntent] = useState<"profile_discovery" | "sbi" | "one_on_one" | "pdi">("profile_discovery");
   const [active, setActive] = useState("home");
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
+  const [docEmployeeId, setDocEmployeeId] = useState("");
 
   const [chat, setChat] = useState<ChatMsg[]>([
     {
@@ -98,15 +100,16 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Novos estados para a geração do SBI
-  const [meetingTopics, setMeetingTopics] = useState("");
-  const [sbiScript, setSbiScript] = useState("");
-  const [isGeneratingSbi, setIsGeneratingSbi] = useState(false);
-
   // Novos estados para o Histórico de IA
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // States para o Prontuário (Documentos Salvos)
+  const [isProntuarioOpen, setIsProntuarioOpen] = useState(false);
+  const [prontuarioDocs, setProntuarioDocs] = useState<any[]>([]);
+  const [selectedProntuarioEmployee, setSelectedProntuarioEmployee] = useState("");
+  const [isLoadingProntuario, setIsLoadingProntuario] = useState(false);
 
   const [team, setTeam] = useState<any[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
@@ -174,6 +177,31 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     }
   };
 
+  const fetchProntuario = async (employeeId: string) => {
+    setIsLoadingProntuario(true);
+    setSelectedProntuarioEmployee(employeeId);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("token") || "";
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE}/api/documents/${employeeId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProntuarioDocs(data);
+      } else {
+        setProntuarioDocs([]);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar prontuário:", e);
+      setProntuarioDocs([]);
+    } finally {
+      setIsLoadingProntuario(false);
+    }
+  };
+
   const fetchTeam = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -209,6 +237,30 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     }
   };
 
+  const fetchMeetings = async () => {
+    try {
+      const token = localStorage.getItem("token") || "";
+      if (!token) return;
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/meetings`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Mapear para o formato que a UI espera
+        const formatted = data.map((m: any) => ({
+          who: m.employeeName,
+          when: `${m.date} · ${m.time}`,
+          topic: "1:1 Agendada",
+          hasSbi: false
+        }));
+        setUpcomingMeetingsList(formatted);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar reuniões:", e);
+    }
+  };
+
   const handleSentiment = async (val: string) => {
     setMetrics((prev: any) => ({ ...prev, currentSentiment: val }));
     try {
@@ -234,29 +286,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     fetchHistory();
     fetchTeam();
     fetchMetrics();
+    fetchMeetings();
   }, []);
-
-  const openChatWithIntent = (intent: "profile_discovery" | "sbi" | "one_on_one" | "pdi") => {
-    setChatIntent(intent);
-    let initialMessage = "";
-    if (intent === "profile_discovery") {
-      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Bem-vindo(a) ao seu mapeamento de perfil de liderança. Para descobrirmos o seu perfil DISC, vamos começar: Quanto tempo de experiência com gestão de pessoas você possui?`;
-    } else if (intent === "sbi") {
-      initialMessage = "Olá! Vamos preparar um roteiro de feedback. Sobre qual situação ou liderado você gostaria de falar?";
-    } else if (intent === "one_on_one") {
-      initialMessage = "Olá! Vamos estruturar a pauta da sua próxima 1:1. Com quem será a reunião e quais são os pontos principais?";
-    } else if (intent === "pdi") {
-      initialMessage = "Olá! Vamos elaborar um PDI. Qual liderado estamos desenvolvendo e qual a competência alvo?";
-    }
-    
-    setChat([
-      {
-        from: "bot",
-        text: initialMessage,
-      },
-    ]);
-    setIsChatOpen(true);
-  };
 
   const sendChat = async () => {
     if (!chatInput.trim() || isLoading) return;
@@ -400,26 +431,77 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     }
   };
 
-  const handleScheduleMeeting = () => {
+  const handleSaveDocument = async (text: string, type: string) => {
+    if (!docEmployeeId) {
+      toast.warning("Selecione um liderado no topo do chat para salvar o prontuário.");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token") || "";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/documents`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          employeeId: docEmployeeId,
+          employeeName: docEmployeeId, // Aqui poderíamos usar o ID real se o banco de usuários estivesse estritamente relacional
+          type,
+          content: text
+        })
+      });
+
+      if (res.ok) {
+        toast.success("Salvo no prontuário com sucesso!");
+      } else {
+        toast.error("Erro ao salvar documento.");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro de conexão ao salvar.");
+    }
+  };
+
+  const handleScheduleMeeting = async () => {
     if (!selectedMember) {
       toast.warning("Por favor, selecione um liderado para agendar.");
       return;
     }
 
-    // Formatar data (ex: 2026-07-15 -> 15/07)
-    let formattedDate = "Em breve";
-    if (meetingDate) {
-      const [y, m, d] = meetingDate.split("-");
-      if (d && m) formattedDate = `${d}/${m}`;
+    try {
+      const token = localStorage.getItem("token") || "";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      
+      const payload = {
+        employeeId: selectedMember, // Numa versão real seria o ID do banco. Aqui usaremos o nome
+        employeeName: selectedMember,
+        date: meetingDate || "A definir",
+        time: meetingTime || "A definir",
+        duration: "30m",
+        status: "Scheduled"
+      };
+
+      const res = await fetch(`${API_BASE}/api/meetings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        toast.success("1:1 agendada com sucesso!");
+        fetchMeetings(); // Recarrega a lista do banco
+      } else {
+        toast.error("Erro ao agendar 1:1 no banco.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro de conexão ao agendar.");
     }
-
-    const whenStr = meetingDate || meetingTime ? `${formattedDate} · ${meetingTime || "a definir"}` : "A definir";
-    const finalTopic = meetingSubject.trim() ? meetingSubject.trim() : (meetingTopics ? "Pauta definida com IA" : "1:1 Agendada");
-
-    setUpcomingMeetingsList(prev => [
-      { who: selectedMember, when: whenStr, topic: finalTopic, hasSbi: !!sbiScript },
-      ...prev
-    ]);
 
     // Reseta form
     setNewMeetingOpen(false);
@@ -598,12 +680,6 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   className="border-border bg-secondary/60 shrink-0 min-h-[44px] px-3"
                 >
                   <Clock className="sm:mr-2 h-4 w-4" /> <span className="hidden sm:inline">Histórico de IA</span>
-                </Button>
-                <Button
-                  onClick={() => setNewMeetingOpen(true)}
-                  className="bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/30 shrink-0 min-h-[44px] px-3 ml-auto sm:ml-0"
-                >
-                  <Plus className="sm:mr-1 h-4 w-4" /> <span className="hidden sm:inline">Nova 1:1</span>
                 </Button>
               </div>
             </div>
@@ -944,10 +1020,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                             size="sm"
                             variant="outline"
                             className="w-full border-border bg-secondary/40 text-xs px-2 hover:bg-secondary"
-                            onClick={() => setIsHistoryOpen(true)}
+                            onClick={() => {
+                              fetchProntuario(member.name);
+                              setIsProntuarioOpen(true);
+                            }}
                           >
                             <ClipboardList className="w-3 h-3 mr-1" />
-                            Ver Histórico
+                            Ver Prontuário
                           </Button>
                         </div>
                       </GlassCard>
@@ -1235,12 +1314,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       {/* ONBOARDING MODAL / ASSISTANT MODAL */}
       <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-        <DialogContent className="max-w-[1300px] w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl overflow-hidden flex flex-col">
-          <div className="grid h-[85vh] max-h-[800px] min-h-[500px] gap-0 md:grid-cols-2">
+        <DialogContent className={cn("w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl overflow-hidden flex flex-col", chatIntent === "profile_discovery" ? "max-w-[1300px]" : "max-w-[800px]")}>
+          <div className={cn("grid h-[85vh] max-h-[800px] min-h-[500px] gap-0", chatIntent === "profile_discovery" ? "md:grid-cols-2" : "md:grid-cols-1")}>
             {/* Left: quick profile */}
-            <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r">
-              <DialogHeader className="space-y-3 text-left">
-                <DialogTitle className="text-3xl">
+            {chatIntent === "profile_discovery" && (
+              <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r">
+                <DialogHeader className="space-y-3 text-left">
+                  <DialogTitle className="text-3xl">
                   {chatIntent === "profile_discovery" ? "Conheça os Perfis de Liderança" : "Assistente ClearIT"}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
@@ -1269,17 +1349,34 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 />
               </div>
             </div>
+            )}
 
             {/* Right: AI chat */}
-            <div className="flex h-full min-h-0 flex-col p-8 md:p-10">
+            <div className="flex h-full min-h-0 flex-col p-8 md:p-10 relative">
               <div className="shrink-0 text-sm font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
-              <div className="mt-1 shrink-0 text-xl font-semibold">
-                {chatIntent === "profile_discovery" ? "Descubra seu perfil" 
-                 : chatIntent === "sbi" ? "Roteiro de Feedback (SBI)"
-                 : chatIntent === "one_on_one" ? "Preparar 1:1"
-                 : "Elaborar PDI"}
+              <div className="mt-1 flex items-center justify-between shrink-0">
+                <div className="text-xl font-semibold">
+                  {chatIntent === "profile_discovery" ? "Descubra seu perfil" 
+                   : chatIntent === "sbi" ? "Roteiro de Feedback (SBI)"
+                   : chatIntent === "one_on_one" ? "Preparar 1:1"
+                   : "Elaborar PDI"}
+                </div>
+                {chatIntent !== "profile_discovery" && (
+                  <Select value={docEmployeeId} onValueChange={setDocEmployeeId}>
+                    <SelectTrigger className="w-[180px] h-9 text-xs border-border bg-secondary/60">
+                      <SelectValue placeholder="Vincular a liderado..." />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-popover-foreground">
+                      {team.length === 0 ? (
+                        <SelectItem value="none" disabled>Nenhum liderado</SelectItem>
+                      ) : team.map((m) => (
+                        <SelectItem key={m.uid} value={m.name}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-              <p className="shrink-0 text-sm text-muted-foreground">
+              <p className="shrink-0 text-sm text-muted-foreground mt-2">
                 {chatIntent === "profile_discovery" ? "Um agente irá mapear seu DISC em poucas perguntas." : "Forneça o contexto e deixe o agente estruturar tudo para você."}
               </p>
 
@@ -1302,7 +1399,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     )}
                     <div
                       className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed",
+                        "max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed relative group",
                         m.from === "bot"
                           ? "bg-secondary text-foreground markdown-body" // Note: added markdown-body or custom styling can go here
                           : "bg-blue-600 text-white",
@@ -1327,6 +1424,33 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                         </ReactMarkdown>
                       ) : (
                         <div className="whitespace-pre-wrap">{m.text}</div>
+                      )}
+                      
+                      {/* Copy and Save buttons for bot messages */}
+                      {m.from === "bot" && chatIntent !== "profile_discovery" && (
+                        <div className="absolute -right-2 -bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 bg-secondary/80 text-muted-foreground hover:text-foreground rounded-full"
+                            onClick={() => handleSaveDocument(m.text, chatIntent)}
+                            title="Salvar no Prontuário"
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 bg-secondary/80 text-muted-foreground hover:text-foreground rounded-full"
+                            onClick={() => {
+                              navigator.clipboard.writeText(m.text);
+                              toast.success("Roteiro copiado!");
+                            }}
+                            title="Copiar texto"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1479,6 +1603,65 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* PRONTUARIO SLIDE-OVER */}
+      <Sheet open={isProntuarioOpen} onOpenChange={setIsProntuarioOpen}>
+        <SheetContent className="w-full sm:max-w-md md:max-w-xl border-border bg-background/95 text-foreground backdrop-blur-2xl overflow-y-auto h-[100dvh]">
+          <SheetHeader>
+            <SheetTitle>Prontuário de {selectedProntuarioEmployee}</SheetTitle>
+            <SheetDescription className="text-muted-foreground">
+              Documentos, PDIs e Feedbacks salvos da IA.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            {isLoadingProntuario ? (
+              <div className="text-center text-sm text-muted-foreground py-10">Buscando documentos...</div>
+            ) : prontuarioDocs.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-10 border border-dashed border-border rounded-xl">
+                Nenhum documento salvo no prontuário ainda.
+              </div>
+            ) : (
+              prontuarioDocs.map((doc: any) => (
+                <div key={doc.id} className="rounded-xl border border-border bg-secondary/40 p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                    <Badge variant="outline" className={
+                      doc.type === 'pdi' ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : 
+                      doc.type === 'one_on_one' ? "text-blue-400 border-blue-500/30 bg-blue-500/10" :
+                      "text-violet-400 border-violet-500/30 bg-violet-500/10"
+                    }>
+                      {doc.type === 'pdi' ? "Plano de Desenvolvimento (PDI)" : 
+                       doc.type === 'one_on_one' ? "Pauta de 1:1" : 
+                       "Feedback (SBI)"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(doc.createdAt).toLocaleDateString()} às {new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="rounded-lg bg-background/50 p-4 text-sm text-foreground whitespace-pre-wrap max-h-96 overflow-y-auto markdown-body">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li className="pl-1" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
+                      }}
+                    >
+                      {doc.content}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -1489,13 +1672,14 @@ function labelFor(p: ProfileKey) {
   return p === "tecnico" ? "Técnico" : p === "engajado" ? "Engajado" : "Em Transição";
 }
 
-function GlassCard({ className, children }: { className?: string; children: React.ReactNode }) {
+function GlassCard({ className, onClick, children }: { className?: string; onClick?: () => void; children: React.ReactNode }) {
   return (
     <Card
       className={cn(
         "border-border bg-card/50 text-card-foreground shadow-xl shadow-black/20 backdrop-blur-xl",
         className,
       )}
+      onClick={onClick}
     >
       {children}
     </Card>
