@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
 export default function LoginView({ onLoginSuccess }) {
@@ -9,10 +9,12 @@ export default function LoginView({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccessMsg(null);
     setIsLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
     
@@ -59,6 +61,36 @@ export default function LoginView({ onLoginSuccess }) {
     } catch (error) {
       console.error('[Auth] Erro ao autenticar:', error.message);
       setError("Falha ao fazer login. Verifique seu e-mail e senha.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    if (!normalizedEmail) {
+      setError("Por favor, digite seu e-mail no campo acima para recuperar a senha.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      await sendPasswordResetEmail(auth, normalizedEmail);
+      setSuccessMsg("E-mail de recuperação enviado! Verifique sua caixa de entrada (e a de spam).");
+    } catch (err) {
+      console.error('[Auth] Erro ao redefinir senha:', err.message);
+      if (err.code === 'auth/user-not-found') {
+        setError("Este e-mail não está cadastrado em nosso sistema.");
+      } else if (err.code === 'auth/invalid-email') {
+        setError("Por favor, insira um endereço de e-mail válido.");
+      } else {
+        setError("Erro ao enviar e-mail de recuperação. Tente novamente mais tarde.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +179,12 @@ export default function LoginView({ onLoginSuccess }) {
               </div>
             )}
 
+            {successMsg && (
+              <div className="rounded-xl bg-emerald-500/15 p-3 text-sm text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                {successMsg}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
@@ -161,7 +199,9 @@ export default function LoginView({ onLoginSuccess }) {
           <div className="mt-8 flex items-center justify-between text-sm text-muted-foreground">
             <button
               type="button"
-              className="transition hover:text-primary hover:underline"
+              onClick={handleForgotPassword}
+              disabled={isLoading}
+              className="transition hover:text-primary hover:underline disabled:opacity-50 disabled:hover:no-underline"
             >
               Esqueci a senha
             </button>
