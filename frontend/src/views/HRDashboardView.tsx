@@ -15,7 +15,10 @@ import {
   ChevronRight,
   ShieldAlert,
   Target,
-  UserPlus
+  UserPlus,
+  Trash2,
+  Ban,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -98,6 +101,50 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       fetchUsers();
     }
   }, [active]);
+
+  const handleToggleStatus = async (uid: string, currentDisabledStatus: boolean) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${uid}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ disabled: !currentDisabledStatus })
+      });
+      
+      if (!res.ok) throw new Error("Erro ao alterar status");
+      
+      toast.success(currentDisabledStatus ? "Usuário reativado!" : "Usuário inativado!");
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteUser = async (uid: string, name: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o usuário ${name}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${uid}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) throw new Error("Erro ao excluir usuário");
+      
+      toast.success("Usuário excluído com sucesso!");
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
@@ -454,22 +501,47 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 <h3 className="text-lg font-semibold mb-4">Usuários Cadastrados</h3>
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                   {usersList.map((u) => (
-                    <div key={u.uid} className="flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30">
+                    <div key={u.uid} className={cn("flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30", u.disabled && "opacity-75 bg-rose-500/5 border-rose-500/10")}>
                       <div>
-                        <div className="font-medium text-sm">{u.name}</div>
+                        <div className="font-medium text-sm flex items-center gap-2">
+                          {u.name}
+                          {u.disabled && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">INATIVO</span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{u.email}</div>
                         <div className="text-[10px] mt-1 font-semibold uppercase tracking-wider text-indigo-500">{u.role === 'leader' ? 'Líder' : (u.role === 'hr' ? 'RH' : 'Colaborador')}</div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setEditingUser(u);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        Editar
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingUser(u);
+                            setEditModalOpen(true);
+                          }}
+                        >
+                          Editar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                          title={u.disabled ? "Reativar Acesso" : "Inativar Acesso"}
+                          onClick={() => handleToggleStatus(u.uid, u.disabled)}
+                        >
+                          {u.disabled ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-500/20 border-rose-200 dark:border-rose-900"
+                          title="Excluir Definitivamente"
+                          onClick={() => handleDeleteUser(u.uid, u.name)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

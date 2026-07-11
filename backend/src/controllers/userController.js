@@ -177,7 +177,8 @@ exports.getAllUsers = async (req, res) => {
         email: u.email,
         role: finalRole,
         profile: mem.profile || null,
-        assignedEmployees: mem.assignedEmployees || []
+        assignedEmployees: mem.assignedEmployees || [],
+        disabled: u.disabled || false
       };
     });
     return res.status(200).json(users);
@@ -254,5 +255,53 @@ exports.getMyTeam = async (req, res) => {
   } catch (error) {
     console.error('[Users] Erro ao buscar equipe:', error);
     return res.status(500).json({ error: error.message || 'Erro ao buscar equipe' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { uid } = req.params;
+    
+    // 1. Remover do Firebase Auth
+    await auth.deleteUser(uid);
+    
+    // 2. Remover do Firestore
+    try {
+      await db.collection('users').doc(uid).delete();
+    } catch (e) {
+      console.warn('[Users] Ignorando erro do Firestore ao deletar:', e.message);
+    }
+    
+    // 3. Remover do banco em memória
+    if (memoryUsers[uid]) {
+      delete memoryUsers[uid];
+      saveMemory();
+    }
+
+    console.log(`[Users] 🗑️ Usuário ${uid} excluído permanentemente.`);
+    return res.status(200).json({ message: 'Usuário excluído com sucesso' });
+  } catch (error) {
+    console.error('[Users] Erro ao excluir usuário:', error);
+    return res.status(500).json({ error: error.message || 'Erro ao excluir usuário' });
+  }
+};
+
+exports.toggleUserStatus = async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { disabled } = req.body; // true = inativo, false = ativo
+
+    if (disabled === undefined) {
+      return res.status(400).json({ error: 'O status "disabled" é obrigatório no body.' });
+    }
+
+    // Atualiza status no Firebase Auth
+    await auth.updateUser(uid, { disabled });
+
+    console.log(`[Users] 🔒 Status do usuário ${uid} alterado para disabled=${disabled}.`);
+    return res.status(200).json({ message: 'Status do usuário atualizado com sucesso', disabled });
+  } catch (error) {
+    console.error('[Users] Erro ao alterar status do usuário:', error);
+    return res.status(500).json({ error: error.message || 'Erro ao alterar status do usuário' });
   }
 };
