@@ -22,7 +22,12 @@ import {
   MessageSquare,
   Accessibility,
   Menu,
+  Search,
+  ChevronDown,
+  X,
+  HeartPulse,
 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -55,17 +60,24 @@ const recentMeetings = [
 ];
 
 const upcomingMeetingsMock = [
-  { who: "Bruno Alves", when: "Hoje · 17:30", topic: "1:1 quinzenal" },
+  { who: "Bruno Alves", when: "Hoje · 17:30", topic: "1:1 quinzenal", hasSbi: true },
   { who: "Ana Ribeiro", when: "Sex · 10:00", topic: "Revisão de PDI" },
+];
+
+const teamFallbackMock = [
+  { name: "Bruno Alves", role: "Engenheiro Frontend", pdi: 65 },
+  { name: "Ana Ribeiro", role: "Product Designer", pdi: 80 },
+  { name: "Carlos Silva", role: "Engenheiro Backend", pdi: 35 },
+  { name: "Fernanda Costa", role: "QA Engineer", pdi: 50 },
 ];
 
 export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
+
   // Se o usuário já tiver perfil no banco, inicializa com ele
   const initialProfile = userData?.profile || null;
   const [profile, setProfile] = useState<ProfileKey | null>(initialProfile);
-  
+
   // Só abre o onboarding automaticamente se NÃO tiver perfil
   const [onboardingOpen, setOnboardingOpen] = useState(initialProfile === null);
   const [active, setActive] = useState("home");
@@ -81,7 +93,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [chatInput, setChatInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Novos estados para a geração do SBI
   const [meetingTopics, setMeetingTopics] = useState("");
   const [sbiScript, setSbiScript] = useState("");
@@ -91,11 +103,21 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  
+
   const [team, setTeam] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState({
+  const [teamSearch, setTeamSearch] = useState("");
+  const [metrics, setMetrics] = useState<any>({
     averageEngagement: 87,
-    completedPDIs: 12
+    completedPDIs: 12,
+    pdiProgress: 0,
+    chatCount: 0,
+    currentSentiment: null,
+    wellbeingData: [
+      { name: "Sem 1", value: 3 },
+      { name: "Sem 2", value: 4 },
+      { name: "Sem 3", value: 3 },
+      { name: "Atual", value: 4 },
+    ]
   });
 
   const [upcomingMeetingsList, setUpcomingMeetingsList] = useState(upcomingMeetingsMock);
@@ -167,6 +189,27 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     }
   };
 
+  const handleSentiment = async (val: string) => {
+    setMetrics((prev: any) => ({ ...prev, currentSentiment: val }));
+    try {
+      const token = localStorage.getItem("token");
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/users/me/sentiment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ sentiment: val })
+      });
+      if (res.ok) {
+        fetchMetrics();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
     fetchTeam();
@@ -199,14 +242,14 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          message: userMsg, 
+        body: JSON.stringify({
+          message: userMsg,
           history: historyPayload,
-          type: "profile_discovery" 
+          type: "profile_discovery"
         }),
       });
 
@@ -231,17 +274,17 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         // Resposta de descoberta de perfil
         let finalReply = reply;
         let newProfile: ProfileKey | null = null;
-        
+
         // Verifica se a IA encontrou o perfil
         if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
-           newProfile = "tecnico";
-           finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
+          newProfile = "tecnico";
+          finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
         } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
-           newProfile = "engajado";
-           finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
+          newProfile = "engajado";
+          finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
         } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
-           newProfile = "transicao";
-           finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
+          newProfile = "transicao";
+          finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
         }
 
         if (newProfile) {
@@ -256,7 +299,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               },
               body: JSON.stringify({ profile: newProfile })
             });
-          } catch(err) {
+          } catch (err) {
             console.error('Falha ao salvar perfil no banco:', err);
           }
         }
@@ -293,18 +336,18 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ 
-          message: meetingTopics, 
-          type: "sbi", 
-          profileTone: profile ? labelFor(profile) : "Técnico" 
+        body: JSON.stringify({
+          message: meetingTopics,
+          type: "sbi",
+          profileTone: profile ? labelFor(profile) : "Técnico"
         }),
       });
-      
+
       if (!response.ok) throw new Error("Erro na API.");
       const data = await response.json();
       setSbiScript(data.reply);
       fetchHistory(); // Atualiza o histórico após gerar um novo roteiro
-    } catch(err) {
+    } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
       setIsGeneratingSbi(false);
@@ -316,7 +359,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       toast.warning("Por favor, selecione um liderado para agendar.");
       return;
     }
-    
+
     // Formatar data (ex: 2026-07-15 -> 15/07)
     let formattedDate = "Em breve";
     if (meetingDate) {
@@ -326,9 +369,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
     const whenStr = meetingDate || meetingTime ? `${formattedDate} · ${meetingTime || "a definir"}` : "A definir";
     const finalTopic = meetingSubject.trim() ? meetingSubject.trim() : (meetingTopics ? "Pauta definida com IA" : "1:1 Agendada");
-    
+
     setUpcomingMeetingsList(prev => [
-      { who: selectedMember, when: whenStr, topic: finalTopic },
+      { who: selectedMember, when: whenStr, topic: finalTopic, hasSbi: !!sbiScript },
       ...prev
     ]);
 
@@ -341,6 +384,17 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     setMeetingDate("");
     setMeetingTime("");
   };
+
+  const filteredAndSortedTeam = [...team]
+    .filter((m) => m.name.toLowerCase().includes(teamSearch.toLowerCase()))
+    .sort((a, b) => a.pdi - b.pdi);
+
+  const meetingsTbd = upcomingMeetingsList.filter(m => m.when === "A definir" || m.when.toLowerCase().includes("a definir"));
+  const meetingsNext = upcomingMeetingsList.filter(m => !meetingsTbd.includes(m) && m.when.match(/\d{2}\/\d{2}/));
+  const meetingsThisWeek = upcomingMeetingsList.filter(m => !meetingsTbd.includes(m) && !meetingsNext.includes(m));
+
+  const currentTeam = team.length > 0 ? team : teamFallbackMock;
+  const membersWithoutMeetings = currentTeam.filter(m => !upcomingMeetingsList.some(um => um.who === m.name));
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -528,8 +582,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     <h2 className="text-xl font-semibold tracking-tight">Meus Liderados</h2>
                     <p className="text-sm text-muted-foreground">Acompanhe evolução e PDI de cada membro.</p>
                   </div>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     onClick={() => setActive("team")}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -562,9 +616,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                         <Progress value={m.pdi} className="h-1.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-blue-400" />
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setActive("team")}
                           className="flex-1 border-border bg-secondary/60 text-sm"
                         >
@@ -596,20 +650,20 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 <GlassCard className="p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-base font-semibold">Próximas Reuniões</h3>
+                  </div>
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <Calendar className="w-10 h-10 text-muted-foreground mb-3 opacity-20" />
+                    <p className="text-lg font-medium text-foreground">{upcomingMeetingsList.length} 1:1s agendadas</p>
+                    <p className="text-sm text-muted-foreground mb-4">Gerencie as pautas e roteiros com IA</p>
                     <Button
-                      size="sm"
-                      onClick={() => setNewMeetingOpen(true)}
-                      className="h-8 bg-blue-600 text-sm text-white hover:bg-blue-500"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      onClick={() => setActive("meetings")}
                     >
-                      <Plus className="mr-1 h-3.5 w-3.5" />
-                      Criar nova 1:1
+                      Ir para Reuniões
+                      <ChevronRight className="w-4 h-4 ml-1.5" />
                     </Button>
                   </div>
-                  <ul className="space-y-2">
-                    {upcomingMeetingsList.map((m, i) => (
-                      <MeetingRow key={i} {...m} tone="blue" />
-                    ))}
-                  </ul>
                 </GlassCard>
               </section>
             </>
@@ -620,15 +674,15 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-violet-400">Minha Jornada (Liderado)</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight text-violet-400">Minha Jornada</h2>
                   <p className="text-sm text-muted-foreground">Acompanhe suas metas, 1:1s com seu gestor e feedbacks recebidos.</p>
                 </div>
               </div>
-              
+
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <KpiCard title="Progresso do meu PDI" value="65%" trend="+5%" icon={Target} accent="violet" />
                 <KpiCard title="Feedbacks Recebidos" value="12" trend="+3" icon={MessageSquare} accent="blue" />
-                
+
                 <GlassCard className="p-5 ring-1 ring-violet-500/20">
                   <div className="mb-2 text-sm font-semibold text-violet-400">Próxima 1:1 com Gestor</div>
                   <div className="flex items-center gap-3">
@@ -666,8 +720,389 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               </div>
             </div>
           )}
+          {active === "team" && (
+            <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Users className="h-6 w-6 text-primary" />
+                    <h1 className="text-2xl font-bold tracking-tight">Equipe</h1>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{team.length} colaboradores sob sua liderança</p>
+                </div>
+                <div className="relative w-full md:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar colaborador..."
+                    className="pl-9 border-border bg-secondary/50"
+                    value={teamSearch}
+                    onChange={(e) => setTeamSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {team.length === 0 ? (
+                <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-border dark:border-slate-700 bg-secondary/50 dark:bg-slate-900/50 mt-6">
+                  <p className="text-muted-foreground dark:text-slate-400">Nenhum colaborador vinculado a você ainda</p>
+                </div>
+              ) : filteredAndSortedTeam.length === 0 ? (
+                <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-border dark:border-slate-700 bg-secondary/50 dark:bg-slate-900/50 mt-6">
+                  <p className="text-muted-foreground dark:text-slate-400">Nenhum colaborador encontrado para "{teamSearch}"</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredAndSortedTeam.map((member, i) => {
+                    const radius = 32;
+                    const circumference = 2 * Math.PI * radius;
+                    const strokeDashoffset = circumference - (member.pdi / 100) * circumference;
+
+                    let ringColor = "text-emerald-500";
+                    if (member.pdi < 40) ringColor = "text-rose-500";
+                    else if (member.pdi <= 70) ringColor = "text-amber-500";
+
+                    const initials = member.name
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .substring(0, 2)
+                      .toUpperCase();
+
+                    return (
+                      <GlassCard key={i} className="p-5 flex flex-col hover:border-primary/50 transition-colors">
+                        <div className="flex flex-col items-center mb-5">
+                          <div className="relative mb-3 flex items-center justify-center">
+                            <svg className="w-24 h-24 transform -rotate-90">
+                              <circle
+                                className="text-secondary/80"
+                                strokeWidth="4"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r={radius}
+                                cx="48"
+                                cy="48"
+                              />
+                              <circle
+                                className={`${ringColor} transition-all duration-1000 ease-in-out`}
+                                strokeWidth="4"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={strokeDashoffset}
+                                strokeLinecap="round"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r={radius}
+                                cx="48"
+                                cy="48"
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center text-xl font-semibold text-foreground">
+                                {initials}
+                              </div>
+                            </div>
+                          </div>
+                          <h3 className="font-semibold text-lg text-center truncate w-full">{member.name}</h3>
+                          <p className="text-sm text-muted-foreground">{member.role}</p>
+                          <div className={`mt-2 text-xs font-medium px-2 py-1 rounded-full bg-secondary/80 ${ringColor}`}>
+                            PDI: {member.pdi}%
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-auto">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-primary/20 hover:bg-primary/10 text-xs px-2"
+                            onClick={() => {
+                              setSelectedMember(member.name);
+                              setNewMeetingOpen(true);
+                            }}
+                          >
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Agendar 1:1
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-border bg-secondary/40 text-xs px-2 hover:bg-secondary"
+                            onClick={() => setIsHistoryOpen(true)}
+                          >
+                            <ClipboardList className="w-3 h-3 mr-1" />
+                            Ver Histórico
+                          </Button>
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+              )}
+
+              {team.length > 0 && (
+                <p className="text-xs text-center text-muted-foreground/60 mt-8 pb-4">
+                  PDI é uma estimativa inicial de desenvolvimento — refinamento contínuo em breve.
+                </p>
+              )}
+            </div>
+          )}
+
+          {active === "meetings" && (
+            <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-6 w-6 text-primary" />
+                    <h1 className="text-2xl font-bold tracking-tight">Reuniões</h1>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Você tem {upcomingMeetingsList.length === 1 ? "uma 1:1 agendada" : upcomingMeetingsList.length === 2 ? "duas 1:1s agendadas" : upcomingMeetingsList.length + " 1:1s agendadas"} nesta sessão
+                  </p>
+                </div>
+              </div>
+
+              {upcomingMeetingsList.length === 0 ? (
+                <div className="flex flex-col h-64 items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/50 mt-6 text-center">
+                  <p className="text-muted-foreground mb-4">Nenhuma 1:1 agendada ainda</p>
+                  <Button onClick={() => setNewMeetingOpen(true)} variant="outline">Criar a primeira 1:1</Button>
+                </div>
+              ) : (
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Left Column: Meetings List */}
+                  <div className="flex-1 space-y-8">
+                    {meetingsThisWeek.length > 0 && (
+                      <section>
+                        <h3 className="text-lg font-semibold mb-4 text-violet-400">Esta semana</h3>
+                        <ul className="space-y-3">
+                          {meetingsThisWeek.map((m, i) => (
+                            <MeetingRow
+                              key={i}
+                              {...m}
+                              tone="blue"
+                              onHistoryClick={() => setIsHistoryOpen(true)}
+                              onCancel={() => setUpcomingMeetingsList(prev => prev.filter(x => x !== m))}
+                              onReschedule={() => {
+                                setSelectedMember(m.who);
+                                setNewMeetingOpen(true);
+                                setUpcomingMeetingsList(prev => prev.filter(x => x !== m));
+                              }}
+                            />
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                    {meetingsNext.length > 0 && (
+                      <section>
+                        <h3 className="text-lg font-semibold mb-4 text-blue-400">Próximas</h3>
+                        <ul className="space-y-3">
+                          {meetingsNext.map((m, i) => (
+                            <MeetingRow
+                              key={i}
+                              {...m}
+                              tone="blue"
+                              onHistoryClick={() => setIsHistoryOpen(true)}
+                              onCancel={() => setUpcomingMeetingsList(prev => prev.filter(x => x !== m))}
+                              onReschedule={() => {
+                                setSelectedMember(m.who);
+                                setNewMeetingOpen(true);
+                                setUpcomingMeetingsList(prev => prev.filter(x => x !== m));
+                              }}
+                            />
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                    {meetingsTbd.length > 0 && (
+                      <section>
+                        <h3 className="text-lg font-semibold mb-4 text-emerald-400">Sem data definida</h3>
+                        <ul className="space-y-3">
+                          {meetingsTbd.map((m, i) => (
+                            <MeetingRow
+                              key={i}
+                              {...m}
+                              tone="slate"
+                              onHistoryClick={() => setIsHistoryOpen(true)}
+                              onCancel={() => setUpcomingMeetingsList(prev => prev.filter(x => x !== m))}
+                              onReschedule={() => {
+                                setSelectedMember(m.who);
+                                setNewMeetingOpen(true);
+                                setUpcomingMeetingsList(prev => prev.filter(x => x !== m));
+                              }}
+                            />
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </div>
+
+                  {/* Right Column: Quick Schedule Sidebar */}
+                  <div className="w-full lg:w-80 shrink-0 space-y-4">
+                    <h3 className="text-base font-semibold border-b border-border pb-2">Agendar rápido</h3>
+                    {membersWithoutMeetings.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Todos os membros possuem reuniões agendadas.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {membersWithoutMeetings.map((member, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors cursor-pointer" onClick={() => { setSelectedMember(member.name); setNewMeetingOpen(true); }}>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs bg-secondary">
+                                  {member.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="text-sm font-medium">{member.name}</div>
+                            </div>
+                            <Plus className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-center text-muted-foreground/60 mt-8 pb-4">
+                Agendamentos desta versão ficam salvos apenas durante a sessão atual do navegador. Persistência definitiva está no roadmap.
+              </p>
+            </div>
+          )}
+
+          {active === "pdi" && (
+            <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="h-6 w-6 text-primary" />
+                    <h1 className="text-2xl font-bold tracking-tight">Meu Desenvolvimento</h1>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Acompanhe seu preparo como líder através das suas interações diárias e do seu nível de bem-estar.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Card 1: Índice de Preparo */}
+                <GlassCard className="relative overflow-hidden p-5 flex flex-col justify-between group">
+                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-violet-500/20 to-violet-500/0 blur-2xl" />
+                  <div className="relative">
+                    <div className="text-sm text-muted-foreground mb-2">Índice de Preparo</div>
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <span className="text-3xl font-semibold tracking-tight text-foreground">
+                        {metrics?.pdiProgress || 0}%
+                      </span>
+                      <span className="text-xs text-muted-foreground">Concluído</span>
+                    </div>
+                    <div className="space-y-2">
+                      <Progress value={metrics?.pdiProgress || 0} className="h-2 bg-secondary/60 rounded-full overflow-hidden" indicatorClassName="bg-violet-500" />
+                      <p className="text-xs text-muted-foreground flex justify-between">
+                        <span>Baseado em {metrics?.chatCount || 0} roteiros com a IA</span>
+                        <span className="text-violet-500">Meta: 100%</span>
+                      </p>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Card 2: Check-in */}
+                <GlassCard className="relative overflow-hidden p-5 flex flex-col justify-between group">
+                  <div className="absolute -left-6 -bottom-6 h-24 w-24 rounded-full bg-gradient-to-tr from-emerald-500/20 to-emerald-500/0 blur-2xl" />
+                  <div className="relative z-10">
+                    <div className="text-sm text-muted-foreground mb-4">Check-in Diário</div>
+                    <p className="text-sm text-foreground mb-4">Como você classificaria sua energia hoje?</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        onClick={() => handleSentiment('good')}
+                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all duration-300 ${metrics?.currentSentiment === 'good' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-secondary/30 border-border/50 hover:bg-secondary/60 text-muted-foreground'}`}
+                      >
+                        <span className="text-xl">😊</span>
+                        <span className="text-xs font-medium">Bem</span>
+                      </button>
+                      <button
+                        onClick={() => handleSentiment('neutral')}
+                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all duration-300 ${metrics?.currentSentiment === 'neutral' ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-secondary/30 border-border/50 hover:bg-secondary/60 text-muted-foreground'}`}
+                      >
+                        <span className="text-xl">😐</span>
+                        <span className="text-xs font-medium">Neutro</span>
+                      </button>
+                      <button
+                        onClick={() => handleSentiment('bad')}
+                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all duration-300 ${metrics?.currentSentiment === 'bad' ? 'bg-rose-500/10 border-rose-500/50 text-rose-500' : 'bg-secondary/30 border-border/50 hover:bg-secondary/60 text-muted-foreground'}`}
+                      >
+                        <span className="text-xl">😔</span>
+                        <span className="text-xs font-medium">Difícil</span>
+                      </button>
+                    </div>
+                  </div>
+                  {metrics?.currentSentiment && (
+                    <div className="absolute top-5 right-5 animate-in fade-in zoom-in duration-300">
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    </div>
+                  )}
+                </GlassCard>
+              </div>
+
+              {/* Card 3: Tendência */}
+              <GlassCard className="p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                  <div className="text-sm text-muted-foreground">Tendência de Bem-Estar</div>
+                  <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 bg-emerald-500/10 px-2 py-0.5 text-xs font-normal">
+                    Últimas 4 Semanas
+                  </Badge>
+                </div>
+
+                <div className="h-[240px] w-full -ml-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={metrics?.wellbeingData || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="name"
+                        stroke="#64748b"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(8px)',
+                          border: isDark ? '1px solid rgba(51, 65, 85, 0.5)' : '1px solid rgba(226, 232, 240, 0.5)',
+                          borderRadius: '12px',
+                          color: isDark ? '#fff' : '#0f172a',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                        }}
+                        itemStyle={{ color: '#10b981', fontWeight: 600 }}
+                        cursor={{ stroke: '#64748b', strokeWidth: 1, strokeDasharray: '4 4' }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorValue)"
+                        activeDot={{ r: 6, fill: '#10b981', stroke: isDark ? '#0a101f' : '#ffffff', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </GlassCard>
+
+              <div className="flex justify-center mt-6 pb-2">
+                <p className="text-xs text-muted-foreground/60 max-w-lg text-center leading-relaxed">
+                  Este índice reflete seu engajamento diário e preparo emocional. Uma visão abrangente e estruturada de desenvolvimento de liderança será implementada em futuras atualizações.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Placeholder for other views */}
-          {active !== "home" && active !== "my-performance" && (
+          {active !== "home" && active !== "my-performance" && active !== "team" && active !== "meetings" && active !== "pdi" && (
             <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-border dark:border-slate-700 bg-secondary/50 dark:bg-slate-900/50 mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <p className="text-muted-foreground dark:text-slate-400">O conteúdo da aba <span className="font-semibold text-foreground dark:text-white uppercase">{active}</span> está em desenvolvimento para o próximo ciclo.</p>
             </div>
@@ -681,7 +1116,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         <DialogContent className="max-w-[1300px] border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl">
           <div className="grid h-[85vh] max-h-[800px] min-h-[500px] gap-0 md:grid-cols-2">
             {/* Left: quick profile */}
-            <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r">
               <DialogHeader className="space-y-3 text-left">
                 <DialogTitle className="text-3xl">Conheça os Perfis de Liderança</DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
@@ -717,7 +1152,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
               <div
                 ref={chatContainerRef}
-                className="mt-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-border bg-secondary/40 p-5 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                className="mt-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-border bg-secondary/40 p-5 min-h-0"
               >
                 {chat.map((m, i) => (
                   <div
@@ -816,11 +1251,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Pauta (Assunto Principal)</Label>
-              <Input 
-                placeholder="Ex: Alinhamento trimestral, Revisão de PDI..." 
-                value={meetingSubject} 
-                onChange={(e) => setMeetingSubject(e.target.value)} 
-                className="border-border bg-secondary/60" 
+              <Input
+                placeholder="Ex: Alinhamento trimestral, Revisão de PDI..."
+                value={meetingSubject}
+                onChange={(e) => setMeetingSubject(e.target.value)}
+                className="border-border bg-secondary/60"
               />
             </div>
 
@@ -837,12 +1272,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
             <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200 flex flex-col gap-2">
               Nossa IA irá gerar um roteiro personalizado baseado no seu perfil de liderança.
-              <Button 
-                onClick={handleGenerateSbi} 
+              <Button
+                onClick={handleGenerateSbi}
                 disabled={isGeneratingSbi || !meetingTopics.trim()}
                 className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 h-8"
               >
-                {isGeneratingSbi ? "Gerando..." : <Sparkles className="h-4 w-4 mr-2"/>}
+                {isGeneratingSbi ? "Gerando..." : <Sparkles className="h-4 w-4 mr-2" />}
                 Gerar Roteiro SBI
               </Button>
             </div>
@@ -1003,31 +1438,77 @@ function MeetingRow({
   when,
   topic,
   tone,
+  hasSbi,
+  onHistoryClick,
+  onCancel,
+  onReschedule,
 }: {
   who: string;
   when: string;
   topic: string;
   tone: "slate" | "blue";
+  hasSbi?: boolean;
+  onHistoryClick?: () => void;
+  onCancel?: () => void;
+  onReschedule?: () => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-border bg-secondary/40 p-3 transition-colors hover:border-accent">
-      <Avatar className="h-10 w-10">
-        <AvatarFallback
-          className={cn(
-            "text-sm",
-            tone === "blue"
-              ? "bg-gradient-to-br from-blue-600 to-blue-800 text-white"
-              : "bg-secondary text-foreground",
-          )}
-        >
-          {who.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-base font-medium">{who}</div>
-        <div className="truncate text-sm text-muted-foreground">{topic}</div>
+    <li className="flex flex-col rounded-lg border border-border bg-secondary/40 transition-colors hover:border-accent overflow-hidden">
+      <div
+        className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Avatar className="h-10 w-10 shrink-0">
+            <AvatarFallback
+              className={cn(
+                "text-sm",
+                tone === "blue"
+                  ? "bg-gradient-to-br from-blue-600 to-blue-800 text-white"
+                  : "bg-secondary text-foreground",
+              )}
+            >
+              {who.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-base font-medium">{who}</div>
+            <div className="truncate text-sm text-muted-foreground">{topic}</div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-3 mt-2 sm:mt-0 w-full sm:w-auto">
+          <div className="text-sm text-muted-foreground whitespace-nowrap">{when}</div>
+          <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", isExpanded ? "rotate-180" : "")} />
+        </div>
       </div>
-      <div className="text-right text-sm text-muted-foreground">{when}</div>
+
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-1 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {hasSbi && onHistoryClick && (
+              <Button size="sm" variant="outline" className="h-8 text-xs border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" onClick={(e) => { e.stopPropagation(); onHistoryClick(); }}>
+                <Sparkles className="w-3 h-3 mr-1.5" />
+                Ver Roteiro SBI
+              </Button>
+            )}
+            {onReschedule && (
+              <Button size="sm" variant="outline" className="h-8 text-xs bg-secondary/50" onClick={(e) => { e.stopPropagation(); onReschedule(); }}>
+                <Clock className="w-3 h-3 mr-1.5" />
+                Reagendar
+              </Button>
+            )}
+            {onCancel && (
+              <Button size="sm" variant="outline" className="h-8 text-xs border-rose-500/30 text-rose-500 hover:bg-rose-500/10 ml-auto" onClick={(e) => { e.stopPropagation(); onCancel(); }}>
+                <X className="w-3 h-3 mr-1.5" />
+                Cancelar
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </li>
   );
 }
+

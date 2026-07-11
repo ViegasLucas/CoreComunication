@@ -48,7 +48,129 @@
     "assignedEmployees": []
   },
   "OWsCXCYMJ6azdKvAqTGZkPuykcM2": {
-    "profile": "engajado"
+    "profile": "engajado",
+    "sentiments": [
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:51:03.906Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:53:33.886Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T06:53:36.702Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T06:53:36.717Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:53:48.416Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T06:53:49.468Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T06:53:50.582Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T06:53:52.274Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T06:53:53.593Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:53:54.670Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:53:55.320Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:53:55.528Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:53:55.705Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T06:53:58.771Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T06:53:59.908Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:00.751Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:11.464Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:13.155Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:14.398Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:15.702Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:17.084Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:17.759Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:18.509Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:54:24.688Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T06:56:33.541Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T06:56:34.554Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T06:56:35.717Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:01:32.549Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:01:33.678Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:08:48.471Z"
+      }
+    ]
   },
   "gFy7aqD7ARbhHFhkWWBuhhtmWAI3": {
     "role": "employee",
@@ -60,7 +182,109 @@
     "assignedEmployees": []
   },
   "Lrb9hJXLCTMxlpj13P40mw88NEN2": {
-    "pdi": 90
+    "pdi": 90,
+    "sentiments": [
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:10:00.808Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:01.884Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:10:03.129Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:10:08.306Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:09.430Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:10:11.035Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:13.304Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:10:14.272Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:18.061Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:10:19.122Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:27.807Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:10:28.688Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:30.547Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:10:32.330Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:34.287Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:10:35.612Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:37.384Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:10:38.230Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:41.386Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:10:53.047Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:10:59.200Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:11:00.075Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-11T07:11:01.906Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-11T07:11:07.092Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-11T07:11:08.135Z"
+      }
+    ]
   },
   "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1": {
     "role": "leader",
