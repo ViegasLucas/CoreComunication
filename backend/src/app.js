@@ -11,6 +11,7 @@ const exampleController = require('./controllers/exampleController');
 const chatController = require('./controllers/chatController');
 const userController = require('./controllers/userController');
 const metricsController = require('./controllers/metricsController');
+const authController = require('./controllers/authController');
 const authMiddleware = require('./middlewares/authMiddleware');
 
 // 3. Função de teste rápido para rodar assim que o servidor ligar (comentada por enquanto)
@@ -41,6 +42,9 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Rota pública de redefinição de senha (não requer auth)
+app.post('/api/auth/reset-password', authController.requestPasswordReset);
 
 // Rota de teste
 app.get('/api/test', exampleController.getExample);

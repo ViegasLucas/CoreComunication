@@ -34,7 +34,8 @@
       "1MQ0unBAhYP6W8rqxBLTzuw3CDV2",
       "I73z3AndKzU6p3dB4GB0viHTmZx2",
       "Lrb9hJXLCTMxlpj13P40mw88NEN2"
-    ]
+    ],
+    "profile": "engajado"
   },
   "I73z3AndKzU6p3dB4GB0viHTmZx2": {
     "pdi": 74,
@@ -53,5 +54,12 @@
     "role": "employee",
     "assignedEmployees": [],
     "pdi": 61
+  },
+  "n3hwSDOUacNEOS4BcC6hqQQv6nK2": {
+    "role": "hr",
+    "assignedEmployees": []
+  },
+  "Lrb9hJXLCTMxlpj13P40mw88NEN2": {
+    "pdi": 90
   }
 }

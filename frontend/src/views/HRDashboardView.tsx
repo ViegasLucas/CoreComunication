@@ -27,11 +27,7 @@ import EngagementTab from "@/components/features/EngagementTab";
 import AdoptionTab from "@/components/features/AdoptionTab";
 import TeamsTab from "@/components/features/TeamsTab";
 
-// --- MOCK DATA ---
-const companyAlerts = [
-  { team: "Engenharia", issue: "Baixa adoção de 1:1s (30% este mês)", severity: "high" as const },
-  { team: "Marketing", issue: "Queda no sentimento médio nas últimas 2 semanas", severity: "medium" as const },
-];
+// --- MOCK DATA PARA OUTROS COMPONENTES SE NECESSÁRIO ---
 
 export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -44,10 +40,14 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
   const [editingUser, setEditingUser] = useState<any>(null);
   
   const [metrics, setMetrics] = useState({
-    averageEngagement: 82,
-    adoptionRate: 64,
-    completedPDIs: 124
+    averageEngagement: 0,
+    adoptionRate: 0,
+    completedPDIs: 0,
+    leadersAdoptionData: []
   });
+  
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
 
   const fetchMetrics = async () => {
     try {
@@ -57,7 +57,14 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       });
       if (res.ok) {
         const data = await res.json();
-        setMetrics(data);
+        setMetrics({
+          averageEngagement: data.averageEngagement || 0,
+          adoptionRate: data.adoptionRate || 0,
+          completedPDIs: data.completedPDIs || 0,
+          leadersAdoptionData: data.leadersAdoptionData || []
+        });
+        setAlerts(data.companyAlerts || []);
+        setDepartments(data.topDepartments || []);
       }
     } catch (e) {
       console.error(e);
@@ -65,7 +72,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
   };
 
   useEffect(() => {
-    if (active === "home") {
+    if (active === "home" || active === "meetings") {
       fetchMetrics();
     }
   }, [active]);
@@ -210,7 +217,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: ADOPTION */}
           {active === "meetings" && (
-            <AdoptionTab />
+            <AdoptionTab adoptionData={metrics.leadersAdoptionData} adoptionRate={metrics.adoptionRate} />
           )}
 
           {/* VIEW: TEAMS */}
@@ -279,20 +286,24 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                     </h3>
                   </div>
                   <ul className="space-y-4">
-                    {companyAlerts.map((alert, i) => (
-                      <li key={i} className="flex gap-4 items-start rounded-xl bg-secondary/50 dark:bg-slate-800/50 p-4 border border-border dark:border-slate-700">
-                        <div className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white",
-                          alert.severity === "high" ? "bg-rose-500" : "bg-amber-500"
-                        )}>
-                          <AlertTriangle className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-foreground dark:text-slate-200">{alert.team}</div>
-                          <div className="text-sm text-muted-foreground dark:text-slate-400">{alert.issue}</div>
-                        </div>
-                      </li>
-                    ))}
+                    {alerts.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">Nenhum alerta no momento.</div>
+                    ) : (
+                      alerts.map((alert, i) => (
+                        <li key={i} className="flex gap-4 items-start rounded-xl bg-secondary/50 dark:bg-slate-800/50 p-4 border border-border dark:border-slate-700">
+                          <div className={cn(
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white",
+                            alert.severity === "high" ? "bg-rose-500" : "bg-amber-500"
+                          )}>
+                            <AlertTriangle className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground dark:text-slate-200">{alert.team}</div>
+                            <div className="text-sm text-muted-foreground dark:text-slate-400">{alert.issue}</div>
+                          </div>
+                        </li>
+                      ))
+                    )}
                   </ul>
                   <Button 
                     variant="outline" 
@@ -307,27 +318,30 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
                   <h3 className="mb-4 text-lg font-semibold text-foreground dark:text-slate-200">Saúde por Área</h3>
                   <div className="space-y-6">
-                    <div>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="text-muted-foreground dark:text-slate-300">Produto & Design</span>
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">92%</span>
-                      </div>
-                      <Progress value={92} className="h-2 bg-secondary dark:bg-slate-800 [&>div]:bg-emerald-500" />
-                    </div>
-                    <div>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="text-muted-foreground dark:text-slate-300">Vendas & Suporte</span>
-                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">78%</span>
-                      </div>
-                      <Progress value={78} className="h-2 bg-secondary dark:bg-slate-800 [&>div]:bg-indigo-500" />
-                    </div>
-                    <div>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="text-muted-foreground dark:text-slate-300">Engenharia</span>
-                        <span className="font-semibold text-amber-600 dark:text-amber-400">65%</span>
-                      </div>
-                      <Progress value={65} className="h-2 bg-secondary dark:bg-slate-800 [&>div]:bg-amber-500" />
-                    </div>
+                    {departments.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">Carregando dados...</div>
+                    ) : (
+                      departments.map((dept, idx) => {
+                        // Cores dinâmicas
+                        const colorMap = [
+                          { text: "text-emerald-600 dark:text-emerald-400", bg: "[&>div]:bg-emerald-500" },
+                          { text: "text-indigo-600 dark:text-indigo-400", bg: "[&>div]:bg-indigo-500" },
+                          { text: "text-amber-600 dark:text-amber-400", bg: "[&>div]:bg-amber-500" },
+                          { text: "text-blue-600 dark:text-blue-400", bg: "[&>div]:bg-blue-500" }
+                        ];
+                        const colors = colorMap[idx % colorMap.length];
+
+                        return (
+                          <div key={idx}>
+                            <div className="mb-1 flex justify-between text-sm">
+                              <span className="text-muted-foreground dark:text-slate-300">{dept.name}</span>
+                              <span className={`font-semibold ${colors.text}`}>{dept.value}%</span>
+                            </div>
+                            <Progress value={dept.value} className={`h-2 bg-secondary dark:bg-slate-800 ${colors.bg}`} />
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>

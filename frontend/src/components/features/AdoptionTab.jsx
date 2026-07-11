@@ -18,76 +18,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-export default function AdoptionTab() {
+export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
   const [leaders, setLeaders] = useState([]);
-  const [adoptionRate, setAdoptionRate] = useState(64);
   const [trend, setTrend] = useState("up"); // up ou down
   const [selectedSquad, setSelectedSquad] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  // Mock data para demonstração
-  const mockLeaders = [
-    {
-      id: 1,
-      name: "Ana Silva",
-      squad: "Produto",
-      lastOneOnOne: "2026-06-28",
-      nextExpected: "2026-07-12",
-      status: "on-time", // on-time, attention, overdue
-      cadence: [true, true, true, false, true, true, true, true], // últimas 8 semanas
-    },
-    {
-      id: 2,
-      name: "Carlos Oliveira",
-      squad: "Engenharia",
-      lastOneOnOne: "2026-06-20",
-      nextExpected: "2026-07-04",
-      status: "overdue",
-      cadence: [true, true, false, false, true, true, false, false],
-    },
-    {
-      id: 3,
-      name: "Marina Costa",
-      squad: "Design",
-      lastOneOnOne: "2026-06-25",
-      nextExpected: "2026-07-09",
-      status: "attention",
-      cadence: [true, true, true, true, true, true, true, false],
-    },
-    {
-      id: 4,
-      name: "João Santos",
-      squad: "Produto",
-      lastOneOnOne: "2026-06-30",
-      nextExpected: "2026-07-14",
-      status: "on-time",
-      cadence: [true, true, true, true, true, true, true, true],
-    },
-    {
-      id: 5,
-      name: "Lucia Ferreira",
-      squad: "Engenharia",
-      lastOneOnOne: "2026-06-15",
-      nextExpected: "2026-06-29",
-      status: "overdue",
-      cadence: [true, false, false, false, true, false, false, false],
-    },
-    {
-      id: 6,
-      name: "Roberto Alves",
-      squad: "Marketing",
-      lastOneOnOne: "2026-06-27",
-      nextExpected: "2026-07-11",
-      status: "on-time",
-      cadence: [true, true, true, true, true, true, true, true],
-    },
-  ];
-
   useEffect(() => {
     setLoading(false);
-    setLeaders(mockLeaders);
-  }, []);
+    setLeaders(adoptionData);
+  }, [adoptionData]);
 
   // Filtrar líderes
   const filteredLeaders = leaders.filter((leader) => {
@@ -372,7 +313,7 @@ export default function AdoptionTab() {
                     {leader.squad}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                    {new Date(leader.lastOneOnOne).toLocaleDateString("pt-BR")}
+                    {leader.lastOneOnOne !== "N/A" ? new Date(leader.lastOneOnOne).toLocaleDateString("pt-BR") : "Nunca"}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                     <div className="flex items-center gap-1">

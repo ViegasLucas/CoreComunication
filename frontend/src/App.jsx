@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2, Terminal, Sparkles } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 
@@ -18,6 +18,7 @@ import LoginView from './views/LoginView';
 import LeaderDashboardView from './views/LeaderDashboardView';
 import EmployeeDashboardView from './views/EmployeeDashboardView';
 import HRDashboardView from './views/HRDashboardView';
+import ResetPasswordView from './views/ResetPasswordView';
 
 
 import { dadosIniciaisEquipe } from "./dados";
@@ -90,12 +91,12 @@ export default function App() {
       localStorage.removeItem('token');
       localStorage.removeItem('email');
       
-      // Delay simulando a mensagem de despedida
+      // Delay simulando a mensagem de despedida (aumentado para a animação)
       setTimeout(() => {
         setIsLoggedIn(false);
         setUserData(null);
         setIsLoggingOut(false);
-      }, 2500);
+      }, 4000);
     }
   };
 
@@ -146,12 +147,60 @@ export default function App() {
     />
   );
   
-  // Tela de despedida
+  // Tela de despedida (Animação Tech/Glow estilo FIAP)
   if (isLoggingOut) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground flex-col gap-4 animate-in fade-in duration-500">
-        <h2 className="text-2xl font-semibold">Obrigado por utilizar nosso sistema, volte sempre!</h2>
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0a101f] text-white overflow-hidden">
+        {/* Efeitos de Glow no Background */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-500/20 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '500ms' }}></div>
+
+        {/* Loader Tech / Sci-Fi */}
+        <div className="relative z-10 flex flex-col items-center gap-8">
+          
+          <div className="relative flex items-center justify-center w-28 h-28">
+            <div className="absolute inset-0 rounded-full border-t-2 border-l-2 border-indigo-500 animate-spin" style={{ animationDuration: '1.2s' }}></div>
+            <div className="absolute inset-2 rounded-full border-r-2 border-b-2 border-blue-400 animate-spin" style={{ animationDuration: '1.8s', animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-5 rounded-full border-t-2 border-teal-400 animate-spin" style={{ animationDuration: '2.5s' }}></div>
+            <Terminal className="w-8 h-8 text-indigo-400 animate-pulse" />
+          </div>
+          
+          <div className="flex flex-col items-center gap-3">
+            <h2 className="text-4xl font-bold tracking-[0.2em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-400 to-teal-400 animate-pulse">
+              Desconectando
+            </h2>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+            </div>
+            <p className="mt-6 text-slate-400 text-xs tracking-[0.3em] uppercase font-mono flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-500" />
+              Sincronizando dados com a nuvem...
+            </p>
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  // Verifica se a URL contém parâmetros de redefinição de senha
+  // Suporta tanto o formato customizado (?view=reset-password) quanto o padrão Firebase (?mode=resetPassword)
+  const urlParams = new URLSearchParams(window.location.search);
+  const resetView = urlParams.get('view');
+  const firebaseMode = urlParams.get('mode');
+  const oobCode = urlParams.get('oobCode');
+
+  if ((resetView === 'reset-password' || firebaseMode === 'resetPassword') && oobCode) {
+    return (
+      <ResetPasswordView 
+        oobCode={oobCode} 
+        onBackToLogin={() => {
+          // Limpa a URL e volta para o login
+          window.history.replaceState({}, '', window.location.pathname);
+          window.location.reload();
+        }} 
+      />
     );
   }
 

@@ -82,6 +82,20 @@
   ],
   "1MQ0unBAhYP6W8rqxBLTzuw3CDV2": [
     {
+      "id": "1783742866678",
+      "type": "profile_discovery",
+      "message": "bem legal",
+      "reply": "[RESULTADO_PERFIL: ENGAJADO] Pelo seu histórico, noto que você tem um perfil muito voltado para desenvolver a equipe e manter todos motivados, mesmo em momentos de conflito. Este é o perfil 'Engajado'.",
+      "date": "2026-07-11T04:07:46.678Z"
+    },
+    {
+      "id": "1783742860784",
+      "type": "profile_discovery",
+      "message": "15",
+      "reply": "Entendo. E como você costuma lidar com feedbacks difíceis na sua equipe?",
+      "date": "2026-07-11T04:07:40.784Z"
+    },
+    {
       "id": "1783738371271",
       "type": "sbi",
       "message": "Agatha contribui muito com a equipe essa semana e ajudou a entregar o projeto final",

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
 export default function LoginView({ onLoginSuccess }) {
@@ -9,6 +9,59 @@ export default function LoginView({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Estado do fluxo "Esqueci a senha"
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState(null);
+  const [resetLink, setResetLink] = useState(null); // debug: para dev mostrar o link
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetError(null);
+    setResetLink(null);
+
+    const normalizedEmail = resetEmail.trim().toLowerCase();
+
+    try {
+      // 1. Validar se o e-mail existe no sistema (via backend)
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // E-mail inexistente ou outro erro
+        setResetError(data.error || "Erro ao solicitar redefinição.");
+        return;
+      }
+
+      // 2. E-mail existe! Enviar o reset real pelo Firebase SDK (chega na caixa de entrada)
+      const actionCodeSettings = {
+        url: `${window.location.origin}?view=reset-password`,
+        handleCodeInApp: true,
+      };
+
+      await sendPasswordResetEmail(auth, normalizedEmail, actionCodeSettings);
+      setResetSuccess(true);
+
+    } catch (err) {
+      console.error("[ResetPassword]", err);
+      if (err.code === "auth/too-many-requests") {
+        setResetError("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
+      } else {
+        setResetError("Erro ao enviar e-mail de redefinição. Tente novamente.");
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -161,6 +214,13 @@ export default function LoginView({ onLoginSuccess }) {
           <div className="mt-8 flex items-center justify-between text-sm text-muted-foreground">
             <button
               type="button"
+              onClick={() => {
+                setShowForgotPassword(true);
+                setResetEmail(email); // preenche com o email já digitado
+                setResetSuccess(false);
+                setResetError(null);
+                setResetLink(null);
+              }}
               className="transition hover:text-primary hover:underline"
             >
               Esqueci a senha
@@ -179,6 +239,83 @@ export default function LoginView({ onLoginSuccess }) {
           Ao continuar, você concorda com os Termos de Serviço e Política de Privacidade.
         </p>
       </div>
+
+      {/* MODAL DE ESQUECI A SENHA */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-md rounded-3xl border border-border/60 bg-card/95 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl animate-scale-in">
+            {/* Header */}
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/30">
+                <Mail className="h-7 w-7 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground">
+                {resetSuccess ? "E-mail Enviado!" : "Redefinir Senha"}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {resetSuccess
+                  ? "Verifique sua caixa de entrada e spam."
+                  : "Informe seu e-mail para receber o link de redefinição."}
+              </p>
+            </div>
+
+            {!resetSuccess ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="nome@empresa.com"
+                    className="w-full rounded-xl border border-input bg-background/60 py-3.5 pl-12 pr-4 text-base text-foreground placeholder:text-muted-foreground/70 outline-none ring-0 transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-ring/40"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                {resetError && (
+                  <div className="rounded-xl bg-destructive/15 p-3 text-sm text-destructive border border-destructive/30">
+                    {resetError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {resetLoading ? (
+                    <><Loader2 className="h-5 w-5 animate-spin" /> Enviando...</>
+                  ) : (
+                    <>Enviar Link de Redefinição</>  
+                  )}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 rounded-xl bg-emerald-500/10 p-4 border border-emerald-500/20">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                  <p className="text-sm text-emerald-300">
+                    Link de redefinição enviado para <span className="font-medium">{resetEmail}</span>
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Verifique sua caixa de entrada e a pasta de spam. O link expira em 1 hora.
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowForgotPassword(false)}
+              className="mt-6 flex w-full items-center justify-center gap-2 text-sm text-muted-foreground transition hover:text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao login
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
