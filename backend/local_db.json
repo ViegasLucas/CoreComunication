@@ -61,5 +61,30 @@
   },
   "Lrb9hJXLCTMxlpj13P40mw88NEN2": {
     "pdi": 90
+  },
+  "ExbgDx9z3rOkxQ7hWbnGaRHrqin2": {
+    "role": "leader",
+    "assignedEmployees": [
+      "xwT32fAF5gRclwV7X3pqQjD4O7x1",
+      "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1"
+    ],
+    "profile": "engajado"
+  },
+  "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1": {
+    "pdi": 59
+  },
+  "uxSGXomSvBh4am10YrM1qrC814R2": {
+    "role": "leader",
+    "assignedEmployees": [],
+    "profile": "engajado"
+  },
+  "ysNHdTkEV6eYF2Okcb59qgzFXXh1": {
+    "role": "leader",
+    "assignedEmployees": [],
+    "profile": "tecnico"
+  },
+  "faNxybmTY3TPpPPbHtUF5zLV2wv2": {
+    "role": "leader",
+    "assignedEmployees": []
   }
 }

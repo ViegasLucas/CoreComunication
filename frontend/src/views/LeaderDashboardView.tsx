@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Home,
   Users,
@@ -67,7 +69,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [profile, setProfile] = useState<ProfileKey | null>(initialProfile);
   
   // Só abre o onboarding automaticamente se NÃO tiver perfil
-  const [onboardingOpen, setOnboardingOpen] = useState(initialProfile === null);
+  const [isChatOpen, setIsChatOpen] = useState(initialProfile === null);
+  const [chatIntent, setChatIntent] = useState<"profile_discovery" | "sbi" | "one_on_one" | "pdi">("profile_discovery");
   const [active, setActive] = useState("home");
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
 
@@ -75,17 +78,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     {
       from: "bot",
       text:
-        "Olá! Para mapearmos o seu perfil DISC, me conte: Quanto tempo de experiência com gestão de pessoas você possui?",
+        `Olá${userData?.name ? ` ${userData.name}` : ''}! Bem-vindo(a) ao seu mapeamento de perfil de liderança. Para descobrirmos o seu perfil DISC, vamos começar: Quanto tempo de experiência com gestão de pessoas você possui?`,
     },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Novos estados para a geração do SBI
-  const [meetingTopics, setMeetingTopics] = useState("");
-  const [sbiScript, setSbiScript] = useState("");
-  const [isGeneratingSbi, setIsGeneratingSbi] = useState(false);
 
   // Novos estados para o Histórico de IA
   const [chatHistory, setChatHistory] = useState<any[]>([]);
@@ -106,6 +104,22 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const openChatWithIntent = (intent: "profile_discovery" | "sbi" | "one_on_one" | "pdi") => {
+    setChatIntent(intent);
+    let initialMessage = "";
+    if (intent === "profile_discovery") {
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Bem-vindo(a) ao seu mapeamento de perfil de liderança. Para descobrirmos o seu perfil DISC, vamos começar: Quanto tempo de experiência com gestão de pessoas você possui?`;
+    } else if (intent === "sbi") {
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos preparar um Feedback (SBI). Me conte a situação que ocorreu, o comportamento que você observou e o impacto gerado.`;
+    } else if (intent === "one_on_one") {
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos estruturar a pauta da sua próxima 1:1. Como está o momento atual do colaborador (ex: entregou um projeto, está desmotivado, novo na equipe)?`;
+    } else if (intent === "pdi") {
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos elaborar um PDI. Descreva os pontos fortes do liderado e as áreas onde ele precisa se desenvolver.`;
+    }
+    setChat([{ from: "bot", text: initialMessage }]);
+    setIsChatOpen(true);
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -206,7 +220,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         body: JSON.stringify({ 
           message: userMsg, 
           history: historyPayload,
-          type: "profile_discovery" 
+          type: chatIntent,
+          profileTone: profile ? labelFor(profile) : "neutro"
         }),
       });
 
@@ -228,24 +243,26 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         ]);
         setError("⚠️ Sua mensagem foi bloqueada por conformidade com LGPD. Remova dados sensíveis e tente novamente.");
       } else {
-        // Resposta de descoberta de perfil
+        // Resposta da IA
         let finalReply = reply;
-        let newProfile: ProfileKey | null = null;
         
-        // Verifica se a IA encontrou o perfil
-        if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
-           newProfile = "tecnico";
-           finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
-        } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
-           newProfile = "engajado";
-           finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
-        } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
-           newProfile = "transicao";
-           finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
-        }
+        if (chatIntent === "profile_discovery") {
+          let newProfile: ProfileKey | null = null;
+          
+          // Verifica se a IA encontrou o perfil
+          if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
+             newProfile = "tecnico";
+             finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
+          } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
+             newProfile = "engajado";
+             finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
+          } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
+             newProfile = "transicao";
+             finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
+          }
 
-        if (newProfile) {
-          setProfile(newProfile);
+          if (newProfile) {
+            setProfile(newProfile);
           // Salva o perfil no banco de dados
           try {
             await fetch(`${API_BASE}/api/users/me/profile`, {
@@ -260,13 +277,14 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             console.error('Falha ao salvar perfil no banco:', err);
           }
         }
+      }
 
         setChat((c) => [
           ...c.slice(0, -1),
           { from: "bot", text: finalReply },
         ]);
       }
-    } catch (error: any) {
+    } catch (error) {
       // Substitui o "Analisando..." pela mensagem de erro
       setChat((c) => [
         ...c.slice(0, -1),
@@ -462,7 +480,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setOnboardingOpen(true)}
+                onClick={() => openChatWithIntent("profile_discovery")}
                 disabled={profile !== null}
                 className="border-blue-500/40 bg-blue-600/10 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={profile !== null ? "Perfil já mapeado. Procure o RH para refazer o teste." : ""}
@@ -488,6 +506,57 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           {/* VIEW: HOME */}
           {active === "home" && (
             <>
+              {/* Assistente de Liderança (Quick Actions) */}
+              <div className="mb-6">
+                <h2 className="mb-3 text-lg font-semibold tracking-tight">Assistente de Liderança (IA)</h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <GlassCard 
+                    className="cursor-pointer p-4 transition-all hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-blue-500/10 group"
+                    onClick={() => openChatWithIntent("sbi")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                        <MessageSquare className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">Dar Feedback</div>
+                        <div className="text-xs text-muted-foreground">Roteiro SBI</div>
+                      </div>
+                    </div>
+                  </GlassCard>
+
+                  <GlassCard 
+                    className="cursor-pointer p-4 transition-all hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-blue-500/10 group"
+                    onClick={() => openChatWithIntent("one_on_one")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">Pauta de 1:1</div>
+                        <div className="text-xs text-muted-foreground">Quebra-gelo e metas</div>
+                      </div>
+                    </div>
+                  </GlassCard>
+
+                  <GlassCard 
+                    className="cursor-pointer p-4 transition-all hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-blue-500/10 group"
+                    onClick={() => openChatWithIntent("pdi")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                        <Target className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">Elaborar PDI</div>
+                        <div className="text-xs text-muted-foreground">Plano de desenvolvimento</div>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </div>
+              </div>
+
               {/* KPIs + Pending */}
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
@@ -676,16 +745,20 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         </div>
       </main>
 
-      {/* ONBOARDING MODAL */}
-      <Dialog open={onboardingOpen} onOpenChange={setOnboardingOpen}>
+      {/* ONBOARDING MODAL / ASSISTANT MODAL */}
+      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
         <DialogContent className="max-w-[1300px] border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl">
           <div className="grid h-[85vh] max-h-[800px] min-h-[500px] gap-0 md:grid-cols-2">
             {/* Left: quick profile */}
             <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <DialogHeader className="space-y-3 text-left">
-                <DialogTitle className="text-3xl">Conheça os Perfis de Liderança</DialogTitle>
+                <DialogTitle className="text-3xl">
+                  {chatIntent === "profile_discovery" ? "Conheça os Perfis de Liderança" : "Assistente ClearIT"}
+                </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
-                  Converse com nossa IA para descobrir qual perfil combina com você. Isso personaliza roteiros, feedbacks e 1:1s.
+                  {chatIntent === "profile_discovery" 
+                    ? "Converse com nossa IA para descobrir qual perfil combina com você. Isso personaliza roteiros, feedbacks e 1:1s."
+                    : "Converse com nossa IA para estruturar seus feedbacks, 1:1s e planos de desenvolvimento."}
                 </DialogDescription>
               </DialogHeader>
 
@@ -712,8 +785,15 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             {/* Right: AI chat */}
             <div className="flex h-full min-h-0 flex-col p-8 md:p-10">
               <div className="shrink-0 text-sm font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
-              <div className="mt-1 shrink-0 text-xl font-semibold">Descubra seu perfil</div>
-              <p className="shrink-0 text-sm text-muted-foreground">Um agente irá mapear seu DISC em poucas perguntas.</p>
+              <div className="mt-1 shrink-0 text-xl font-semibold">
+                {chatIntent === "profile_discovery" ? "Descubra seu perfil" 
+                 : chatIntent === "sbi" ? "Roteiro de Feedback (SBI)"
+                 : chatIntent === "one_on_one" ? "Preparar 1:1"
+                 : "Elaborar PDI"}
+              </div>
+              <p className="shrink-0 text-sm text-muted-foreground">
+                {chatIntent === "profile_discovery" ? "Um agente irá mapear seu DISC em poucas perguntas." : "Forneça o contexto e deixe o agente estruturar tudo para você."}
+              </p>
 
               <div
                 ref={chatContainerRef}
@@ -736,11 +816,30 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       className={cn(
                         "max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed",
                         m.from === "bot"
-                          ? "bg-secondary text-foreground"
+                          ? "bg-secondary text-foreground markdown-body" // Note: added markdown-body or custom styling can go here
                           : "bg-blue-600 text-white",
                       )}
                     >
-                      {m.text}
+                      {m.from === "bot" ? (
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
+                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
+                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                            li: ({node, ...props}) => <li className="pl-1" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
+                          }}
+                        >
+                          {m.text}
+                        </ReactMarkdown>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{m.text}</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -749,12 +848,18 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               </div>
 
               <div className="mt-4 flex shrink-0 gap-3">
-                <Input
+                <Textarea
                   value={chatInput}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && sendChat()}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setChatInput(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendChat();
+                    }
+                  }}
                   placeholder="Digite sua resposta..."
-                  className="border-border bg-secondary/60 text-base h-12"
+                  className="border-border bg-secondary/60 text-base min-h-[48px] max-h-[150px] py-3 resize-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                  rows={1}
                 />
                 <Button onClick={sendChat} className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500">
                   <Send className="h-5 w-5" />
@@ -763,10 +868,10 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
               <div className="mt-3 flex shrink-0 items-center justify-end border-t border-border pt-3">
                 <button
-                  onClick={() => setOnboardingOpen(false)}
+                  onClick={() => setIsChatOpen(false)}
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
-                  Pular por agora
+                  Fechar janela
                 </button>
               </div>
             </div>
@@ -824,42 +929,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Tópicos para o Roteiro SBI (IA)</Label>
-              <Textarea
-                rows={3}
-                placeholder="Ex: Não cumpriu o prazo de entrega da funcionalidade X..."
-                className="border-border bg-secondary/60"
-                value={meetingTopics}
-                onChange={(e) => setMeetingTopics(e.target.value)}
-              />
-            </div>
-
-            <div className="rounded-xl border border-blue-600/30 bg-blue-600/10 p-3 text-xs text-blue-400 dark:text-blue-200 flex flex-col gap-2">
-              Nossa IA irá gerar um roteiro personalizado baseado no seu perfil de liderança.
-              <Button 
-                onClick={handleGenerateSbi} 
-                disabled={isGeneratingSbi || !meetingTopics.trim()}
-                className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 h-8"
-              >
-                {isGeneratingSbi ? "Gerando..." : <Sparkles className="h-4 w-4 mr-2"/>}
-                Gerar Roteiro SBI
-              </Button>
-            </div>
-
-            {sbiScript && (
-              <div className="mt-4 p-4 rounded-xl border border-border bg-secondary/40 text-sm h-64 overflow-y-auto whitespace-pre-wrap">
-                {sbiScript}
-              </div>
-            )}
-
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   setNewMeetingOpen(false);
-                  setSbiScript("");
-                  setMeetingTopics("");
                   setMeetingSubject("");
                   setSelectedMember("");
                   setMeetingDate("");

@@ -1,4 +1,10 @@
 const { GoogleGenAI } = require('@google/genai');
+const { OpenAI } = require('openai');
+const { GATEKEEPER_PROMPT } = require('../prompts/gatekeeperPrompt');
+const { getSbiSystemPrompt } = require('../prompts/sbiPrompt');
+const { PROFILE_DISCOVERY_PROMPT } = require('../prompts/profileDiscoveryPrompt');
+const { getPdiSystemPrompt } = require('../prompts/pdiGeneratorPrompt');
+const { getOneOnOneSystemPrompt } = require('../prompts/oneOnOneGeneratorPrompt');
 
 // ── Constantes ────────────────────────────────────────────────
 const MODEL_SBI = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -6,152 +12,52 @@ const MODEL_GATEKEEPER = 'gemini-2.0-flash'; // SLM para validação LGPD
 
 // ── Lazy singleton ────────────────────────────────────────────
 let _genAI = null;
-function getGenAI() {
-  if (!_genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('[Gemini] GEMINI_API_KEY não configurada. Adicione ao arquivo .env');
+let _groqAI = null;
+
+function getAIClient() {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey) {
+    if (!_groqAI) {
+      _groqAI = new OpenAI({ apiKey: groqKey, baseURL: 'https://api.groq.com/openai/v1' });
+      console.log(`[Groq] ✅ Cliente inicializado. Key prefix: ${groqKey.substring(0, 4)}...`);
     }
-    // Validação básica do formato da chave
+    return { type: 'groq', client: _groqAI };
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('[Gemini/Groq] Nenhuma API Key configurada. Adicione GEMINI_API_KEY ou GROQ_API_KEY ao arquivo .env');
+  }
+  
+  if (!_genAI) {
     if (!apiKey.startsWith('AIza')) {
-      console.warn('[Gemini] ⚠️  ATENÇÃO: Sua GEMINI_API_KEY não começa com "AIza". Chaves válidas do Google AI Studio começam com "AIza...". Verifique em: https://aistudio.google.com/app/apikey');
+      console.warn('[Gemini] ⚠️  ATENÇÃO: Sua GEMINI_API_KEY não começa com "AIza". Chaves válidas começam com "AIza...".');
     }
     _genAI = new GoogleGenAI({ apiKey });
     console.log(`[Gemini] ✅ Cliente SDK inicializado. Key prefix: ${apiKey.substring(0, 4)}...`);
   }
-  return _genAI;
+  return { type: 'gemini', client: _genAI };
 }
 
-/**
- * SYSTEM PROMPT — SLM GATEKEEPER (DLP & LGPD Firewall)
- * Primeira camada de validação: detecta dados sensíveis ANTES do processamento
- */
-const GATEKEEPER_PROMPT = `Você é um firewall de segurança e conformidade (DLP - Data Loss Prevention) operando sob a Lei Geral de Proteção de Dados (LGPD).
-Sua ÚNICA função é analisar o texto de entrada fornecido pelo usuário e determinar se ele contém dados sensíveis.
-
-**DADOS SENSÍVEIS SÃO DEFINIDOS COMO:**
-1. Números de identificação pessoal (CPF, RG, CNH, Passaporte).
-2. Informações médicas de qualquer natureza: CIDs (ex: Z73, F32), atestados médicos, diagnósticos físicos ou psicológicos (ex: depressão, burnout, lesão, cirurgia).
-3. Menções a processos disciplinares formais, judiciais ou sindicais.
-4. Dados de saúde sensível, licenças médicas, laudos psicológicos.
-
-**INSTRUÇÕES DE SAÍDA:**
-Você deve responder ESTRITAMENTE em formato JSON, sem nenhum texto adicional (sem markdown, sem explicações prévias).
-Use o seguinte esquema JSON:
-{
-  "is_sensitive": boolean,
-  "reason": "String curta explicando o motivo caso seja true. Se false, retorne null."
-}`;
-
-/**
- * SYSTEM PROMPT — SMART LEADING (Modelo SBI Principal)
- * Segunda camada: gera roteiros estruturados após validação LGPD
- */
-const getSbiSystemPrompt = (profileTone) => {
-  const toneInstruction = profileTone
-    ? `\n## 👤 Perfil do Líder: ${profileTone}\nAdapte o tom da mensagem, o quebra-gelo e as perguntas abertas para refletir o perfil "${profileTone}". Exemplo: Se técnico, seja direto e objetivo. Se engajado, seja motivador e focado em eficiência. Se em transição, adicione passos mais detalhados para dar segurança ao líder.`
-    : '';
-
-  return `# SMART LEADING - Assistente de Feedback Estruturado
-
-Você é um especialista em liderança humanizada e gestão de pessoas. Seu propósito exclusivo é ajudar líderes a estruturar roteiros de feedback profissional usando o modelo **SBI (Situação → Comportamento → Impacto)**.
-
-## 🎯 Sua Missão
-Transformar relatos brutos (frequentemente carregados de emoção) em roteiros estruturados, factuais e extremamente construtivos para reuniões de feedback 1:1.
-${toneInstruction}
-
-## 📋 Estrutura Obrigatória da Resposta (Método SBI)
-
-### 1️⃣ SITUAÇÃO (Situation)
-- Descreva o **contexto específico e neutro** (quando, onde, qual projeto/reunião).
-- OBRIGATÓRIO: Use frases como "Na sprint passada...", "Durante a reunião com o cliente X...", "Na entrega do relatório Y...".
-
-### 2️⃣ COMPORTAMENTO (Behavior)
-- Descreva a **ação observada de forma factual**, sem julgamentos de valor ou adjetivos qualitativos.
-- PROIBIDO: Usar adjetivos como "irresponsável", "desatento", "incompetente", "ruim", "preguiçoso".
-- OBRIGATÓRIO: Use frases como "Observei que o prazo foi excedido em 2 dias...", "Notei que você interrompeu o colega 3 vezes...", "O código entregue não passou nos testes unitários...".
-
-### 3️⃣ IMPACTO (Impact)
-- Descreva o **impacto tangível** daquele comportamento no time, no projeto, no cliente ou no negócio.
-- Seja o mais **específico, mensurável e focado nas consequências** possível.
-- OBRIGATÓRIO: Use frases como "Isso resultou em um atraso na integração...", "Como consequência, a equipe precisou fazer hora extra...", "O impacto direto foi a redução da confiança do cliente...".
-
-## ⚠️ GUARDRAILS DE COMPLIANCE
-
-### LGPD e Privacidade
-- TODOS os inputs já foram validados e não contêm dados sensíveis.
-- **Nunca** processe voluntariamente dados de saúde, documentação, salários ou dados pessoais.
-- Se surpreender com dados sensíveis, recuse a geração e avise.
-
-### Neutralidade e Profissionalismo
-- Mantenha tom **profissional e neutro** em todas as respostas.
-- Base todas as sugestões em **competências observáveis e entregas mensuráveis**.
-- Não faça inferências sobre características protegidas (gênero, raça, idade, origem, religião).
-
-## 📄 Formato Final da Resposta
-
-Use **Markdown** e organize assim:
-
-\`\`\`
-## 🧊 Check-in
-[Sugestão de quebra-gelo empático e acolhedor para iniciar a conversa]
-
-## 🎯 O Feedback (SBI)
-**Situação:** [Contexto claro e específico]
-**Comportamento:** [Ação observada de forma neutra e factual]
-**Impacto:** [Consequência clara e tangível do comportamento]
-
-## 🤝 Próximos Passos (Plano de Ação)
-- [Pergunta aberta de exploração, ex: "Como você enxerga essa situação?"]
-- [Pergunta focada em solução, ex: "O que podemos fazer de diferente da próxima vez?"]
-- [Pergunta de apoio, ex: "Como posso te ajudar a atingir esse objetivo?"]
-\`\`\`
-
-## 🚀 Comece!
-Analise o relato do líder e gere o roteiro SBI estruturado.
-
-## ⚠️ Guardrails Adicionais
-- Nunca armazene, repita nem mencione dados pessoais sensíveis na sua resposta.
-
-### Foco e escopo
-- Responda SOMENTE sobre situações de feedback profissional em ambiente de trabalho.
-- RECUSE pedidos fora deste escopo: código, receitas, notícias, opiniões políticas etc.
-- NUNCA faça diagnósticos médicos ou psicológicos do colaborador.
-- Mantenha sempre um tom empático, respeitoso e profissional.
-
-## Mensagem de recusa padrão (use textualmente quando necessário)
-"Não posso processar esta solicitação pois ela contém dados pessoais sensíveis protegidos pela LGPD. Por favor, descreva a situação de forma anônima, usando apenas o cargo ou função do colaborador (ex: 'desenvolvedor do time', 'analista de marketing')."
-
-## Formato de resposta
-Sempre responda em português do Brasil.
-Seja direto e prático. O roteiro deve ser algo que o líder possa usar imediatamente na conversa.
-Ao final do roteiro, adicione uma seção "💡 Dica do Smart Leading" com uma sugestão de como abrir a conversa de forma empática.`.trim();
-};
-
-const PROFILE_DISCOVERY_PROMPT = `Você é um agente da ClearIT, especialista em perfis de liderança. 
-Sua missão é conduzir um teste de personalidade curto (3 a 5 perguntas) para mapear o perfil do líder.
-Os perfis possíveis são: "Técnico", "Engajado" ou "Em Transição".
-Faça uma pergunta por vez. Se você já tiver informações suficientes para definir o perfil do líder, encerre o teste dizendo: 
-"[RESULTADO_PERFIL: TÉCNICO]" ou "[RESULTADO_PERFIL: ENGAJADO]" ou "[RESULTADO_PERFIL: EM TRANSIÇÃO]" e dê uma breve explicação do motivo.
-Caso contrário, apenas responda com a próxima pergunta de forma natural e amigável.`;
-
+// Prompts externalizados importados acima.
 /**
  * RECUSA PADRÃO (LGPD Violation)
  */
-const LGPD_REFUSAL_MESSAGE = `⚠️ **ALERTA DE COMPLIANCE (LGPD):** O seu relato contém dados sensíveis (informações médicas, laudos ou documentos). Para a nossa segurança, a política da ClearIT impede o processamento destas informações na IA.
+const LGPD_REFUSAL_MESSAGE = `⚠️ **ALERTA DE COMPLIANCE (LGPD)**
+O seu relato contém dados extremamente sensíveis (como CIDs médicos, laudos clínicos ou documentos pessoais). Para a segurança da sua empresa, a política da ClearIT bloqueou o envio destas informações para a IA.
 
-Por favor, **remova esses dados** e envie apenas os comportamentos e entregas que deseja discutir na reunião.
+Por favor, **remova esses dados** e envie apenas os comportamentos práticos e entregas que deseja discutir no feedback.
 
-**Exemplos do que REMOVER:**
-- ❌ Diagnósticos médicos (CPF, CID, burnout, depressão, etc.)
-- ❌ Números de documentos (CPF, RG, CNH)
-- ❌ Informações de processos disciplinares ou judiciais
+**❌ O que REMOVER:** Diagnósticos médicos (burnout, depressão, atestados, etc) e números de documentos (CPF, RG).
+**✅ O que MANTER:** Comportamentos observáveis (Ex: "Não cumpriu o prazo", "Teve postura agressiva na reunião").`;
 
-**Exemplos do que MANTER:**
-- ✅ "Não cumpriu o prazo da entrega"
-- ✅ "A apresentação teve erros técnicos"
-- ✅ "O time relatou falta de comunicação"
-`;
+/**
+ * RECUSA PADRÃO (Toxicidade / Discurso de Ódio)
+ */
+const TOXIC_REFUSAL_MESSAGE = `⚠️ **ALERTA DE CONDUTA**
+Por favor, mantenha um tom profissional. Xingamentos direcionados, insultos graves e discurso de ódio não são tolerados na plataforma.
+
+Tente reescrever o seu relato focando exclusivamente nos fatos e comportamentos profissionais que deseja debater.`;
 
 // ── Filtro LGPD (pré-processamento do input) ─────────────────
 
@@ -185,20 +91,59 @@ function redactLGPD(text) {
 }
 
 /**
- * Verifica se o texto contém dados pessoais sensíveis.
+ * Verifica se o texto contém dados pessoais sensíveis (Híbrido: RegEx + SLM).
  * @param {string} text
- * @returns {{ blocked: boolean, reason: string | null }}
+ * @returns {Promise<{ blocked: boolean, type: 'LGPD' | 'TOXIC' | null, reason: string | null }>}
  */
-function checkLGPD(text) {
+async function checkLGPD(text) {
+  // 1. Validação RegEx (rápida e determinística)
   for (const pattern of LGPD_PATTERNS) {
     if (pattern.regex.test(text)) {
       // Reset lastIndex para regex com flag /g
       pattern.regex.lastIndex = 0;
-      return { blocked: true, reason: pattern.name };
+      return { blocked: true, type: 'LGPD', reason: pattern.name };
     }
     pattern.regex.lastIndex = 0;
   }
-  return { blocked: false, reason: null };
+  
+  // 2. Validação SLM (Gatekeeper de contexto semântico)
+  try {
+    const aiService = getAIClient();
+    if (aiService.type === 'groq') {
+      const response = await aiService.client.chat.completions.create({
+        model: 'llama-3.1-8b-instant', // SLM ultrarrápido ideal para DLP
+        messages: [
+          { role: 'system', content: GATEKEEPER_PROMPT },
+          { role: 'user', content: text }
+        ],
+        temperature: 0,
+        max_tokens: 100,
+        response_format: { type: 'json_object' }
+      });
+      const result = JSON.parse(response.choices[0].message.content);
+      if (result.is_sensitive || result.is_toxic) {
+        return { blocked: true, type: result.is_toxic ? 'TOXIC' : 'LGPD', reason: result.reason || 'DLP SLM Detection' };
+      }
+    } else {
+      const response = await aiService.client.models.generateContent({
+        model: MODEL_GATEKEEPER,
+        contents: text,
+        config: {
+          systemInstruction: GATEKEEPER_PROMPT,
+          responseMimeType: "application/json",
+          temperature: 0,
+        },
+      });
+      const result = JSON.parse(response.text);
+      if (result.is_sensitive || result.is_toxic) {
+        return { blocked: true, type: result.is_toxic ? 'TOXIC' : 'LGPD', reason: result.reason || 'DLP SLM Detection' };
+      }
+    }
+  } catch (error) {
+    console.error('[Gatekeeper SLM] Erro ao validar LGPD, caindo de volta para regex (Fail-Open):', error.message);
+  }
+
+  return { blocked: false, type: null, reason: null };
 }
 
 // ── Função principal ──────────────────────────────────────────
@@ -210,20 +155,24 @@ function checkLGPD(text) {
  * @returns {Promise<{ reply: string, blocked: boolean }>}
  */
 async function generateSBIFeedback(userMessage, profileTone) {
-  // 1. Filtro LGPD local (antes de enviar ao modelo)
-  const lgpdCheck = checkLGPD(userMessage);
-  if (lgpdCheck.blocked) {
+  // 1. Filtro LGPD Híbrido (RegEx + SLM) antes de enviar ao modelo
+  const checkResult = await checkLGPD(userMessage);
+  if (checkResult.blocked) {
+    if (checkResult.type === 'TOXIC') {
+      return { reply: TOXIC_REFUSAL_MESSAGE, blocked: true };
+    }
+
     // Comportamento configurável via env: se LGPD_REDACT=true, redigimos e prosseguimos,
     // caso contrário recusamos a requisição (padrão seguro).
     if (process.env.LGPD_REDACT === 'true') {
       const redacted = redactLGPD(userMessage);
-      console.warn(`[Gemini] Input continha ${lgpdCheck.reason} — redigido antes do envio.`);
+      console.warn(`[Gemini] Input continha ${checkResult.reason} — redigido antes do envio.`);
       // adiciona nota para o modelo/contexto
       userMessage = `${redacted}\n\n(Nota: algumas informações sensíveis foram removidas por conformidade com a LGPD.)`;
     } else {
-      console.warn(`[Gemini] Requisição bloqueada por LGPD: ${lgpdCheck.reason} detectado no input.`);
+      console.warn(`[Gemini] Requisição bloqueada por LGPD: ${checkResult.reason} detectado no input.`);
       return {
-        reply: 'Não posso processar esta solicitação pois ela contém dados pessoais sensíveis protegidos pela LGPD. Por favor, descreva a situação de forma anônima, usando apenas o cargo ou função do colaborador (ex: "desenvolvedor do time", "analista de marketing").',
+        reply: LGPD_REFUSAL_MESSAGE,
         blocked: true,
       };
     }
@@ -237,26 +186,41 @@ async function generateSBIFeedback(userMessage, profileTone) {
     };
   }
 
-  // 3. Chamada ao Gemini
+  // 3. Chamada à API
   try {
-    const response = await getGenAI().models.generateContent({
-      model: MODEL_SBI,
-      contents: userMessage,
-      config: {
-        systemInstruction: getSbiSystemPrompt(profileTone),
-        temperature: 0.7,      // Criativo mas consistente
-        topP: 0.9,
-        maxOutputTokens: 1024, // Roteiros são concisos
-      },
-    });
+    const aiService = getAIClient();
+    let reply = '';
 
-    const reply = response.text;
-
-    console.log(`[Gemini] Resposta gerada com sucesso. Tokens usados: ~${Math.ceil(reply.length / 4)}`);
+    if (aiService.type === 'groq') {
+      const response = await aiService.client.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: getSbiSystemPrompt(profileTone) },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
+      });
+      reply = response.choices[0].message.content;
+      console.log(`[Groq] Resposta gerada com sucesso via Llama 3.`);
+    } else {
+      const response = await aiService.client.models.generateContent({
+        model: MODEL_SBI,
+        contents: userMessage,
+        config: {
+          systemInstruction: getSbiSystemPrompt(profileTone),
+          temperature: 0.7,
+          topP: 0.9,
+          maxOutputTokens: 1024,
+        },
+      });
+      reply = response.text;
+      console.log(`[Gemini] Resposta gerada com sucesso. Tokens usados: ~${Math.ceil(reply.length / 4)}`);
+    }
 
     return { reply, blocked: false };
   } catch (error) {
-    console.error('[Gemini] Erro ao chamar a API (Fallback ativado):', error.message);
+    console.error('[AI Service] Erro ao chamar a API (Fallback ativado):', error.message);
     
     // MOCK RESPONSE PARA O MVP (Modo Custo Zero)
     const mockReply = `## 🧊 Check-in
@@ -289,33 +253,109 @@ async function generateProfileDiscovery(userMessage, history = []) {
       return { reply: 'Por favor, envie uma mensagem válida.', blocked: false };
     }
 
-    const localCheck = checkLGPD(userMessage);
+    let finalUserMessage = userMessage;
+
+    const localCheck = await checkLGPD(userMessage);
     if (localCheck.blocked) {
-      return { reply: LGPD_REFUSAL_MESSAGE, blocked: true };
+      if (localCheck.type === 'TOXIC') {
+        const aiService = getAIClient();
+        
+        const lastModelMessage = history.slice().reverse().find(msg => msg.role === 'model');
+        const lastQuestion = lastModelMessage && lastModelMessage.parts && lastModelMessage.parts.length > 0 
+          ? lastModelMessage.parts[0].text 
+          : "Nenhuma pergunta anterior identificada no histórico.";
+
+        const dynamicRepromptSystem = `Você é o agente da ClearIT conduzindo a Descoberta de Perfil.
+O usuário acabou de tentar enviar uma resposta contendo Linguagem tóxica / Discurso de Ódio.
+Sua missão agora é:
+1. Atuar como moderador: Recusar cordialmente o envio desses dados, dando um breve alerta educado e profissional. Use formatação Markdown (ex: emojis de alerta ⚠️, negritos).
+2. Repetir de forma amigável a última pergunta que você fez, pedindo para o usuário responder focando apenas em comportamentos profissionais.
+
+Última pergunta que você fez e que precisa ser respondida: "${lastQuestion}"`;
+
+        let refusalText = '';
+        try {
+          if (aiService.type === 'groq') {
+            const response = await aiService.client.chat.completions.create({
+              model: 'llama-3.3-70b-versatile',
+              messages: [
+                { role: 'system', content: dynamicRepromptSystem },
+                { role: 'user', content: `A resposta bloqueada do usuário foi: "${userMessage}"` }
+              ],
+              temperature: 0.5,
+              max_tokens: 300,
+            });
+            refusalText = response.choices[0].message.content || '';
+          } else {
+            const response = await aiService.client.models.generateContent({
+              model: MODEL_SBI,
+              contents: `A resposta bloqueada do usuário foi: "${userMessage}"`,
+              config: {
+                systemInstruction: dynamicRepromptSystem,
+                temperature: 0.5,
+                maxOutputTokens: 300,
+              },
+            });
+            refusalText = response.text || '';
+          }
+        } catch (e) {
+          console.error('[AI Profile] Erro ao gerar recusa dinâmica:', e.message);
+          refusalText = `⚠️ **ALERTA DE CONDUTA:** Por favor, mantenha um tom profissional. Xingamentos não são tolerados.\n\nVamos tentar de novo? Relembrando:\n*"${lastQuestion}"*`;
+        }
+
+        return { reply: refusalText, blocked: true };
+      } else if (localCheck.type === 'LGPD') {
+        // Correção Graciosa (Graceful Correction):
+        // Em vez de bloquear, injetamos uma instrução secreta no final da mensagem do usuário para que o LLM 
+        // absorva a parte útil, dê um leve alerta, e siga em frente com a próxima pergunta.
+        finalUserMessage = `${userMessage}\n\n[INSTRUÇÃO DE SISTEMA OCULTA: O usuário respondeu à sua pergunta, mas acabou incluindo dados pessoais sensíveis (como CPF, laudos ou documentos). Aja como moderador: absorva a parte útil da resposta dele para continuar a avaliação, dê um breve e amigável alerta de privacidade no início da sua resposta pedindo para ele não enviar esses dados novamente no futuro, e então SIGA EM FRENTE fazendo a PRÓXIMA pergunta do roteiro de perfil. Não trave o teste e não repita a pergunta anterior se ele já respondeu o que importava.]`;
+      }
     }
 
     if (history.length > 0 && history[0].role === 'model') {
       history.unshift({ role: 'user', parts: [{ text: 'Olá, vamos iniciar o teste de perfil.' }] });
     }
 
-    const contents = [...history, { role: 'user', parts: [{ text: userMessage }] }];
+    let reply = '';
+    const aiService = getAIClient();
 
-    const response = await getGenAI().models.generateContent({
-      model: MODEL_SBI, // Usamos o mesmo modelo base
-      contents,
-      config: {
-        systemInstruction: PROFILE_DISCOVERY_PROMPT,
+    if (aiService.type === 'groq') {
+      // Converte o histórico (formato Gemini) para o formato OpenAI/Groq
+      const messages = [
+        { role: 'system', content: PROFILE_DISCOVERY_PROMPT }
+      ];
+      for (const msg of history) {
+        messages.push({ role: msg.role === 'model' ? 'assistant' : 'user', content: msg.parts[0].text });
+      }
+      messages.push({ role: 'user', content: finalUserMessage });
+
+      const response = await aiService.client.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages,
         temperature: 0.5,
-        maxOutputTokens: 500,
-      },
-    });
+        max_tokens: 500,
+      });
+      reply = response.choices[0].message.content || '';
+    } else {
+      const contents = [...history, { role: 'user', parts: [{ text: finalUserMessage }] }];
+      const response = await aiService.client.models.generateContent({
+        model: MODEL_SBI,
+        contents,
+        config: {
+          systemInstruction: PROFILE_DISCOVERY_PROMPT,
+          temperature: 0.5,
+          maxOutputTokens: 500,
+        },
+      });
+      reply = response.text || '';
+    }
 
     return {
-      reply: response.text || '',
+      reply,
       blocked: false,
     };
   } catch (error) {
-    console.error('[Gemini Profile] Erro ao processar (Fallback ativado):', error.message);
+    console.error('[AI Profile] Erro ao processar (Fallback ativado):', error.message);
     
     // MOCK RESPONSE PARA O MVP (Modo Custo Zero)
     // Se for o início do chat, faz mais uma pergunta. Se já houver histórico, dá o resultado final.
@@ -331,4 +371,114 @@ async function generateProfileDiscovery(userMessage, history = []) {
   }
 }
 
-module.exports = { generateSBIFeedback, generateProfileDiscovery, checkLGPD, redactLGPD };
+/**
+ * Gera um Plano de Desenvolvimento Individual (PDI)
+ * @param {string} userMessage - Contexto e desafios do liderado
+ * @param {string} profileTone - Tom do perfil do líder
+ * @returns {Promise<{ reply: string, blocked: boolean }>}
+ */
+async function generatePDI(userMessage, profileTone) {
+  const checkResult = await checkLGPD(userMessage);
+  if (checkResult.blocked) {
+    if (checkResult.type === 'TOXIC') {
+      return { reply: TOXIC_REFUSAL_MESSAGE, blocked: true };
+    }
+    if (process.env.LGPD_REDACT === 'true') {
+      const redacted = redactLGPD(userMessage);
+      userMessage = `${redacted}\n\n(Nota: algumas informações sensíveis foram removidas por conformidade com a LGPD.)`;
+    } else {
+      return { reply: LGPD_REFUSAL_MESSAGE, blocked: true };
+    }
+  }
+
+  try {
+    const aiService = getAIClient();
+    let reply = '';
+
+    if (aiService.type === 'groq') {
+      const response = await aiService.client.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: getPdiSystemPrompt(profileTone) },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
+      });
+      reply = response.choices[0].message.content || '';
+    } else {
+      const response = await aiService.client.models.generateContent({
+        model: MODEL_SBI,
+        contents: userMessage,
+        config: {
+          systemInstruction: getPdiSystemPrompt(profileTone),
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        },
+      });
+      reply = response.text || '';
+    }
+
+    return { reply, blocked: false };
+  } catch (error) {
+    console.error('[AI PDI] Erro:', error.message);
+    return { reply: "Desculpe, ocorreu um erro ao gerar o PDI. Tente novamente mais tarde.", blocked: false };
+  }
+}
+
+/**
+ * Gera uma Pauta de Reunião de 1:1
+ * @param {string} userMessage - Contexto da reunião
+ * @param {string} profileTone - Tom do perfil do líder
+ * @returns {Promise<{ reply: string, blocked: boolean }>}
+ */
+async function generateOneOnOne(userMessage, profileTone) {
+  const checkResult = await checkLGPD(userMessage);
+  if (checkResult.blocked) {
+    if (checkResult.type === 'TOXIC') {
+      return { reply: TOXIC_REFUSAL_MESSAGE, blocked: true };
+    }
+    if (process.env.LGPD_REDACT === 'true') {
+      const redacted = redactLGPD(userMessage);
+      userMessage = `${redacted}\n\n(Nota: algumas informações sensíveis foram removidas por conformidade com a LGPD.)`;
+    } else {
+      return { reply: LGPD_REFUSAL_MESSAGE, blocked: true };
+    }
+  }
+
+  try {
+    const aiService = getAIClient();
+    let reply = '';
+
+    if (aiService.type === 'groq') {
+      const response = await aiService.client.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: getOneOnOneSystemPrompt(profileTone) },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
+      });
+      reply = response.choices[0].message.content || '';
+    } else {
+      const response = await aiService.client.models.generateContent({
+        model: MODEL_SBI,
+        contents: userMessage,
+        config: {
+          systemInstruction: getOneOnOneSystemPrompt(profileTone),
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        },
+      });
+      reply = response.text || '';
+    }
+
+    return { reply, blocked: false };
+  } catch (error) {
+    console.error('[AI 1:1] Erro:', error.message);
+    return { reply: "Desculpe, ocorreu um erro ao gerar a pauta de 1:1. Tente novamente mais tarde.", blocked: false };
+  }
+}
+
+module.exports = { generateSBIFeedback, generateProfileDiscovery, generatePDI, generateOneOnOne, checkLGPD, redactLGPD };

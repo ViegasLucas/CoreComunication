@@ -1,4 +1,4 @@
-const { generateSBIFeedback, generateProfileDiscovery } = require('../services/geminiService');
+const { generateSBIFeedback, generateProfileDiscovery, generatePDI, generateOneOnOne } = require('../services/geminiService');
 const { db } = require('../config/firebase');
 const fs = require('fs');
 const path = require('path');
@@ -37,6 +37,14 @@ const handleChat = async (req, res) => {
 
     if (type === 'profile_discovery') {
       const result = await generateProfileDiscovery(message, history);
+      reply = result.reply;
+      blocked = result.blocked;
+    } else if (type === 'pdi') {
+      const result = await generatePDI(message, profileTone);
+      reply = result.reply;
+      blocked = result.blocked;
+    } else if (type === 'one_on_one') {
+      const result = await generateOneOnOne(message, profileTone);
       reply = result.reply;
       blocked = result.blocked;
     } else {
