@@ -102,5 +102,28 @@
       "reply": "## 🧊 Check-in\n\"Olá! Como estão as coisas por aí nesta semana? Queria aproveitar nosso papo de hoje para conversar sobre a nossa última entrega.\"\n\n## 🎯 O Feedback (SBI)\n**Situação:** Durante a entrega final da sprint passada, na última sexta-feira.\n**Comportamento:** Observei que os relatórios foram enviados após o horário combinado, e faltaram algumas métricas que haviam sido solicitadas pela diretoria.\n**Impacto:** Como consequência, não tivemos tempo hábil para revisar os dados juntos, o que gerou insegurança na apresentação para o cliente na segunda-feira de manhã.\n\n## 🤝 Próximos Passos (Plano de Ação)\n- Como você avalia a organização do tempo durante essa sprint?\n- Quais ajustes podemos fazer para garantir que o envio aconteça com margem de revisão da próxima vez?\n- Existe algum bloqueio ou dificuldade técnica em que eu possa te apoiar?\n\n*(Nota: Esta é uma resposta mock gerada localmente pelo Modo Custo Zero. Quando a API estiver ativa, ela será gerada dinamicamente baseada no seu relato.)*",
       "date": "2026-07-11T02:52:51.271Z"
     }
+  ],
+  "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1": [
+    {
+      "id": "1783747018757",
+      "type": "sbi",
+      "message": "kjbwsdixsiuvwqbdiub",
+      "reply": "## 🧊 Check-in\n\"Olá! Como estão as coisas por aí nesta semana? Queria aproveitar nosso papo de hoje para conversar sobre a nossa última entrega.\"\n\n## 🎯 O Feedback (SBI)\n**Situação:** Durante a entrega final da sprint passada, na última sexta-feira.\n**Comportamento:** Observei que os relatórios foram enviados após o horário combinado, e faltaram algumas métricas que haviam sido solicitadas pela diretoria.\n**Impacto:** Como consequência, não tivemos tempo hábil para revisar os dados juntos, o que gerou insegurança na apresentação para o cliente na segunda-feira de manhã.\n\n## 🤝 Próximos Passos (Plano de Ação)\n- Como você avalia a organização do tempo durante essa sprint?\n- Quais ajustes podemos fazer para garantir que o envio aconteça com margem de revisão da próxima vez?\n- Existe algum bloqueio ou dificuldade técnica em que eu possa te apoiar?\n\n*(Nota: Esta é uma resposta mock gerada localmente pelo Modo Custo Zero. Quando a API estiver ativa, ela será gerada dinamicamente baseada no seu relato.)*",
+      "date": "2026-07-11T05:16:58.757Z"
+    },
+    {
+      "id": "1783746990520",
+      "type": "profile_discovery",
+      "message": "bem legal",
+      "reply": "[RESULTADO_PERFIL: ENGAJADO] Pelo seu histórico, noto que você tem um perfil muito voltado para desenvolver a equipe e manter todos motivados, mesmo em momentos de conflito. Este é o perfil 'Engajado'.",
+      "date": "2026-07-11T05:16:30.520Z"
+    },
+    {
+      "id": "1783746984861",
+      "type": "profile_discovery",
+      "message": "90",
+      "reply": "Entendo. E como você costuma lidar com feedbacks difíceis na sua equipe?",
+      "date": "2026-07-11T05:16:24.861Z"
+    }
   ]
 }

@@ -61,5 +61,17 @@
   },
   "Lrb9hJXLCTMxlpj13P40mw88NEN2": {
     "pdi": 90
+  },
+  "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1": {
+    "role": "leader",
+    "assignedEmployees": [
+      "I73z3AndKzU6p3dB4GB0viHTmZx2",
+      "Z1rOMamWlqf1gi1xFFmHjiRv3DJ2",
+      "gFy7aqD7ARbhHFhkWWBuhhtmWAI3"
+    ],
+    "profile": "engajado"
+  },
+  "Z1rOMamWlqf1gi1xFFmHjiRv3DJ2": {
+    "pdi": 86
   }
 }
