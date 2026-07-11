@@ -165,6 +165,9 @@ exports.requestPasswordReset = async (req, res) => {
       if (err.code === 'auth/user-not-found') {
         return res.status(404).json({ error: 'E-mail inexistente. Verifique o endereço digitado.' });
       }
+      if (err.code === 'auth/invalid-email') {
+        return res.status(400).json({ error: 'O formato do e-mail é inválido.' });
+      }
       throw err;
     }
 
@@ -212,6 +215,6 @@ exports.requestPasswordReset = async (req, res) => {
 
   } catch (error) {
     console.error('[Auth] Erro ao processar reset:', error);
-    return res.status(500).json({ error: 'Erro ao enviar e-mail. Tente novamente.' });
+    return res.status(500).json({ error: `Erro interno: ${error.message}` });
   }
 };

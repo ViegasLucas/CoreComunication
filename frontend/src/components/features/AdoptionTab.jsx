@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
   const [leaders, setLeaders] = useState([]);
@@ -332,7 +333,7 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
                       variant="ghost"
                       className="hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                       onClick={() => {
-                        alert(`Lembrete enviado para ${leader.name}!`);
+                        toast.success(`Lembrete enviado para ${leader.name}!`);
                       }}
                     >
                       <Bell className="h-4 w-4 mr-1" />

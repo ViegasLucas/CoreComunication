@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
+import { toast } from "sonner";
 
 // --- MOCK DATA ---
 const upcomingMeetings = [
@@ -207,7 +208,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
             </div>
             <Button 
               variant="outline" 
-              onClick={() => alert("O ciclo formal de feedbacks será aberto na próxima semana!")}
+              onClick={() => toast.info("O ciclo formal de feedbacks será aberto na próxima semana!")}
               className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-[#00e676]/40 dark:bg-[#00e676]/10 dark:text-[#00e676] dark:hover:bg-[#00e676]/20"
             >
               Solicitar Feedback
@@ -338,7 +339,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                         </div>
                       ))}
                       <button 
-                        onClick={() => alert("A gestão de pautas de 1:1 estará disponível em breve.")}
+                        onClick={() => toast.info("A gestão de pautas de 1:1 estará disponível em breve.")}
                         className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-[#00e676] hover:text-emerald-700 dark:hover:text-white transition-colors"
                       >
                         <Plus className="w-4 h-4" /> Adicionar pauta
@@ -353,7 +354,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                         placeholder="Anote aqui os pontos que deseja discutir na próxima reunião..."
                       ></textarea>
                       <button 
-                        onClick={() => alert("Funcionalidade de conversão inteligente com IA em desenvolvimento!")}
+                        onClick={() => toast.info("Funcionalidade de conversão inteligente com IA em desenvolvimento!")}
                         className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 self-end transition-colors"
                       >
                         Converter notas privadas em pauta
@@ -399,7 +400,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                   
                   {activeTab === 'kudos' && (
                     <button 
-                      onClick={() => alert("A lojinha de Kudos e envios entre pares abrirá em breve!")}
+                      onClick={() => toast.info("A lojinha de Kudos e envios entre pares abrirá em breve!")}
                       className="mt-4 w-full py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-sm font-medium rounded-lg text-foreground dark:text-slate-200 flex items-center justify-center gap-2 transition-colors"
                     >
                       <Send className="w-4 h-4" /> Enviar Kudos para Colega

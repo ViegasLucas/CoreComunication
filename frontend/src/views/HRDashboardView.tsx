@@ -26,6 +26,7 @@ import { useEffect } from "react";
 import EngagementTab from "@/components/features/EngagementTab";
 import AdoptionTab from "@/components/features/AdoptionTab";
 import TeamsTab from "@/components/features/TeamsTab";
+import { toast } from "sonner";
 
 // --- MOCK DATA PARA OUTROS COMPONENTES SE NECESSÁRIO ---
 
@@ -203,7 +204,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
             </div>
             <Button 
               variant="outline" 
-              onClick={() => alert("Funcionalidade de geração de relatório em desenvolvimento!")}
+              onClick={() => toast.info("Funcionalidade de geração de relatório em desenvolvimento!")}
               className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
             >
               Gerar Relatório Escrito
@@ -307,7 +308,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   </ul>
                   <Button 
                     variant="outline" 
-                    onClick={() => alert("A IA de análise preditiva de retenção estará disponível em breve.")}
+                    onClick={() => toast.info("A IA de análise preditiva de retenção estará disponível em breve.")}
                     className="mt-4 w-full border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/5 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
                   >
                     Analisar Causa Raiz com IA
@@ -379,12 +380,12 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                         throw new Error(err.error || 'Erro ao cadastrar');
                       }
                       
-                      alert('Usuário cadastrado com sucesso!');
+                      toast.success('Usuário cadastrado com sucesso!');
                       e.currentTarget.reset();
                       setAssignedEmployees([]);
                       fetchUsers();
                     } catch (error: any) {
-                      alert(error.message);
+                      toast.error(error.message);
                     }
                   }}
                   className="space-y-4"
@@ -511,11 +512,11 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       
                       if (!response.ok) throw new Error('Erro ao salvar edição');
                       
-                      alert('Usuário atualizado!');
+                      toast.success('Usuário atualizado!');
                       setEditModalOpen(false);
                       fetchUsers();
                     } catch (error: any) {
-                      alert(error.message);
+                      toast.error(error.message);
                     }
                   }}
                   className="space-y-4 mt-4"

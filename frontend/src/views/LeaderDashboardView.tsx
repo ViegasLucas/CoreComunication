@@ -36,6 +36,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type ProfileKey = "tecnico" | "engajado" | "transicao";
 type ChatMsg = { from: "bot" | "user"; text: string };
@@ -312,7 +313,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
   const handleScheduleMeeting = () => {
     if (!selectedMember) {
-      alert("Por favor, selecione um liderado para agendar.");
+      toast.warning("Por favor, selecione um liderado para agendar.");
       return;
     }
     

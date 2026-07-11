@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, Eye, EyeOff, CheckCircle2, XCircle, ArrowLeft, ShieldCheck, Loader2 } from "lucide-react";
+import { Lock, Eye, EyeOff, CheckCircle2, XCircle, ArrowLeft, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
@@ -264,8 +264,9 @@ export default function ResetPasswordView({ oobCode, onBackToLogin }) {
             </div>
 
             {error && (
-              <div className="rounded-xl bg-destructive/15 p-3 text-sm text-destructive border border-destructive/30">
-                {error}
+              <div className="flex items-center gap-3 rounded-xl bg-destructive/10 p-4 border border-destructive/20 text-sm text-destructive animate-in slide-in-from-top-2 fade-in duration-300">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                <p>{error}</p>
               </div>
             )}
 
