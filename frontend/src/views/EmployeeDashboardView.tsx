@@ -47,7 +47,37 @@ const wellbeingDataMock = [
 
 export default function EmployeeDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [active, setActive] = useState("home");
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace(/^#/, '');
+    const validTabs = ["home", "pdi", "meetings", "feedbacks"];
+    if (validTabs.includes(hash)) return hash;
+    return localStorage.getItem("employeeDashboardActiveTab") || "home";
+  };
+
+  const [active, setActive] = useState(getInitialTab);
+
+  useEffect(() => {
+    localStorage.setItem("employeeDashboardActiveTab", active);
+    const currentHash = window.location.hash.replace(/^#/, '');
+    if (currentHash !== active) {
+      window.history.pushState(null, '', `#${active}`);
+    }
+  }, [active]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const hash = window.location.hash.replace(/^#/, '');
+      const validTabs = ["home", "pdi", "meetings", "feedbacks"];
+      if (validTabs.includes(hash) && hash !== active) {
+        setActive(hash);
+      } else if (!hash) {
+        setActive("home");
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [active]);
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('feedbacks'); // 'feedbacks' | 'kudos'
   
@@ -106,7 +136,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
+    <div className="flex min-h-screen w-full bg-background text-foreground">
       {/* OVERLAY MOBILE */}
       {isSidebarOpen && (
         <div 
@@ -117,7 +147,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border dark:border-slate-800 bg-card/95 sm:bg-card dark:bg-[#0f172a]/95 sm:dark:bg-[#0f172a] backdrop-blur-xl transition-all duration-300 flex",
+          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 sm:bg-card backdrop-blur-xl transition-all duration-300 flex",
           isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
         )}
       >
@@ -148,7 +178,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
           )}
         </div>
 
-        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto">
+        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto custom-scrollbar">
           {[
             { id: "home", label: "Home", icon: Home },
             { id: "pdi", label: "Meu PDI", icon: Target },
@@ -401,7 +431,7 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
                     {activeTab === 'feedbacks' ? (
                       <>
                         {recentFeedbacks.map((f, i) => (

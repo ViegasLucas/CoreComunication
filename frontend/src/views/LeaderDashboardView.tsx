@@ -30,6 +30,9 @@ import {
   XCircle,
   HeartPulse,
   Copy,
+  Smile,
+  Meh,
+  Frown,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -44,6 +47,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -85,7 +92,37 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   // Só abre o onboarding automaticamente se NÃO tiver perfil
   const [isChatOpen, setIsChatOpen] = useState(initialProfile === null);
   const [chatIntent, setChatIntent] = useState<"profile_discovery" | "sbi" | "one_on_one" | "pdi">("profile_discovery");
-  const [active, setActive] = useState("home");
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace(/^#/, '');
+    const validTabs = ["home", "team", "meetings", "pdi", "my-performance"];
+    if (validTabs.includes(hash)) return hash;
+    return localStorage.getItem("leaderDashboardActiveTab") || "home";
+  };
+
+  const [active, setActive] = useState(getInitialTab);
+
+  useEffect(() => {
+    localStorage.setItem("leaderDashboardActiveTab", active);
+    const currentHash = window.location.hash.replace(/^#/, '');
+    if (currentHash !== active) {
+      window.history.pushState(null, '', `#${active}`);
+    }
+  }, [active]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const hash = window.location.hash.replace(/^#/, '');
+      const validTabs = ["home", "team", "meetings", "pdi", "my-performance"];
+      if (validTabs.includes(hash) && hash !== active) {
+        setActive(hash);
+      } else if (!hash) {
+        setActive("home");
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [active]);
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
   const [docEmployeeId, setDocEmployeeId] = useState("");
 
@@ -567,7 +604,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           )}
         </div>
 
-        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto">
+        <nav className="flex-1 space-y-2 px-3 py-2 overflow-y-auto custom-scrollbar">
           {[
             { id: "home", label: "Home", icon: Home },
             { id: "team", label: "Equipe", icon: Users },
@@ -1205,27 +1242,53 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   <div className="relative z-10">
                     <div className="text-sm text-muted-foreground mb-4">Check-in Diário</div>
                     <p className="text-sm text-foreground mb-4">Como você classificaria sua energia hoje?</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <button
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button 
+                        className={cn(
+                          "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                          metrics?.currentSentiment === 'good' 
+                            ? 'border-emerald-500 bg-emerald-50/50 dark:border-[#00e676] dark:bg-emerald-900/20 shadow-md ring-4 ring-emerald-500/10' 
+                            : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
+                          metrics?.currentSentiment && metrics?.currentSentiment !== 'good' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                        )}
                         onClick={() => handleSentiment('good')}
-                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all duration-300 ${metrics?.currentSentiment === 'good' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-secondary/30 border-border/50 hover:bg-secondary/60 text-muted-foreground'}`}
                       >
-                        <span className="text-xl">😊</span>
-                        <span className="text-xs font-medium">Bem</span>
+                        <div className={cn("p-3 rounded-full transition-all duration-300", metrics?.currentSentiment === 'good' ? "bg-emerald-100 dark:bg-emerald-800/40 scale-110" : "bg-emerald-100/50 dark:bg-emerald-900/20 group-hover:scale-110")}>
+                          <Smile className={cn("w-8 h-8 transition-colors", metrics?.currentSentiment === 'good' ? "text-emerald-600 dark:text-[#00e676]" : "text-emerald-500/70 dark:text-[#00e676]/70")} />
+                        </div>
+                        <span className={cn("text-sm font-semibold transition-colors", metrics?.currentSentiment === 'good' ? "text-emerald-700 dark:text-[#00e676]" : "text-muted-foreground dark:text-slate-400")}>Muito bem!</span>
                       </button>
-                      <button
+                      
+                      <button 
+                        className={cn(
+                          "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                          metrics?.currentSentiment === 'neutral' 
+                            ? 'border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20 shadow-md ring-4 ring-blue-500/10' 
+                            : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
+                          metrics?.currentSentiment && metrics?.currentSentiment !== 'neutral' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                        )}
                         onClick={() => handleSentiment('neutral')}
-                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all duration-300 ${metrics?.currentSentiment === 'neutral' ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-secondary/30 border-border/50 hover:bg-secondary/60 text-muted-foreground'}`}
                       >
-                        <span className="text-xl">😐</span>
-                        <span className="text-xs font-medium">Neutro</span>
+                        <div className={cn("p-3 rounded-full transition-all duration-300", metrics?.currentSentiment === 'neutral' ? "bg-blue-100 dark:bg-blue-800/40 scale-110" : "bg-blue-100/50 dark:bg-blue-900/20 group-hover:scale-110")}>
+                          <Meh className={cn("w-8 h-8 transition-colors", metrics?.currentSentiment === 'neutral' ? "text-blue-600 dark:text-blue-400" : "text-blue-500/70 dark:text-blue-400/70")} />
+                        </div>
+                        <span className={cn("text-sm font-semibold transition-colors", metrics?.currentSentiment === 'neutral' ? "text-blue-700 dark:text-blue-400" : "text-muted-foreground dark:text-slate-400")}>Normal</span>
                       </button>
-                      <button
+                      
+                      <button 
+                        className={cn(
+                          "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                          metrics?.currentSentiment === 'bad' 
+                            ? 'border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-900/20 shadow-md ring-4 ring-red-500/10' 
+                            : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
+                          metrics?.currentSentiment && metrics?.currentSentiment !== 'bad' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                        )}
                         onClick={() => handleSentiment('bad')}
-                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all duration-300 ${metrics?.currentSentiment === 'bad' ? 'bg-rose-500/10 border-rose-500/50 text-rose-500' : 'bg-secondary/30 border-border/50 hover:bg-secondary/60 text-muted-foreground'}`}
                       >
-                        <span className="text-xl">😔</span>
-                        <span className="text-xs font-medium">Difícil</span>
+                        <div className={cn("p-3 rounded-full transition-all duration-300", metrics?.currentSentiment === 'bad' ? "bg-red-100 dark:bg-red-800/40 scale-110" : "bg-red-100/50 dark:bg-red-900/20 group-hover:scale-110")}>
+                          <Frown className={cn("w-8 h-8 transition-colors", metrics?.currentSentiment === 'bad' ? "text-red-600 dark:text-red-500" : "text-red-500/70 dark:text-red-500/70")} />
+                        </div>
+                        <span className={cn("text-sm font-semibold transition-colors", metrics?.currentSentiment === 'bad' ? "text-red-700 dark:text-red-500" : "text-muted-foreground dark:text-slate-400")}>Estressado</span>
                       </button>
                     </div>
                   </div>
@@ -1237,6 +1300,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       </span>
                     </div>
                   )}
+                  <div className="mt-6 flex justify-end relative z-10">
+                    <button className="flex items-center gap-2 text-xs font-medium text-muted-foreground dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00e676] transition-colors">
+                      <TrendingUp className="w-4 h-4" />
+                      Histórico de Bem-Estar (Sentiment Trend)
+                    </button>
+                  </div>
                 </GlassCard>
               </div>
 
@@ -1318,7 +1387,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
           <div className={cn("grid h-[85vh] max-h-[800px] min-h-[500px] gap-0", chatIntent === "profile_discovery" ? "md:grid-cols-2" : "md:grid-cols-1")}>
             {/* Left: quick profile */}
             {chatIntent === "profile_discovery" && (
-              <div className="flex h-full min-h-0 flex-col overflow-y-auto border-b border-border p-10 md:border-b-0 md:border-r">
+              <div className="flex h-full min-h-0 flex-col overflow-y-auto custom-scrollbar border-b border-border p-10 md:border-b-0 md:border-r">
                 <DialogHeader className="space-y-3 text-left">
                   <DialogTitle className="text-3xl">
                   {chatIntent === "profile_discovery" ? "Conheça os Perfis de Liderança" : "Assistente ClearIT"}
@@ -1382,7 +1451,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
               <div
                 ref={chatContainerRef}
-                className="mt-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-border bg-secondary/40 p-5 min-h-0"
+                className="mt-4 flex-1 space-y-4 overflow-y-auto custom-scrollbar rounded-xl border border-border bg-secondary/40 p-5 min-h-0"
               >
                 {chat.map((m, i) => (
                   <div
@@ -1520,16 +1589,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Data</Label>
-                <Input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} className="border-border bg-secondary/60" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Hora</Label>
-                <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} className="border-border bg-secondary/60" />
-              </div>
-            </div>
+            <DateTimePickerCombo date={meetingDate} setDate={setMeetingDate} time={meetingTime} setTime={setMeetingTime} />
 
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Pauta (Assunto Principal)</Label>
@@ -1822,3 +1882,101 @@ function MeetingRow({
   );
 }
 
+function DateTimePickerCombo({ 
+  date, setDate, 
+  time, setTime 
+}: { 
+  date: string, setDate: (v: string) => void,
+  time: string, setTime: (v: string) => void 
+}) {
+  const [dateStr, setDateStr] = useState(date ? format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy') : "");
+  
+  useEffect(() => {
+    if (date) setDateStr(format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy'));
+    else setDateStr("");
+  }, [date]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/[^\d]/g, '');
+    if (val.length > 2) val = val.substring(0, 2) + '/' + val.substring(2);
+    if (val.length > 5) val = val.substring(0, 5) + '/' + val.substring(5, 9);
+    setDateStr(val);
+    
+    if (val.length === 10) {
+      const [d, m, y] = val.split('/');
+      const parsed = new Date(`${y}-${m}-${d}T12:00:00`);
+      if (!isNaN(parsed.getTime())) {
+        setDate(`${y}-${m}-${d}`);
+      }
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">Data</Label>
+        <div className="relative flex items-center">
+          <Input 
+            placeholder="DD/MM/AAAA" 
+            value={dateStr} 
+            onChange={handleDateChange} 
+            maxLength={10}
+            className="border-border bg-secondary/60 pr-10 text-sm"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 text-muted-foreground hover:bg-transparent h-9 w-9">
+                <Calendar className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 border-border bg-popover" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={date ? new Date(date + 'T12:00:00') : undefined}
+                onSelect={(d) => {
+                  setDate(d ? format(d, "yyyy-MM-dd") : "");
+                }}
+                initialFocus
+                locale={ptBR}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">Hora</Label>
+        <div className="relative flex items-center">
+          <Input
+            placeholder="00:00"
+            value={time}
+            onChange={(e) => {
+              let val = e.target.value.replace(/[^\d]/g, '');
+              if (val.length > 2) val = val.substring(0, 2) + ':' + val.substring(2, 4);
+              setTime(val);
+            }}
+            maxLength={5}
+            className="border-border bg-secondary/60 pr-10 text-sm"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 text-muted-foreground hover:bg-transparent h-9 w-9">
+                <Clock className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-32 p-0 border-border bg-popover max-h-56 overflow-y-auto custom-scrollbar" align="end">
+              <div className="flex flex-col">
+                {Array.from({ length: 24 }).flatMap((_, i) => {
+                  const h = String(i).padStart(2, "0");
+                  return [
+                    <Button key={`${h}:00`} variant="ghost" className="justify-start font-normal rounded-none h-9 text-sm" onClick={() => setTime(`${h}:00`)}>{h}:00</Button>,
+                    <Button key={`${h}:30`} variant="ghost" className="justify-start font-normal rounded-none h-9 text-sm" onClick={() => setTime(`${h}:30`)}>{h}:30</Button>
+                  ];
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+    </div>
+  );
+}

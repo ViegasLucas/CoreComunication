@@ -29,6 +29,19 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ error: 'Todos os campos (email, password, name, role) são obrigatórios.' });
     }
 
+    // Verificar duplicação de e-mail e nome
+    const listUsersResult = await auth.listUsers(1000);
+    const emailExists = listUsersResult.users.some(u => u.email === email);
+    const nameExists = listUsersResult.users.some(u => u.displayName && u.displayName.toLowerCase() === name.toLowerCase());
+
+    if (emailExists && nameExists) {
+      return res.status(409).json({ error: 'O e-mail e o nome de usuário informados já estão cadastrados, tente outros dados.' });
+    } else if (emailExists) {
+      return res.status(409).json({ error: 'O e-mail informado já está cadastrado, tente outro email.' });
+    } else if (nameExists) {
+      return res.status(409).json({ error: 'O nome de usuário informado já está em uso, tente outro nome de usuário.' });
+    }
+
     // Criar o usuário no Firebase Auth (Auth service)
     const userRecord = await auth.createUser({
       email,
@@ -54,7 +67,11 @@ exports.createUser = async (req, res) => {
     }
     saveMemory();
 
-    await db.collection('users').doc(userRecord.uid).set(userDoc);
+    try {
+      await db.collection('users').doc(userRecord.uid).set(userDoc);
+    } catch (e) {
+      console.warn('[Users] Ignorando erro do Firestore no Modo Custo Zero:', e.message);
+    }
 
     console.log(`[Users] ✅ Usuário criado: ${email} (${userRecord.uid}) como ${role}`);
 
@@ -79,10 +96,10 @@ exports.getMe = async (req, res) => {
       docSnap = await userDocRef.get();
     } catch (e) {
       console.warn('[Users] Ignorando erro do Firestore no Modo Custo Zero:', e.message);
-      
+
       // Fallback in-memory
       const memUser = memoryUsers[uid] || {};
-      
+
       let finalRole = memUser.role;
       if (!finalRole) {
         if (req.user.email.toLowerCase().includes('rh')) finalRole = 'hr';
@@ -102,7 +119,7 @@ exports.getMe = async (req, res) => {
     if (!docSnap || !docSnap.exists) {
       // Fallback in-memory se não existir
       const memUser = memoryUsers[uid] || {};
-      
+
       let finalRole = memUser.role;
       if (!finalRole) {
         if (req.user.email.toLowerCase().includes('rh')) finalRole = 'hr';
@@ -163,7 +180,7 @@ exports.getAllUsers = async (req, res) => {
     const listUsersResult = await auth.listUsers(1000);
     const users = listUsersResult.users.map(u => {
       const mem = memoryUsers[u.uid] || {};
-      
+
       let finalRole = mem.role;
       if (!finalRole) {
         if (u.email && u.email.toLowerCase().includes('rh')) finalRole = 'hr';
@@ -221,13 +238,13 @@ exports.getMyTeam = async (req, res) => {
     const assignedIds = memUser.assignedEmployees || [];
 
     const listUsersResult = await auth.listUsers(1000);
-    
+
     const team = listUsersResult.users
       .filter(u => assignedIds.includes(u.uid))
       .map(u => {
         const mem = memoryUsers[u.uid] || {};
         const name = u.displayName || u.email.split('@')[0];
-        
+
         let initials = "UK";
         const nameParts = name.trim().split(' ');
         if (nameParts.length > 1) {
@@ -236,7 +253,7 @@ exports.getMyTeam = async (req, res) => {
           initials = nameParts[0].substring(0, 2).toUpperCase();
         }
 
-        const pdi = mem.pdi || Math.floor(Math.random() * (95 - 40 + 1) + 40); 
+        const pdi = mem.pdi || Math.floor(Math.random() * (95 - 40 + 1) + 40);
         if (!mem.pdi) {
           if (!memoryUsers[u.uid]) memoryUsers[u.uid] = {};
           memoryUsers[u.uid].pdi = pdi;
@@ -261,17 +278,17 @@ exports.getMyTeam = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { uid } = req.params;
-    
+
     // 1. Remover do Firebase Auth
     await auth.deleteUser(uid);
-    
+
     // 2. Remover do Firestore
     try {
       await db.collection('users').doc(uid).delete();
     } catch (e) {
       console.warn('[Users] Ignorando erro do Firestore ao deletar:', e.message);
     }
-    
+
     // 3. Remover do banco em memória
     if (memoryUsers[uid]) {
       delete memoryUsers[uid];

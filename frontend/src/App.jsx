@@ -19,9 +19,16 @@ import LeaderDashboardView from './views/LeaderDashboardView';
 import EmployeeDashboardView from './views/EmployeeDashboardView';
 import HRDashboardView from './views/HRDashboardView';
 import ResetPasswordView from './views/ResetPasswordView';
-
-
-import { dadosIniciaisEquipe } from "./dados";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './components/ui/alert-dialog';import { dadosIniciaisEquipe } from "./dados";
 
 export default function App() {
 
@@ -38,6 +45,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
   // Efeito para persistência de login no F5 (Firebase)
   useEffect(() => {
@@ -84,20 +92,19 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
-    if (window.confirm("Tem certeza que deseja sair do sistema?")) {
-      setIsLoggingOut(true);
-      await signOut(auth);
-      localStorage.removeItem('token');
-      localStorage.removeItem('email');
-      
-      // Delay simulando a mensagem de despedida (aumentado para a animação)
-      setTimeout(() => {
-        setIsLoggedIn(false);
-        setUserData(null);
-        setIsLoggingOut(false);
-      }, 4000);
-    }
+  const confirmLogout = async () => {
+    setShowLogoutAlert(false);
+    setIsLoggingOut(true);
+    await signOut(auth);
+    localStorage.removeItem('token');
+    localStorage.removeItem('email');
+    
+    // Delay simulando a mensagem de despedida (aumentado para a animação)
+    setTimeout(() => {
+      setIsLoggedIn(false);
+      setUserData(null);
+      setIsLoggingOut(false);
+    }, 4000);
   };
 
 
@@ -234,12 +241,33 @@ export default function App() {
   return (
     <>
       <button 
-        onClick={handleLogout}
+        onClick={() => setShowLogoutAlert(true)}
         className="absolute top-4 right-4 z-50 flex items-center gap-2 rounded-xl bg-red-500/10 text-red-500 px-4 py-2 text-sm font-semibold hover:bg-red-500 hover:text-white transition-all duration-200"
       >
         <LogOut className="w-4 h-4" />
         Sair
       </button>
+
+      <AlertDialog open={showLogoutAlert} onOpenChange={setShowLogoutAlert}>
+        <AlertDialogContent className="rounded-xl border-border bg-background text-foreground z-[10000]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-red-500" />
+              Sair do Sistema
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja sair do sistema? Você precisará fazer login novamente para acessar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout} className="bg-red-600 hover:bg-red-700 text-white">
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {renderDashboard()}
     </>
   );

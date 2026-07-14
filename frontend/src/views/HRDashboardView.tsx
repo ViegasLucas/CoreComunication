@@ -19,12 +19,31 @@ import {
   Trash2,
   Ban,
   CheckCircle2,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import EngagementTab from "@/components/features/EngagementTab";
@@ -36,13 +55,50 @@ import { toast } from "sonner";
 
 export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [active, setActive] = useState("home");
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace(/^#/, '');
+    const validTabs = ["home", "engagement", "meetings", "teams", "users"];
+    if (validTabs.includes(hash)) return hash;
+    return localStorage.getItem("hrDashboardActiveTab") || "home";
+  };
+
+  const [active, setActive] = useState(getInitialTab);
+  
   const [usersList, setUsersList] = useState<any[]>([]);
   const [selectedRole, setSelectedRole] = useState("leader");
   const [assignedEmployees, setAssignedEmployees] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
+  // Sync state -> URL and LocalStorage
+  useEffect(() => {
+    localStorage.setItem("hrDashboardActiveTab", active);
+    
+    const currentHash = window.location.hash.replace(/^#/, '');
+    if (currentHash !== active) {
+      window.history.pushState(null, '', `#${active}`);
+    }
+  }, [active]);
+
+  // Listen to browser Back/Forward (URL -> state)
+  useEffect(() => {
+    const handlePopState = () => {
+      const hash = window.location.hash.replace(/^#/, '');
+      const validTabs = ["home", "engagement", "meetings", "teams", "users"];
+      if (validTabs.includes(hash) && hash !== active) {
+        setActive(hash);
+      } else if (!hash) {
+        setActive("home");
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [active]);
   
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  
+  const [userToDelete, setUserToDelete] = useState<{uid: string, name: string} | null>(null);
   
   const [metrics, setMetrics] = useState({
     averageEngagement: 0,
@@ -124,14 +180,16 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
     }
   };
 
-  const handleDeleteUser = async (uid: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o usuário ${name}? Esta ação não pode ser desfeita.`)) {
-      return;
-    }
+  const promptDeleteUser = (uid: string, name: string) => {
+    setUserToDelete({ uid, name });
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${uid}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${userToDelete.uid}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -144,11 +202,13 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       fetchUsers();
     } catch (e: any) {
       toast.error(e.message);
+    } finally {
+      setUserToDelete(null);
     }
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background dark:bg-[#0a101f] text-foreground">
+    <div className="flex min-h-screen w-full bg-background text-foreground">
       {/* OVERLAY MOBILE */}
       {isSidebarOpen && (
         <div 
@@ -159,7 +219,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border dark:border-slate-800 bg-card/95 sm:bg-card dark:bg-[#0f172a]/95 sm:dark:bg-[#0f172a] backdrop-blur-xl transition-all duration-300 flex",
+          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 sm:bg-card backdrop-blur-xl transition-all duration-300 flex",
           isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
         )}
       >
@@ -251,9 +311,9 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       {/* MAIN */}
       <main className="relative flex-1 overflow-x-hidden bg-background dark:bg-[#0a101f]">
         
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-4 h-screen flex flex-col">
           {/* Header */}
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center justify-between shrink-0">
             <div className="flex items-center gap-4">
               {!isSidebarOpen && (
                 <Button
@@ -270,13 +330,6 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, {userData?.name?.split(' ')[0] || 'RH'}</h1>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => toast.info("Funcionalidade de geração de relatório em desenvolvimento!")}
-              className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 w-full sm:w-auto min-h-[44px]"
-            >
-              Gerar Relatório Escrito
-            </Button>
           </div>
 
           {/* VIEW: ENGAGEMENT */}
@@ -296,7 +349,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: HOME */}
           {active === "home" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 flex-1 overflow-y-auto pb-4">
               
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
                 {/* Metric 1 */}
@@ -420,8 +473,8 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: USUÁRIOS */}
           {active === "users" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 grid gap-6 grid-cols-1 lg:grid-cols-2">
-              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 grid gap-6 grid-cols-1 lg:grid-cols-2 flex-1 min-h-0 pb-4">
+              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg overflow-y-auto">
                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                   <UserPlus className="h-6 w-6 text-indigo-500" />
                   Cadastrar Novo Usuário
@@ -429,7 +482,8 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 <form 
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
+                    const form = e.currentTarget;
+                    const formData = new FormData(form);
                     const data = Object.fromEntries(formData);
                     
                     try {
@@ -445,11 +499,15 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       
                       if (!response.ok) {
                         const err = await response.json();
+                        if (response.status === 409) {
+                          toast.warning(err.error);
+                          return;
+                        }
                         throw new Error(err.error || 'Erro ao cadastrar');
                       }
                       
                       toast.success('Usuário cadastrado com sucesso!');
-                      e.currentTarget.reset();
+                      form.reset();
                       setAssignedEmployees([]);
                       fetchUsers();
                     } catch (error: any) {
@@ -472,38 +530,39 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Papel / Acesso</label>
-                    <select 
-                      name="role" 
-                      required 
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                      value={selectedRole}
-                      onChange={(e) => setSelectedRole(e.target.value)}
-                    >
-                      <option value="leader">Líder</option>
-                      <option value="employee">Liderado (Colaborador)</option>
-                      <option value="hr">Recursos Humanos</option>
-                    </select>
+                    <Select value={selectedRole} onValueChange={setSelectedRole} name="role">
+                      <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
+                        <SelectValue placeholder="Selecione um papel" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl">
+                        <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líder</SelectItem>
+                        <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Liderado (Colaborador)</SelectItem>
+                        <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Recursos Humanos</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {selectedRole === "leader" && (
-                    <div className="rounded-xl border border-border bg-secondary/30 p-4 mt-2">
-                      <label className="block text-sm font-medium mb-2">Vincular Liderados (Visão do Dashboard)</label>
-                      <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                    <div className="rounded-xl border border-border bg-secondary/20 p-4 mt-4 shadow-inner">
+                      <label className="block text-sm font-medium mb-3 text-foreground/90">Vincular Liderados (Visão do Dashboard)</label>
+                      <div className="max-h-52 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
                         {usersList.filter(u => u.role === 'employee').length === 0 ? (
-                          <div className="text-xs text-muted-foreground">Nenhum liderado cadastrado ainda.</div>
+                          <div className="text-sm text-muted-foreground italic">Nenhum liderado cadastrado ainda.</div>
                         ) : (
                           usersList.filter(u => u.role === 'employee').map(emp => (
-                            <label key={emp.uid} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/50 p-1.5 rounded-md transition-colors">
-                              <input 
-                                type="checkbox" 
-                                className="rounded text-indigo-600 focus:ring-indigo-500"
+                            <label key={emp.uid} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-secondary/60 p-2 rounded-lg transition-all group border border-transparent hover:border-border/50">
+                              <Checkbox 
                                 checked={assignedEmployees.includes(emp.uid)}
-                                onChange={(e) => {
-                                  if (e.target.checked) setAssignedEmployees([...assignedEmployees, emp.uid]);
+                                onCheckedChange={(checked) => {
+                                  if (checked) setAssignedEmployees([...assignedEmployees, emp.uid]);
                                   else setAssignedEmployees(assignedEmployees.filter(id => id !== emp.uid));
                                 }}
+                                className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 rounded"
                               />
-                              {emp.name} <span className="text-muted-foreground text-xs">({emp.email})</span>
+                              <div className="flex flex-col">
+                                <span className="font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{emp.name}</span>
+                                <span className="text-muted-foreground text-xs">{emp.email}</span>
+                              </div>
                             </label>
                           ))
                         )}
@@ -518,10 +577,40 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               </div>
 
               {/* Tabela de Usuários */}
-              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg h-fit">
-                <h3 className="text-lg font-semibold mb-4">Usuários Cadastrados</h3>
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                  {usersList.map((u) => (
+              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg flex flex-col min-h-0">
+                <h3 className="text-lg font-semibold mb-4 shrink-0">Usuários Cadastrados</h3>
+                
+                <div className="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
+                  <input 
+                    type="text" 
+                    placeholder="Buscar por nome ou e-mail..." 
+                    className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <div className="relative sm:w-48 shrink-0">
+                    <Select value={filterRole} onValueChange={setFilterRole}>
+                      <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
+                        <SelectValue placeholder="Filtrar por cargo" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl">
+                        <SelectItem value="all" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Todos os cargos</SelectItem>
+                        <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líderes</SelectItem>
+                        <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Colaboradores</SelectItem>
+                        <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">RH</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-3 overflow-y-auto pr-2 flex-1">
+                  {usersList
+                    .filter(u => {
+                      const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesRole = filterRole === "all" || u.role === filterRole;
+                      return matchesSearch && matchesRole;
+                    })
+                    .map((u) => (
                     <div key={u.uid} className={cn("flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30", u.disabled && "opacity-75 bg-rose-500/5 border-rose-500/10")}>
                       <div>
                         <div className="font-medium text-sm sm:text-base flex items-center gap-2 flex-wrap">
@@ -560,7 +649,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                           size="icon"
                           className="h-11 w-11 sm:h-8 sm:w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-500/20 border-rose-200 dark:border-rose-900 shrink-0"
                           title="Excluir Definitivamente"
-                          onClick={() => handleDeleteUser(u.uid, u.name)}
+                          onClick={() => promptDeleteUser(u.uid, u.name)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -630,31 +719,44 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Papel</label>
-                    <select name="role" defaultValue={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value})} required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                      <option value="leader">Líder</option>
-                      <option value="employee">Liderado (Colaborador)</option>
-                      <option value="hr">Recursos Humanos</option>
-                    </select>
+                    <Select value={editingUser.role} onValueChange={(val) => setEditingUser({...editingUser, role: val})} name="role">
+                      <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
+                        <SelectValue placeholder="Selecione um papel" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl">
+                        <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líder</SelectItem>
+                        <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Liderado (Colaborador)</SelectItem>
+                        <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Recursos Humanos</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {editingUser.role === "leader" && (
-                    <div className="rounded-xl border border-border bg-secondary/30 p-3 mt-2 max-h-40 overflow-y-auto space-y-1">
-                      <label className="block text-sm font-medium mb-2">Liderados Vinculados</label>
-                      {usersList.filter(u => u.role === 'employee').map(emp => (
-                        <label key={emp.uid} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/50 p-1 rounded transition-colors">
-                          <input 
-                            type="checkbox" 
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                            checked={(editingUser.assignedEmployees || []).includes(emp.uid)}
-                            onChange={(e) => {
-                              const curr = editingUser.assignedEmployees || [];
-                              const newArr = e.target.checked ? [...curr, emp.uid] : curr.filter((id: string) => id !== emp.uid);
-                              setEditingUser({...editingUser, assignedEmployees: newArr});
-                            }}
-                          />
-                          {emp.name}
-                        </label>
-                      ))}
+                    <div className="rounded-xl border border-border bg-secondary/20 p-4 mt-4 shadow-inner">
+                      <label className="block text-sm font-medium mb-3 text-foreground/90">Liderados Vinculados</label>
+                      <div className="max-h-52 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                        {usersList.filter(u => u.role === 'employee').length === 0 ? (
+                          <div className="text-sm text-muted-foreground italic">Nenhum liderado cadastrado ainda.</div>
+                        ) : (
+                          usersList.filter(u => u.role === 'employee').map(emp => (
+                            <label key={emp.uid} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-secondary/60 p-2 rounded-lg transition-all group border border-transparent hover:border-border/50">
+                              <Checkbox 
+                                checked={(editingUser.assignedEmployees || []).includes(emp.uid)}
+                                onCheckedChange={(checked) => {
+                                  const curr = editingUser.assignedEmployees || [];
+                                  const newArr = checked ? [...curr, emp.uid] : curr.filter((id: string) => id !== emp.uid);
+                                  setEditingUser({...editingUser, assignedEmployees: newArr});
+                                }}
+                                className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 rounded"
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{emp.name}</span>
+                                <span className="text-muted-foreground text-xs">{emp.email}</span>
+                              </div>
+                            </label>
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -665,6 +767,27 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               )}
             </DialogContent>
           </Dialog>
+
+          {/* DELETE CONFIRMATION MODAL */}
+          <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+            <AlertDialogContent className="rounded-xl border-border bg-background text-foreground">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <Trash2 className="h-5 w-5 text-rose-500" />
+                  Excluir Usuário
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir o usuário <span className="font-semibold text-foreground">{userToDelete?.name}</span>? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeleteUser} className="bg-rose-600 hover:bg-rose-700 text-white">
+                  Excluir Permanentemente
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Placeholder for other views */}
           {active !== "home" && active !== "users" && active !== "engagement" && active !== "meetings" && active !== "teams" && (

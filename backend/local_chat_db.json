@@ -1,6 +1,13 @@
 {
   "OWsCXCYMJ6azdKvAqTGZkPuykcM2": [
     {
+      "id": "1783997853085",
+      "type": "one_on_one",
+      "message": "teste",
+      "reply": "## 1. Quebra-Gelo\nComo você está se sentindo hoje e o que está mais animado para discutir ou trabalhar esta semana?\n\n## 2. Tópicos Principais\n* Qual é o maior desafio que você está enfrentando no momento e como posso apoiá-lo?\n* Você está satisfeito com o seu atual nível de desafio e responsabilidade no trabalho?\n* De que forma posso ajudá-lo a fortalecer suas relações com a equipe e melhorar a colaboração?\n\n## 3. Acompanhamento de Metas / PDI\nVocê está no caminho para alcançar suas metas atuais e há algo que possamos ajustar para ajudá-lo a alcançá-las?\nComo está o progresso em relação ao seu Plano de Desenvolvimento Individual (PDI) e há áreas em que precise de mais apoio ou recursos?\n\n## 4. Espaço Aberto\nO que mais você gostaria de trazer para discutirmos hoje ou como posso te ajudar a destravar seu trabalho essa semana?",
+      "date": "2026-07-14T02:57:33.085Z"
+    },
+    {
       "id": "1783764802513",
       "type": "sbi",
       "message": "Monte um Roteiro de Feedback Positivo baseado no método SBI (Situação, Comportamento e Impacto). Situação: Na última sexta-feira de noite, antes do lançamento. Comportamento: O colaborador detectou de forma proativa um vazamento de memória crítico no servidor e resolveu sozinho sem precisar escalar para o time inteiro. Impacto: Garantiu que o MVP funcionasse 100% no fim de semana, poupando a equipe de fazer horas extras e mantendo o cliente satisfeito.",

@@ -64,17 +64,14 @@ export default function LoginView({ onLoginSuccess }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const executeLogin = async (loginEmail, loginPassword) => {
     setError(null);
     setIsLoading(true);
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Não há mais regra chumbada. Buscaremos do banco.
+    const normalizedEmail = loginEmail.trim().toLowerCase();
 
     try {
       // Faz o login real com o Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+      const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, loginPassword);
 
       // Obtém o token JWT
       const token = await userCredential.user.getIdToken();
@@ -118,8 +115,13 @@ export default function LoginView({ onLoginSuccess }) {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await executeLogin(email, password);
+  };
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12 w-full">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-4 sm:py-6 w-full">
       {/* subtle gradient background */}
       <div
         aria-hidden="true"
@@ -132,9 +134,9 @@ export default function LoginView({ onLoginSuccess }) {
 
       <div className="relative w-full max-w-lg animate-scale-in">
         {/* glass card */}
-        <div className="rounded-3xl border border-border/60 bg-card/80 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-12">
+        <div className="rounded-3xl border border-border/60 bg-card/80 p-6 sm:p-8 shadow-2xl shadow-black/30 backdrop-blur-xl">
           {/* brand mark */}
-          <div className="mb-10 text-center">
+          <div className="mb-6 text-center">
             <div className="mx-auto mb-6 flex h-24 items-center justify-center">
               <img
                 src={logoClearIt}
@@ -147,7 +149,7 @@ export default function LoginView({ onLoginSuccess }) {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-3">
               <label htmlFor="email" className="block text-base font-medium text-foreground">
                 E-mail
@@ -160,7 +162,7 @@ export default function LoginView({ onLoginSuccess }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nome@empresa.com"
-                  className="w-full rounded-xl border border-input bg-background/60 py-3.5 pl-12 pr-4 text-base text-foreground placeholder:text-muted-foreground/70 outline-none ring-0 transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-ring/40"
+                  className="w-full rounded-xl border border-input bg-background/60 py-3 pl-12 pr-4 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none ring-0 transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-ring/40"
                   required
                 />
               </div>
@@ -178,7 +180,7 @@ export default function LoginView({ onLoginSuccess }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-input bg-background/60 py-3.5 pl-12 pr-12 text-base text-foreground placeholder:text-muted-foreground/70 outline-none ring-0 transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-ring/40"
+                  className="w-full rounded-xl border border-input bg-background/60 py-3 pl-12 pr-12 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none ring-0 transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-ring/40"
                   required
                 />
                 <button
@@ -202,12 +204,41 @@ export default function LoginView({ onLoginSuccess }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? "Entrando..." : "Entrar"}
               {!isLoading && <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>
+
+          {/* Botões de Acesso Rápido para Testes */}
+          <div className="mt-6 flex flex-col gap-2.5 border-t border-border/50 pt-6">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 text-center">Acesso Rápido (Ambiente de Testes)</p>
+            
+            <button
+              type="button"
+              onClick={() => { setEmail('visaorh@gmail.com'); setPassword('000000'); executeLogin('visaorh@gmail.com', '000000'); }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500/20 bg-purple-500/10 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 backdrop-blur-md transition hover:bg-purple-500/20 active:scale-[0.98]"
+            >
+              Entrar como RH
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setEmail('visaolider@gmail.com'); setPassword('000000'); executeLogin('visaolider@gmail.com', '000000'); }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 backdrop-blur-md transition hover:bg-blue-500/20 active:scale-[0.98]"
+            >
+              Entrar como Líder
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setEmail('visaooperacional@gmail.com'); setPassword('000000'); executeLogin('visaooperacional@gmail.com', '000000'); }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 backdrop-blur-md transition hover:bg-emerald-500/20 active:scale-[0.98]"
+            >
+              Entrar como Operacional
+            </button>
+          </div>
 
           {/* subtle links */}
           <div className="mt-8 flex items-center justify-between text-sm text-muted-foreground">
@@ -234,7 +265,7 @@ export default function LoginView({ onLoginSuccess }) {
           </div>
         </div>
 
-        <p className="mt-8 text-center text-sm text-muted-foreground/70">
+        <p className="mt-4 text-center text-xs text-muted-foreground/70">
           Ao continuar, você concorda com os Termos de Serviço e Política de Privacidade.
         </p>
       </div>
