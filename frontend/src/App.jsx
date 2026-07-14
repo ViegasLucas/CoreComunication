@@ -7,10 +7,7 @@ import { auth } from './lib/firebase';
 import MainLayout from './layouts/MainLayout';
 import Sidebar from './components/features/Sidebar';
 
-// Importa as 3 Visões Demo do nosso Escopo
 import ConducaoView from './views/ConducaoView'; 
-import RhView from './views/rhView';             
-import LideradoView from './views/lideradoView';
 import SeparacaoUsuarioView from './views/SeparacaoUsuarioView';
 
 // Importa as Visões
@@ -129,21 +126,7 @@ export default function App() {
   // Deriva o liderado ativo a partir do id
   const lideradoAtivo = listaLiderados.find(l => l.id === lideradoAtivoId) || null;
 
-  // Função Sênior: Renderização condicional limpa baseada no estado viewAtiva
-  const renderizaView = () => {
-    switch (viewAtiva) {
-      case 'separacao':
-        return <SeparacaoUsuarioView onSelecionarView={setViewAtiva} />;
-      case 'conducao':
-        return <ConducaoView lideradoAtivo={lideradoAtivo} />;
-      case 'rh':
-        return <RhView />;
-      case 'liderado':
-        return <LideradoView />;
-      default:
-        return <SeparacaoUsuarioView onSelecionarView={setViewAtiva} />;
-    }
-  };
+  // Legacy renderizaView removida pois usava componentes deletados
 
   const sidebarContent = viewAtiva === 'separacao' ? null : (
     <Sidebar 
