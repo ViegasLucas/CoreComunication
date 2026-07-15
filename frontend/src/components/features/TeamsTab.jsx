@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, ChevronDown, Search, AlertCircle, Lock, User, Grid3x3, Orbit } from "lucide-react";
+import { Users, ChevronDown, Search, AlertCircle, Lock, User, Grid3x3, Orbit, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export default function TeamsTab() {
+export default function TeamsTab({ onLinkUsers }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [leaders, setLeaders] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -354,6 +354,19 @@ export default function TeamsTab() {
             <Button
               size="sm"
               variant="ghost"
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "transition-colors",
+                viewMode === "list"
+                  ? "bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setViewMode("radar")}
               className={cn(
                 "transition-colors",
@@ -450,6 +463,67 @@ export default function TeamsTab() {
           <p className="text-slate-600 dark:text-slate-400 font-medium">
             Nenhum líder correspondente.
           </p>
+        </div>
+      ) : viewMode === "list" ? (
+        <div className="flex flex-col gap-3">
+          {filteredLeaders.map((leader) => {
+            const assignedEmps = getAssignedEmployees(leader.assignedEmployees || []);
+            const matchesSearch = matchesSearchQuery(leader);
+            const isEmpty = assignedEmps.length === 0;
+
+            return (
+              <div
+                key={leader.uid}
+                className={cn(
+                  "bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 shadow-sm",
+                  !matchesSearch && searchQuery ? "opacity-30 scale-[0.98]" : ""
+                )}
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="flex-shrink-0">
+                    <ProgressRingAvatar 
+                      percentage={leader.adoptionRate} 
+                      status={leader.status} 
+                      initials={getInitials(leader.name)} 
+                      isEmpty={isEmpty}
+                      size={48}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                      {leader.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {isEmpty ? "Sem colaboradores vinculados" : `${assignedEmps.length} colaborador${assignedEmps.length !== 1 ? "es" : ""}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 shrink-0 sm:ml-auto">
+                  <div className="hidden sm:block">
+                    <StatusBadge status={leader.status} />
+                  </div>
+                  {!isEmpty && (
+                    <span className="hidden sm:inline-flex flex-shrink-0 font-medium text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
+                      Adoção: {leader.adoptionRate}%
+                    </span>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs shrink-0 border-border dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      if (onLinkUsers) onLinkUsers(leader);
+                    }}
+                  >
+                    Gerenciar Usuários
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -567,13 +641,34 @@ export default function TeamsTab() {
                           );
                         })}
                       </div>
+                      <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800/50">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full border-dashed text-xs h-8 text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onLinkUsers) onLinkUsers(leader);
+                          }}
+                        >
+                          Gerenciar Usuários Vinculados
+                        </Button>
+                      </div>
                     </div>
                   )}
 
                   {/* Empty state action button inside card */}
                   {isEmpty && (
                     <div className="px-5 pb-5 pt-0">
-                       <Button variant="outline" size="sm" className="w-full border-dashed text-xs h-8 text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors">
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         className="w-full border-dashed text-xs h-8 text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           if (onLinkUsers) onLinkUsers(leader);
+                         }}
+                       >
                          Vincular Usuários
                        </Button>
                     </div>

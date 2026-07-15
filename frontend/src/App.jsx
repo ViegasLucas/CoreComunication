@@ -212,9 +212,15 @@ export default function App() {
   }
 
   // Props comuns a todos os dashboards
-  const dashboardProps = { isDark, setIsDark, isHighContrast, setIsHighContrast, userData };
+  const dashboardProps = { 
+    isDark, 
+    setIsDark, 
+    isHighContrast, 
+    setIsHighContrast, 
+    userData,
+    onLogout: () => setShowLogoutAlert(true)
+  };
 
-  // Envolvemos os dashboards em um fragmento para adicionar o botão Sair por cima de tudo
   const renderDashboard = () => {
     if (userData?.role === 'employee') return <EmployeeDashboardView {...dashboardProps} />;
     if (userData?.role === 'hr') return <HRDashboardView {...dashboardProps} />;
@@ -223,13 +229,7 @@ export default function App() {
 
   return (
     <>
-      <button 
-        onClick={() => setShowLogoutAlert(true)}
-        className="absolute top-4 right-4 z-50 flex items-center gap-2 rounded-xl bg-red-500/10 text-red-500 px-4 py-2 text-sm font-semibold hover:bg-red-500 hover:text-white transition-all duration-200"
-      >
-        <LogOut className="w-4 h-4" />
-        Sair
-      </button>
+
 
       <AlertDialog open={showLogoutAlert} onOpenChange={setShowLogoutAlert}>
         <AlertDialogContent className="rounded-xl border-border bg-background text-foreground z-[10000]">

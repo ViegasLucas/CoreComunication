@@ -20,7 +20,9 @@ import {
   Ban,
   CheckCircle2,
   X,
-  ChevronDown
+  ChevronDown,
+  Edit2,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -53,7 +55,7 @@ import { toast } from "sonner";
 
 // --- MOCK DATA PARA OUTROS COMPONENTES SE NECESSÁRIO ---
 
-export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
+export default function HRDashboardView({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData, onLogout }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const getInitialTab = () => {
     const hash = window.location.hash.replace(/^#/, '');
@@ -97,6 +99,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
   
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
   
   const [userToDelete, setUserToDelete] = useState<{uid: string, name: string} | null>(null);
   
@@ -212,30 +215,32 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
       {/* OVERLAY MOBILE */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/50 sm:hidden backdrop-blur-sm transition-opacity" 
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm transition-opacity" 
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 sm:bg-card backdrop-blur-xl transition-all duration-300 flex",
-          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
+          "fixed lg:sticky top-0 z-50 lg:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 lg:bg-card backdrop-blur-xl transition-all duration-300 flex",
+          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-20"
         )}
       >
         <div className={cn("flex items-center justify-between py-5", isSidebarOpen ? "px-5" : "px-0 justify-center")}>
-          <div className={cn("flex items-center gap-3", !isSidebarOpen && "sm:hidden")}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-900/40">
-              <PieChart className="h-6 w-6 text-white" />
+          <div className={cn("flex items-center gap-3", !isSidebarOpen && "lg:hidden")}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg text-white font-semibold text-lg ring-2 ring-background dark:ring-[#0a101f]">
+              {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
             </div>
-            <div>
-              <div className="text-base font-semibold tracking-tight text-foreground dark:text-white">ClearIT</div>
-              <div className="text-xs text-muted-foreground dark:text-slate-400">RH & Pessoas</div>
+            <div className="overflow-hidden">
+              <div className="text-sm font-semibold tracking-tight text-foreground dark:text-white truncate" title={userData?.name || 'Usuário'}>
+                {userData?.name || 'Usuário'}
+              </div>
+              <div className="text-xs text-muted-foreground dark:text-slate-400 truncate">RH & Pessoas</div>
             </div>
           </div>
           {(!isSidebarOpen) ? (
-            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-900/40">
-              <PieChart className="h-6 w-6 text-white" />
+            <div className="hidden lg:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg text-white font-semibold text-lg ring-2 ring-background dark:ring-[#0a101f]" title={userData?.name || 'Usuário'}>
+              {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
             </div>
           ) : (
             <Button
@@ -244,8 +249,8 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               onClick={() => setIsSidebarOpen(false)}
               className="text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
             >
-              <X className="h-5 w-5 sm:hidden" />
-              <Menu className="h-5 w-5 hidden sm:block" />
+              <X className="h-5 w-5 lg:hidden" />
+              <Menu className="h-5 w-5 hidden lg:block" />
             </Button>
           )}
         </div>
@@ -263,7 +268,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
             return (
               <button
                 key={item.id}
-                onClick={() => { setActive(item.id); if (window.innerWidth < 640) setIsSidebarOpen(false); }}
+                onClick={() => { setActive(item.id); if (window.innerWidth < 1024) setIsSidebarOpen(false); }}
                 className={cn(
                   "flex w-full items-center rounded-lg transition-all min-h-[44px]",
                   isSidebarOpen ? "gap-3 px-3 py-3 text-base" : "justify-center p-3",
@@ -273,8 +278,8 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 )}
                 title={!isSidebarOpen ? item.label : undefined}
               >
-                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "h-6 w-6")} />
-                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "hidden")}>{item.label}</span>
+                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "lg:h-6 lg:w-6")} />
+                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "lg:hidden")}>{item.label}</span>
               </button>
             );
           })}
@@ -294,7 +299,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 {isDark ? "Dark" : "Light"}
               </div>
               {!isSidebarOpen && (isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />)}
-              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "hidden")} />
+              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "lg:hidden")} />
             </div>
             <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5 mt-1" : "w-full justify-center")}>
               <div className={cn("flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400", !isSidebarOpen && "hidden")}>
@@ -302,29 +307,49 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 Alto contraste
               </div>
               {!isSidebarOpen && <Accessibility className="h-5 w-5 text-muted-foreground" />}
-              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "hidden")} />
+              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "lg:hidden")} />
             </div>
           </div>
+          
+          <button 
+            onClick={onLogout}
+            className={cn(
+              "mt-3 flex items-center justify-center gap-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200",
+              isSidebarOpen ? "w-full py-2.5 px-4 text-sm font-semibold" : "w-10 h-10 p-0 mx-auto"
+            )}
+            title={!isSidebarOpen ? "Sair" : undefined}
+          >
+            <LogOut className={cn("h-4 w-4 shrink-0", !isSidebarOpen && "lg:h-5 lg:w-5")} />
+            {isSidebarOpen && <span>Sair</span>}
+          </button>
         </div>
       </aside>
 
       {/* MAIN */}
       <main className="relative flex-1 overflow-x-hidden bg-background dark:bg-[#0a101f]">
         
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-4 h-screen flex flex-col">
+        <div className="relative mx-auto max-w-[1600px] w-full px-4 sm:px-6 lg:px-8 py-4 h-screen flex flex-col">
           {/* Header */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center justify-between shrink-0">
             <div className="flex items-center gap-4">
-              {!isSidebarOpen && (
+              {(!isSidebarOpen) && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="flex shrink-0 -ml-2 text-muted-foreground hover:bg-secondary dark:hover:text-white dark:hover:bg-slate-800"
+                  className="hidden lg:flex text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
                 >
-                  <Menu className="h-6 w-6" />
+                  <Menu className="h-5 w-5" />
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <div>
                 <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Painel Executivo de RH</div>
                 <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-foreground dark:text-white">Olá, {userData?.name?.split(' ')[0] || 'RH'}</h1>
@@ -344,7 +369,10 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: TEAMS */}
           {active === "teams" && (
-            <TeamsTab />
+            <TeamsTab onLinkUsers={(leader) => {
+              setEditingUser(leader);
+              setEditModalOpen(true);
+            }} />
           )}
 
           {/* VIEW: HOME */}
@@ -473,112 +501,19 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
           {/* VIEW: USUÁRIOS */}
           {active === "users" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 grid gap-6 grid-cols-1 lg:grid-cols-2 flex-1 min-h-0 pb-4">
-              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg overflow-y-auto">
-                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                  <UserPlus className="h-6 w-6 text-indigo-500" />
-                  Cadastrar Novo Usuário
-                </h2>
-                <form 
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const form = e.currentTarget;
-                    const formData = new FormData(form);
-                    const data = Object.fromEntries(formData);
-                    
-                    try {
-                      const token = localStorage.getItem("token");
-                      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ ...data, assignedEmployees })
-                      });
-                      
-                      if (!response.ok) {
-                        const err = await response.json();
-                        if (response.status === 409) {
-                          toast.warning(err.error);
-                          return;
-                        }
-                        throw new Error(err.error || 'Erro ao cadastrar');
-                      }
-                      
-                      toast.success('Usuário cadastrado com sucesso!');
-                      form.reset();
-                      setAssignedEmployees([]);
-                      fetchUsers();
-                    } catch (error: any) {
-                      toast.error(error.message);
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nome Completo</label>
-                    <input name="name" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="Nome do colaborador" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">E-mail</label>
-                    <input name="email" type="email" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="email@empresa.com" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Senha Provisória</label>
-                    <input name="password" type="password" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="••••••••" minLength={6} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Papel / Acesso</label>
-                    <Select value={selectedRole} onValueChange={setSelectedRole} name="role">
-                      <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
-                        <SelectValue placeholder="Selecione um papel" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl">
-                        <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líder</SelectItem>
-                        <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Liderado (Colaborador)</SelectItem>
-                        <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Recursos Humanos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {selectedRole === "leader" && (
-                    <div className="rounded-xl border border-border bg-secondary/20 p-4 mt-4 shadow-inner">
-                      <label className="block text-sm font-medium mb-3 text-foreground/90">Vincular Liderados (Visão do Dashboard)</label>
-                      <div className="max-h-52 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
-                        {usersList.filter(u => u.role === 'employee').length === 0 ? (
-                          <div className="text-sm text-muted-foreground italic">Nenhum liderado cadastrado ainda.</div>
-                        ) : (
-                          usersList.filter(u => u.role === 'employee').map(emp => (
-                            <label key={emp.uid} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-secondary/60 p-2 rounded-lg transition-all group border border-transparent hover:border-border/50">
-                              <Checkbox 
-                                checked={assignedEmployees.includes(emp.uid)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) setAssignedEmployees([...assignedEmployees, emp.uid]);
-                                  else setAssignedEmployees(assignedEmployees.filter(id => id !== emp.uid));
-                                }}
-                                className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 rounded"
-                              />
-                              <div className="flex flex-col">
-                                <span className="font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{emp.name}</span>
-                                <span className="text-muted-foreground text-xs">{emp.email}</span>
-                              </div>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
-                    Criar Conta
-                  </Button>
-                </form>
-              </div>
-
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-foreground dark:text-slate-100 flex-1 min-h-0 pb-4">
               {/* Tabela de Usuários */}
-              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg flex flex-col min-h-0">
-                <h3 className="text-lg font-semibold mb-4 shrink-0">Usuários Cadastrados</h3>
+              <div className="p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg flex flex-col min-h-0 h-full">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 shrink-0">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Users className="h-6 w-6 text-indigo-500" />
+                    Usuários Cadastrados
+                  </h3>
+                  <Button onClick={() => setCreateUserModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full sm:w-auto h-11 sm:h-10">
+                    <UserPlus className="h-4 w-4" />
+                    Novo Usuário
+                  </Button>
+                </div>
                 
                 <div className="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
                   <input 
@@ -611,29 +546,29 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       return matchesSearch && matchesRole;
                     })
                     .map((u) => (
-                    <div key={u.uid} className={cn("flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30", u.disabled && "opacity-75 bg-rose-500/5 border-rose-500/10")}>
-                      <div>
-                        <div className="font-medium text-sm sm:text-base flex items-center gap-2 flex-wrap">
-                          {u.name}
+                    <div key={u.uid} className={cn("flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-secondary/30 overflow-hidden", u.disabled && "opacity-75 bg-rose-500/5 border-rose-500/10")}>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm sm:text-base flex items-center gap-2">
+                          <span className="truncate">{u.name}</span>
                           {u.disabled && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">INATIVO</span>
+                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">INATIVO</span>
                           )}
                         </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{u.email}</div>
+                        <div className="text-xs sm:text-sm text-muted-foreground truncate" title={u.email}>{u.email}</div>
                         <div className="text-[10px] mt-1 font-semibold uppercase tracking-wider text-indigo-500">{u.role === 'leader' ? 'Líder' : (u.role === 'hr' ? 'RH' : 'Colaborador')}</div>
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2 ml-2 shrink-0">
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         <Button 
                           variant="outline" 
-                          size="sm"
-                          className="min-h-[44px] sm:min-h-0 text-xs px-2 sm:px-3"
+                          size="icon"
+                          className="h-11 w-11 sm:h-8 sm:w-8 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-500/20 shrink-0"
+                          title="Editar Usuário"
                           onClick={() => {
                             setEditingUser(u);
                             setEditModalOpen(true);
                           }}
                         >
-                          <span className="hidden sm:inline">Editar</span>
-                          <span className="sm:hidden">Ed</span>
+                          <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="outline" 
@@ -660,6 +595,115 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
               </div>
             </div>
           )}
+
+          {/* CREATE MODAL */}
+          <Dialog open={createUserModalOpen} onOpenChange={setCreateUserModalOpen}>
+            <DialogContent className="sm:max-w-md w-[100dvw] h-[100dvh] sm:h-auto rounded-none sm:rounded-xl border-border bg-background text-foreground overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Novo Usuário</DialogTitle>
+                <DialogDescription>
+                  Preencha os dados abaixo para cadastrar um novo usuário na plataforma.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.currentTarget;
+                  const formData = new FormData(form);
+                  const data = Object.fromEntries(formData);
+                  
+                  try {
+                    const token = localStorage.getItem("token");
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ ...data, assignedEmployees })
+                    });
+                    
+                    if (!response.ok) {
+                      const err = await response.json();
+                      if (response.status === 409) {
+                        toast.warning(err.error);
+                        return;
+                      }
+                      throw new Error(err.error || 'Erro ao cadastrar');
+                    }
+                    
+                    toast.success('Usuário cadastrado com sucesso!');
+                    form.reset();
+                    setAssignedEmployees([]);
+                    fetchUsers();
+                    setCreateUserModalOpen(false);
+                  } catch (error: any) {
+                    toast.error(error.message);
+                  }
+                }}
+                className="space-y-4 mt-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nome Completo</label>
+                  <input name="name" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="Nome do colaborador" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">E-mail</label>
+                  <input name="email" type="email" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="email@empresa.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Senha Provisória</label>
+                  <input name="password" type="password" required className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="••••••••" minLength={6} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Papel / Acesso</label>
+                  <Select value={selectedRole} onValueChange={setSelectedRole} name="role">
+                    <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
+                      <SelectValue placeholder="Selecione um papel" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl">
+                      <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líder</SelectItem>
+                      <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Liderado (Colaborador)</SelectItem>
+                      <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Recursos Humanos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedRole === "leader" && (
+                  <div className="rounded-xl border border-border bg-secondary/20 p-4 mt-4 shadow-inner">
+                    <label className="block text-sm font-medium mb-3 text-foreground/90">Vincular Liderados (Visão do Dashboard)</label>
+                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                      {usersList.filter(u => u.role === 'employee').length === 0 ? (
+                        <div className="text-sm text-muted-foreground italic">Nenhum liderado cadastrado ainda.</div>
+                      ) : (
+                        usersList.filter(u => u.role === 'employee').map(emp => (
+                          <label key={emp.uid} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-secondary/60 p-2 rounded-lg transition-all group border border-transparent hover:border-border/50">
+                            <Checkbox 
+                              checked={assignedEmployees.includes(emp.uid)}
+                              onCheckedChange={(checked) => {
+                                if (checked) setAssignedEmployees([...assignedEmployees, emp.uid]);
+                                else setAssignedEmployees(assignedEmployees.filter(id => id !== emp.uid));
+                              }}
+                              className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 rounded"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{emp.name}</span>
+                              <span className="text-muted-foreground text-xs">{emp.email}</span>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
+                  Criar Conta
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           {/* EDIT MODAL */}
           <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>

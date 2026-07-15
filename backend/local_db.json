@@ -38,7 +38,10 @@
     "assignedEmployees": [
       "Lc8iraRxtiTjhK7DYPWOsPLToss1",
       "PL5kOFYJPgc97Sle44O0ZzN3Dt42",
-      "NazoqxRQ3Edc8ErsrnpqnQ1xg7G2"
+      "NazoqxRQ3Edc8ErsrnpqnQ1xg7G2",
+      "6lPap9GPxNVCC9nw2mdjXhlqfol2",
+      "9PBxuzD16IeWfaOHsdu2vEVkVDr2",
+      "H0h1hZGzFMNcGpuCeHQ7zATlAaE2"
     ],
     "sentiments": [
       {
@@ -132,6 +135,50 @@
       {
         "sentiment": "neutral",
         "date": "2026-07-14T03:55:15.251Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-14T23:10:30.432Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-14T23:10:32.069Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-14T23:10:32.124Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-14T23:10:32.240Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T01:39:04.140Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T01:39:04.462Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T01:39:04.942Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T02:18:44.226Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T02:18:44.576Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T02:18:45.900Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T02:18:46.199Z"
       }
     ]
   },
@@ -199,34 +246,100 @@
     "role": "employee",
     "assignedEmployees": []
   },
-  "DohlV0qRiRREqWMV34fgfODiPoY2": {
-    "role": "leader",
-    "assignedEmployees": [
-      "Lrb9hJXLCTMxlpj13P40mw88NEN2"
+  "6lPap9GPxNVCC9nw2mdjXhlqfol2": {
+    "role": "employee",
+    "name": "visaooperacional",
+    "email": "visaooperacional@gmail.com",
+    "assignedEmployees": [],
+    "sentiments": [
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T01:49:39.936Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T01:49:40.356Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T01:49:41.065Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T01:49:41.457Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T01:54:31.045Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T01:54:31.504Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T01:54:31.952Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T02:04:07.224Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T02:04:08.221Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T02:04:09.169Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T02:08:59.486Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T02:09:00.237Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T02:28:00.972Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T02:28:02.619Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T02:30:40.179Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T02:30:51.565Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-15T02:30:51.894Z"
+      },
+      {
+        "sentiment": "good",
+        "date": "2026-07-15T02:30:52.265Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-15T02:30:52.812Z"
+      }
     ]
   },
-  "BhThWogJqJY3eVnS28h4qnvYQ0L2": {
-    "role": "leader",
-    "assignedEmployees": []
-  },
-  "ArLOfB6VxyPpr1xozddHeeqPjlD3": {
-    "role": "leader",
-    "assignedEmployees": []
-  },
-  "Fsin4FA0w1eamE4LPqsnSyIDLcB3": {
-    "role": "leader",
-    "assignedEmployees": []
-  },
-  "hxC1UZCNboUsI9PzQzr9v5bexJ43": {
+  "H0h1hZGzFMNcGpuCeHQ7zATlAaE2": {
     "role": "employee",
+    "name": "colab1",
+    "email": "colab1@gmail.com",
     "assignedEmployees": []
   },
-  "hpSALMKG6bSRtofSsI5jMucJZLw1": {
+  "9PBxuzD16IeWfaOHsdu2vEVkVDr2": {
     "role": "employee",
-    "assignedEmployees": []
-  },
-  "gcy8ljoZQQPPqNAjj0GPfnl6UfK2": {
-    "role": "employee",
+    "name": "colab2",
+    "email": "colab2@gmail.com",
     "assignedEmployees": []
   }
 }

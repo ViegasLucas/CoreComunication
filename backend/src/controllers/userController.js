@@ -62,6 +62,8 @@ exports.createUser = async (req, res) => {
     // Atualizar in-memory (Modo Custo Zero)
     if (!memoryUsers[userRecord.uid]) memoryUsers[userRecord.uid] = {};
     memoryUsers[userRecord.uid].role = role;
+    memoryUsers[userRecord.uid].name = name;
+    memoryUsers[userRecord.uid].email = email;
     if (req.body.assignedEmployees) {
       memoryUsers[userRecord.uid].assignedEmployees = req.body.assignedEmployees;
     }

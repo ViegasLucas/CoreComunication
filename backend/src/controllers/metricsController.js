@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { auth } = require('../config/firebase');
+const { auth, db } = require('../config/firebase');
 
 // Helper to load DBs
 const loadDb = (filename) => {
@@ -173,11 +173,22 @@ exports.getGlobalMetrics = async (req, res) => {
       const listUsersResult = await auth.listUsers(1000);
       listUsersResult.users.forEach(u => {
         authUsersMap[u.uid] = {
-          name: u.displayName || (u.email ? u.email.split('@')[0] : null)
+          name: u.displayName || null,
+          email: u.email || null
         };
       });
     } catch (e) {
       console.warn("Erro ao buscar nomes no Firebase Auth:", e.message);
+    }
+
+    let firestoreUsersMap = {};
+    try {
+      const usersSnap = await db.collection('users').get();
+      usersSnap.forEach(doc => {
+        firestoreUsersMap[doc.id] = doc.data();
+      });
+    } catch (e) {
+      console.warn("Erro ao buscar nomes no Firestore:", e.message);
     }
 
     const leadersAdoptionData = leaders.map(([uid, u]) => {
@@ -222,7 +233,38 @@ exports.getGlobalMetrics = async (req, res) => {
         nextExpected.setDate(nextExpected.getDate() + 1);
       }
 
-      const realName = (authUsersMap[uid] && authUsersMap[uid].name) || u.displayName || u.email || u.name || uid;
+      // Resolver o nome real do líder.
+      // Prioridade: Firebase Auth displayName > Firestore name > local_db name > email prefix > uid
+      // O Firebase Auth displayName é SEMPRE setado no createUser, então é a fonte mais confiável.
+      let realName = null;
+
+      // 1. Firebase Auth (fonte mais confiável — displayName sempre é setado)
+      if (authUsersMap[uid] && authUsersMap[uid].name) {
+        realName = authUsersMap[uid].name;
+      }
+      // 2. Firestore
+      if (!realName && firestoreUsersMap[uid] && firestoreUsersMap[uid].name) {
+        realName = firestoreUsersMap[uid].name;
+      }
+      // 3. local_db (pode não ter para users antigos)
+      if (!realName && u.name) {
+        realName = u.name;
+      }
+      if (!realName && u.displayName) {
+        realName = u.displayName;
+      }
+      // 4. Email prefix (melhor que mostrar UID)
+      if (!realName && u.email) {
+        realName = u.email.split('@')[0];
+      }
+      // 5. Tentar buscar email do authUsersMap
+      if (!realName && authUsersMap[uid] && authUsersMap[uid].email) {
+        realName = authUsersMap[uid].email.split('@')[0];
+      }
+      // 6. Último recurso
+      if (!realName) {
+        realName = uid.substring(0, 8) + '...';
+      }
 
       return {
         id: uid,

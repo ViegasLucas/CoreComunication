@@ -178,13 +178,13 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
             {/* Rows do heatmap */}
             {sortedLeaders.map((leader) => (
               <div key={leader.id} className="flex gap-2 items-center">
-                <div className="w-40 flex-shrink-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                <div className="w-40 flex-shrink-0 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate" title={leader.name}>
                     {leader.name}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{leader.squad}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{leader.squad}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   {leader.cadence.map((hasOneOnOne, idx) => (
                     <HeatmapCell
                       key={idx}
@@ -283,13 +283,15 @@ export default function AdoptionTab({ adoptionData = [], adoptionRate = 0 }) {
         {/* Mobile View */}
         <div className="grid grid-cols-1 gap-4 sm:hidden">
           {sortedLeaders.map((leader) => (
-            <div key={leader.id} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col gap-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white">{leader.name}</h3>
-                  <p className="text-sm text-slate-500">{leader.squad}</p>
+            <div key={leader.id} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col gap-3 overflow-hidden">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-slate-900 dark:text-white truncate">{leader.name}</h3>
+                  <p className="text-sm text-slate-500 truncate">{leader.squad}</p>
                 </div>
-                <StatusBadge status={leader.status} />
+                <div className="flex-shrink-0">
+                  <StatusBadge status={leader.status} />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm border-t border-slate-100 dark:border-slate-800 pt-3">
                 <div>

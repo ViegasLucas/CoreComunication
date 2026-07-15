@@ -33,6 +33,11 @@ import {
   Smile,
   Meh,
   Frown,
+  LogOut,
+  LayoutGrid,
+  List,
+  MoreVertical,
+  MoreHorizontal
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -48,6 +53,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -82,7 +88,7 @@ const teamFallbackMock = [
   { name: "Fernanda Costa", role: "QA Engineer", pdi: 50 },
 ];
 
-export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData }: any) {
+export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData, onLogout }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Se o usuário já tiver perfil no banco, inicializa com ele
@@ -119,7 +125,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         setActive("home");
       }
     };
-    
+
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [active]);
@@ -150,6 +156,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
   const [team, setTeam] = useState<any[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
+  const [teamViewMode, setTeamViewMode] = useState<'grid' | 'list'>('grid');
   const [metrics, setMetrics] = useState<any>({
     averageEngagement: 87,
     completedPDIs: 12,
@@ -173,17 +180,29 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const openChatWithIntent = (intent: "profile_discovery" | "sbi" | "one_on_one" | "pdi") => {
+  const [isChatContextLocked, setIsChatContextLocked] = useState(false);
+
+  const openChatWithIntent = (intent: "profile_discovery" | "sbi" | "one_on_one" | "pdi", targetMemberName?: string) => {
     setChatIntent(intent);
     let initialMessage = "";
+    const memberText = targetMemberName ? ` para ${targetMemberName}` : "";
+
+    if (targetMemberName) {
+      setDocEmployeeId(targetMemberName);
+      setIsChatContextLocked(true);
+    } else {
+      setDocEmployeeId("none");
+      setIsChatContextLocked(false);
+    }
+
     if (intent === "profile_discovery") {
       initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Bem-vindo(a) ao seu mapeamento de perfil de liderança. Para descobrirmos o seu perfil DISC, vamos começar: Quanto tempo de experiência com gestão de pessoas você possui?`;
     } else if (intent === "sbi") {
-      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos preparar um Feedback (SBI). Me conte a situação que ocorreu, o comportamento que você observou e o impacto gerado.`;
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos preparar um Feedback (SBI)${memberText}. Me conte a situação que ocorreu, o comportamento que você observou e o impacto gerado.`;
     } else if (intent === "one_on_one") {
-      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos estruturar a pauta da sua próxima 1:1. Como está o momento atual do colaborador (ex: entregou um projeto, está desmotivado, novo na equipe)?`;
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos estruturar a pauta da sua próxima 1:1${memberText}. Como está o momento atual do colaborador (ex: entregou um projeto, está desmotivado, novo na equipe)?`;
     } else if (intent === "pdi") {
-      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos elaborar um PDI. Descreva os pontos fortes do liderado e as áreas onde ele precisa se desenvolver.`;
+      initialMessage = `Olá${userData?.name ? ` ${userData.name}` : ''}! Vamos elaborar um PDI${memberText}. Descreva os pontos fortes do liderado e as áreas onde ele precisa se desenvolver.`;
     }
     setChat([{ from: "bot", text: initialMessage }]);
     setIsChatOpen(true);
@@ -384,39 +403,39 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       } else {
         // Resposta da IA
         let finalReply = reply;
-        
+
         if (chatIntent === "profile_discovery") {
           let newProfile: ProfileKey | null = null;
-          
+
           // Verifica se a IA encontrou o perfil
           if (reply.includes("[RESULTADO_PERFIL: TÉCNICO]")) {
-             newProfile = "tecnico";
-             finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
+            newProfile = "tecnico";
+            finalReply = reply.replace("[RESULTADO_PERFIL: TÉCNICO]", "");
           } else if (reply.includes("[RESULTADO_PERFIL: ENGAJADO]")) {
-             newProfile = "engajado";
-             finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
+            newProfile = "engajado";
+            finalReply = reply.replace("[RESULTADO_PERFIL: ENGAJADO]", "");
           } else if (reply.includes("[RESULTADO_PERFIL: EM TRANSIÇÃO]")) {
-             newProfile = "transicao";
-             finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
+            newProfile = "transicao";
+            finalReply = reply.replace("[RESULTADO_PERFIL: EM TRANSIÇÃO]", "");
           }
 
           if (newProfile) {
             setProfile(newProfile);
-          // Salva o perfil no banco de dados
-          try {
-            await fetch(`${API_BASE}/api/users/me/profile`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ profile: newProfile })
-            });
-          } catch (err) {
-            console.error('Falha ao salvar perfil no banco:', err);
+            // Salva o perfil no banco de dados
+            try {
+              await fetch(`${API_BASE}/api/users/me/profile`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ profile: newProfile })
+              });
+            } catch (err) {
+              console.error('Falha ao salvar perfil no banco:', err);
+            }
           }
         }
-      }
 
         setChat((c) => [
           ...c.slice(0, -1),
@@ -510,7 +529,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     try {
       const token = localStorage.getItem("token") || "";
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      
+
       const payload = {
         employeeId: selectedMember, // Numa versão real seria o ID do banco. Aqui usaremos o nome
         employeeName: selectedMember,
@@ -565,31 +584,33 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     <div className="flex min-h-screen w-full bg-background text-foreground">
       {/* OVERLAY MOBILE */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 sm:hidden backdrop-blur-sm transition-opacity" 
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
       {/* SIDEBAR */}
       <aside
         className={cn(
-          "fixed sm:sticky top-0 z-50 sm:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 sm:bg-card/70 backdrop-blur-xl transition-all duration-300 flex",
-          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full sm:translate-x-0 sm:w-20"
+          "fixed lg:sticky top-0 z-50 lg:z-30 h-screen shrink-0 flex-col border-r border-border bg-card/95 lg:bg-card/70 backdrop-blur-xl transition-all duration-300 flex",
+          isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-20"
         )}
       >
         <div className={cn("flex items-center justify-between py-5", isSidebarOpen ? "px-5" : "px-0 justify-center")}>
-          <div className={cn("flex items-center gap-3", !isSidebarOpen && "sm:hidden")}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
-              <Sparkles className="h-6 w-6 text-white" />
+          <div className={cn("flex items-center gap-3", !isSidebarOpen && "lg:hidden")}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg text-white font-semibold text-lg ring-2 ring-background dark:ring-[#0a101f]">
+              {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
             </div>
-            <div>
-              <div className="text-base font-semibold tracking-tight">ClearIT</div>
-              <div className="text-xs text-muted-foreground">Smart Leading</div>
+            <div className="overflow-hidden">
+              <div className="text-sm font-semibold tracking-tight text-foreground dark:text-white truncate" title={userData?.name || 'Usuário'}>
+                {userData?.name || 'Usuário'}
+              </div>
+              <div className="text-xs text-muted-foreground dark:text-slate-400 truncate">Smart Leading</div>
             </div>
           </div>
           {(!isSidebarOpen) ? (
-            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-900/40">
-              <Sparkles className="h-6 w-6 text-white" />
+            <div className="hidden lg:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg text-white font-semibold text-lg ring-2 ring-background dark:ring-[#0a101f]" title={userData?.name || 'Usuário'}>
+              {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
             </div>
           ) : (
             <Button
@@ -598,8 +619,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               onClick={() => setIsSidebarOpen(false)}
               className="text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
-              <X className="h-5 w-5 sm:hidden" />
-              <Menu className="h-5 w-5 hidden sm:block" />
+              <X className="h-5 w-5 lg:hidden" />
+              <Menu className="h-5 w-5 hidden lg:block" />
             </Button>
           )}
         </div>
@@ -617,7 +638,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
             return (
               <button
                 key={item.id}
-                onClick={() => { setActive(item.id); if (window.innerWidth < 640) setIsSidebarOpen(false); }}
+                onClick={() => { setActive(item.id); if (window.innerWidth < 1024) setIsSidebarOpen(false); }}
                 className={cn(
                   "flex w-full items-center rounded-lg transition-all min-h-[44px]",
                   isSidebarOpen ? "gap-3 px-3 py-3 text-base" : "justify-center p-3",
@@ -627,8 +648,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 )}
                 title={!isSidebarOpen ? item.label : undefined}
               >
-                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "h-6 w-6")} />
-                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "hidden")}>{item.label}</span>
+                <Icon className={cn("h-5 w-5 shrink-0", !isSidebarOpen && "lg:h-6 lg:w-6")} />
+                <span className={cn("transition-opacity truncate whitespace-nowrap", !isSidebarOpen && "lg:hidden")}>{item.label}</span>
               </button>
             );
           })}
@@ -642,25 +663,37 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 Configurações & Acessibilidade
               </div>
             )}
-            
+
             <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5" : "w-full justify-center")}>
               <div className={cn("flex items-center gap-2 text-sm text-muted-foreground", !isSidebarOpen && "hidden")}>
                 {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 {isDark ? "Dark" : "Light"}
               </div>
               {!isSidebarOpen && (isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />)}
-              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "hidden")} />
+              <Switch checked={isDark} onCheckedChange={setIsDark} className={cn(!isSidebarOpen && "lg:hidden")} />
             </div>
-            
+
             <div className={cn("flex items-center justify-between rounded-lg", isSidebarOpen ? "px-2 py-1.5 mt-1" : "w-full justify-center")}>
               <div className={cn("flex items-center gap-2 text-sm text-muted-foreground", !isSidebarOpen && "hidden")}>
                 <Accessibility className="h-4 w-4" />
                 Alto contraste
               </div>
               {!isSidebarOpen && <Accessibility className="h-5 w-5 text-muted-foreground" />}
-              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "hidden")} />
+              <Switch checked={isHighContrast} onCheckedChange={setIsHighContrast} className={cn(!isSidebarOpen && "lg:hidden")} />
             </div>
           </div>
+
+          <button
+            onClick={onLogout}
+            className={cn(
+              "mt-3 flex items-center justify-center gap-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200",
+              isSidebarOpen ? "w-full py-2.5 px-4 text-sm font-semibold" : "w-10 h-10 p-0 mx-auto"
+            )}
+            title={!isSidebarOpen ? "Sair" : undefined}
+          >
+            <LogOut className={cn("h-4 w-4 shrink-0", !isSidebarOpen && "lg:h-5 lg:w-5")} />
+            {isSidebarOpen && <span>Sair</span>}
+          </button>
         </div>
       </aside>
 
@@ -675,23 +708,31 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               "radial-gradient(1000px 500px at 10% -10%, rgba(37,99,235,0.15), transparent 60%), radial-gradient(800px 400px at 100% 0%, rgba(59,130,246,0.10), transparent 60%)",
           }}
         />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="relative mx-auto max-w-[1600px] w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {/* Header */}
-          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center justify-between">
-            <div className="flex items-center gap-4">
-              {!isSidebarOpen && (
+          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center justify-between">
+            <div className="flex items-center gap-3">
+              {(!isSidebarOpen) && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="flex shrink-0 -ml-2"
+                  className="hidden lg:flex text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
                 >
-                  <Menu className="h-6 w-6" />
+                  <Menu className="h-5 w-5" />
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <div>
                 <div className="text-xs sm:text-sm uppercase tracking-widest text-blue-400/80">Dashboard do Líder</div>
-                <h1 className="mt-1 text-2xl md:text-3xl font-semibold tracking-tight">Bom dia, {userData?.name?.split(' ')[0] || 'Líder'} 👋</h1>
+                <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-foreground dark:text-white">Bom dia, {userData?.name?.split(' ')[0] || 'Líder'} 👋</h1>
               </div>
             </div>
             <div className="flex items-center flex-wrap gap-2">
@@ -729,7 +770,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               <div className="mb-6">
                 <h2 className="mb-3 text-lg font-semibold tracking-tight">Assistente de Liderança (IA)</h2>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <GlassCard 
+                  <GlassCard
                     className="cursor-pointer p-4 transition-all hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-blue-500/10 group"
                     onClick={() => openChatWithIntent("sbi")}
                   >
@@ -744,7 +785,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     </div>
                   </GlassCard>
 
-                  <GlassCard 
+                  <GlassCard
                     className="cursor-pointer p-4 transition-all hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-blue-500/10 group"
                     onClick={() => openChatWithIntent("one_on_one")}
                   >
@@ -759,7 +800,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     </div>
                   </GlassCard>
 
-                  <GlassCard 
+                  <GlassCard
                     className="cursor-pointer p-4 transition-all hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-blue-500/10 group"
                     onClick={() => openChatWithIntent("pdi")}
                   >
@@ -964,14 +1005,34 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   </div>
                   <p className="text-sm text-muted-foreground">{team.length} colaboradores sob sua liderança</p>
                 </div>
-                <div className="relative w-full md:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar colaborador..."
-                    className="pl-9 border-border bg-secondary/50"
-                    value={teamSearch}
-                    onChange={(e) => setTeamSearch(e.target.value)}
-                  />
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar colaborador..."
+                      className="pl-9 border-border bg-secondary/50"
+                      value={teamSearch}
+                      onChange={(e) => setTeamSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex p-1 bg-secondary/50 rounded-md border border-border h-10 w-fit self-end sm:self-auto">
+                    <Button
+                      variant={teamViewMode === 'grid' ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setTeamViewMode('grid')}
+                      className="px-3"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={teamViewMode === 'list' ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setTeamViewMode('list')}
+                      className="px-3"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -984,92 +1045,183 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   <p className="text-muted-foreground dark:text-slate-400">Nenhum colaborador encontrado para "{teamSearch}"</p>
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredAndSortedTeam.map((member, i) => {
-                    const radius = 32;
-                    const circumference = 2 * Math.PI * radius;
-                    const strokeDashoffset = circumference - (member.pdi / 100) * circumference;
+                <>
+                  {teamViewMode === 'grid' ? (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {filteredAndSortedTeam.map((member, i) => {
+                        const radius = 32;
+                        const circumference = 2 * Math.PI * radius;
+                        const strokeDashoffset = circumference - (member.pdi / 100) * circumference;
 
-                    let ringColor = "text-emerald-500";
-                    if (member.pdi < 40) ringColor = "text-rose-500";
-                    else if (member.pdi <= 70) ringColor = "text-amber-500";
+                        let ringColor = "text-emerald-500";
+                        if (member.pdi < 40) ringColor = "text-rose-500";
+                        else if (member.pdi <= 70) ringColor = "text-amber-500";
 
-                    const initials = member.name
-                      .split(" ")
-                      .map((n: string) => n[0])
-                      .join("")
-                      .substring(0, 2)
-                      .toUpperCase();
+                        const initials = member.name
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .substring(0, 2)
+                          .toUpperCase();
 
-                    return (
-                      <GlassCard key={i} className="p-5 flex flex-col hover:border-primary/50 transition-colors">
-                        <div className="flex flex-col items-center mb-5">
-                          <div className="relative mb-3 flex items-center justify-center">
-                            <svg className="w-24 h-24 transform -rotate-90">
-                              <circle
-                                className="text-secondary/80"
-                                strokeWidth="4"
-                                stroke="currentColor"
-                                fill="transparent"
-                                r={radius}
-                                cx="48"
-                                cy="48"
-                              />
-                              <circle
-                                className={`${ringColor} transition-all duration-1000 ease-in-out`}
-                                strokeWidth="4"
-                                strokeDasharray={circumference}
-                                strokeDashoffset={strokeDashoffset}
-                                strokeLinecap="round"
-                                stroke="currentColor"
-                                fill="transparent"
-                                r={radius}
-                                cx="48"
-                                cy="48"
-                              />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center text-xl font-semibold text-foreground">
-                                {initials}
+                        return (
+                          <GlassCard key={i} className="p-5 flex flex-col relative hover:border-primary/50 transition-colors">
+                            <div className="absolute top-3 right-3">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuItem onClick={() => openChatWithIntent("sbi", member.name)}>
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Aplicar feedback
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openChatWithIntent("pdi", member.name)}>
+                                    <Target className="h-4 w-4 mr-2" />
+                                    Gerar PDI
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openChatWithIntent("one_on_one", member.name)}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    Criar pauta 1:1
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedMember(member.name);
+                                    setNewMeetingOpen(true);
+                                  }}>
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    Agendar Reunião
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    fetchProntuario(member.name);
+                                    setIsProntuarioOpen(true);
+                                  }}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    Ver Prontuário
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            <div className="flex flex-col items-center mb-5">
+                              <div className="relative mb-3 flex items-center justify-center">
+                                <svg className="w-24 h-24 transform -rotate-90">
+                                  <circle
+                                    className="text-secondary/80"
+                                    strokeWidth="4"
+                                    stroke="currentColor"
+                                    fill="transparent"
+                                    r={radius}
+                                    cx="48"
+                                    cy="48"
+                                  />
+                                  <circle
+                                    className={`${ringColor} transition-all duration-1000 ease-in-out`}
+                                    strokeWidth="4"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={strokeDashoffset}
+                                    strokeLinecap="round"
+                                    stroke="currentColor"
+                                    fill="transparent"
+                                    r={radius}
+                                    cx="48"
+                                    cy="48"
+                                  />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center text-xl font-semibold text-foreground">
+                                    {initials}
+                                  </div>
+                                </div>
+                              </div>
+                              <h3 className="font-semibold text-lg text-center truncate w-full">{member.name}</h3>
+                              <p className="text-sm text-muted-foreground">{member.role}</p>
+                              <div className={`mt-2 text-xs font-medium px-2 py-1 rounded-full bg-secondary/80 ${ringColor}`}>
+                                PDI: {member.pdi}%
                               </div>
                             </div>
-                          </div>
-                          <h3 className="font-semibold text-lg text-center truncate w-full">{member.name}</h3>
-                          <p className="text-sm text-muted-foreground">{member.role}</p>
-                          <div className={`mt-2 text-xs font-medium px-2 py-1 rounded-full bg-secondary/80 ${ringColor}`}>
-                            PDI: {member.pdi}%
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 mt-auto">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full border-primary/20 hover:bg-primary/10 text-xs px-2"
-                            onClick={() => {
-                              setSelectedMember(member.name);
-                              setNewMeetingOpen(true);
-                            }}
-                          >
-                            <Calendar className="w-3 h-3 mr-1" />
-                            Agendar 1:1
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full border-border bg-secondary/40 text-xs px-2 hover:bg-secondary"
-                            onClick={() => {
-                              fetchProntuario(member.name);
-                              setIsProntuarioOpen(true);
-                            }}
-                          >
-                            <ClipboardList className="w-3 h-3 mr-1" />
-                            Ver Prontuário
-                          </Button>
-                        </div>
-                      </GlassCard>
-                    );
-                  })}
-                </div>
+
+                          </GlassCard>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {filteredAndSortedTeam.map((member, i) => {
+                        let ringColor = "text-emerald-500";
+                        if (member.pdi < 40) ringColor = "text-rose-500";
+                        else if (member.pdi <= 70) ringColor = "text-amber-500";
+
+                        const initials = member.name
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .substring(0, 2)
+                          .toUpperCase();
+
+                        return (
+                          <GlassCard key={i} className="p-4 flex items-center gap-4 hover:border-primary/50 transition-colors">
+                            <div className={`h-12 w-12 rounded-full flex shrink-0 items-center justify-center text-lg font-semibold text-foreground bg-secondary ring-2 ${ringColor}`}>
+                              {initials}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-base truncate">{member.name}</h3>
+                              <p className="text-sm text-muted-foreground truncate">{member.role}</p>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-4">
+                              <div className={`text-xs font-medium px-2 py-1 rounded-full bg-secondary/80 ${ringColor}`}>
+                                PDI: {member.pdi}%
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuItem onClick={() => {
+                                    openChatWithIntent("sbi", member.name);
+                                  }}>
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Aplicar feedback
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    openChatWithIntent("pdi", member.name);
+                                  }}>
+                                    <Target className="h-4 w-4 mr-2" />
+                                    Gerar PDI
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    openChatWithIntent("one_on_one", member.name);
+                                  }}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    Criar pauta 1:1
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedMember(member.name);
+                                    setNewMeetingOpen(true);
+                                  }}>
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    Agendar Reunião
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    fetchProntuario(member.name);
+                                    setIsProntuarioOpen(true);
+                                  }}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    Ver Prontuário
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </GlassCard>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
 
               {team.length > 0 && (
@@ -1214,9 +1366,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Card 1: Índice de Preparo */}
-                <GlassCard className="relative overflow-hidden p-5 flex flex-col justify-between group">
+                <GlassCard className="lg:col-span-2 relative overflow-hidden p-5 flex flex-col justify-between group">
                   <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-violet-500/20 to-violet-500/0 blur-2xl" />
                   <div className="relative">
                     <div className="text-sm text-muted-foreground mb-2">Índice de Preparo</div>
@@ -1241,65 +1393,72 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                   <div className="absolute -left-6 -bottom-6 h-24 w-24 rounded-full bg-gradient-to-tr from-emerald-500/20 to-emerald-500/0 blur-2xl" />
                   <div className="relative z-10">
                     <div className="text-sm text-muted-foreground mb-4">Check-in Diário</div>
-                    <p className="text-sm text-foreground mb-4">Como você classificaria sua energia hoje?</p>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <button 
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+                      <h3 className="text-sm text-foreground flex items-center gap-2">
+                        Como você classificaria sua energia hoje?
+                      </h3>
+                      {metrics?.currentSentiment && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-500 text-xs font-medium text-emerald-600 dark:text-[#00e676] bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50 self-start sm:self-auto">
+                          Obrigado por compartilhar! 💙
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-row justify-center items-center w-full gap-4 sm:gap-8 py-2">
+                      <button
                         className={cn(
-                          "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
-                          metrics?.currentSentiment === 'good' 
-                            ? 'border-emerald-500 bg-emerald-50/50 dark:border-[#00e676] dark:bg-emerald-900/20 shadow-md ring-4 ring-emerald-500/10' 
-                            : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
-                          metrics?.currentSentiment && metrics?.currentSentiment !== 'good' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                          "group flex flex-col items-center gap-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                          metrics?.currentSentiment && metrics?.currentSentiment !== 'good' ? 'opacity-40 hover:opacity-70 grayscale-[0.5]' : ''
                         )}
                         onClick={() => handleSentiment('good')}
                       >
-                        <div className={cn("p-3 rounded-full transition-all duration-300", metrics?.currentSentiment === 'good' ? "bg-emerald-100 dark:bg-emerald-800/40 scale-110" : "bg-emerald-100/50 dark:bg-emerald-900/20 group-hover:scale-110")}>
-                          <Smile className={cn("w-8 h-8 transition-colors", metrics?.currentSentiment === 'good' ? "text-emerald-600 dark:text-[#00e676]" : "text-emerald-500/70 dark:text-[#00e676]/70")} />
+                        <div className={cn(
+                          "p-2 sm:p-2.5 rounded-full border-2 transition-all duration-300",
+                          metrics?.currentSentiment === 'good'
+                            ? "bg-emerald-100 border-emerald-500 shadow-sm ring-2 ring-emerald-500/20 dark:bg-emerald-900/40 dark:border-[#00e676]"
+                            : "bg-secondary/30 border-transparent hover:bg-secondary dark:bg-slate-800/30 hover:border-emerald-200 dark:hover:border-emerald-800"
+                        )}>
+                          <Smile className={cn("w-8 h-8 sm:w-10 sm:h-10 transition-colors", metrics?.currentSentiment === 'good' ? "text-emerald-600 dark:text-[#00e676]" : "text-emerald-500/60 dark:text-[#00e676]/60")} />
                         </div>
-                        <span className={cn("text-sm font-semibold transition-colors", metrics?.currentSentiment === 'good' ? "text-emerald-700 dark:text-[#00e676]" : "text-muted-foreground dark:text-slate-400")}>Muito bem!</span>
+                        <span className={cn("text-xs font-medium transition-colors", metrics?.currentSentiment === 'good' ? "text-emerald-700 dark:text-[#00e676]" : "text-muted-foreground")}>Muito bem!</span>
                       </button>
-                      
-                      <button 
+
+                      <button
                         className={cn(
-                          "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
-                          metrics?.currentSentiment === 'neutral' 
-                            ? 'border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-900/20 shadow-md ring-4 ring-blue-500/10' 
-                            : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
-                          metrics?.currentSentiment && metrics?.currentSentiment !== 'neutral' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                          "group flex flex-col items-center gap-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                          metrics?.currentSentiment && metrics?.currentSentiment !== 'neutral' ? 'opacity-40 hover:opacity-70 grayscale-[0.5]' : ''
                         )}
                         onClick={() => handleSentiment('neutral')}
                       >
-                        <div className={cn("p-3 rounded-full transition-all duration-300", metrics?.currentSentiment === 'neutral' ? "bg-blue-100 dark:bg-blue-800/40 scale-110" : "bg-blue-100/50 dark:bg-blue-900/20 group-hover:scale-110")}>
-                          <Meh className={cn("w-8 h-8 transition-colors", metrics?.currentSentiment === 'neutral' ? "text-blue-600 dark:text-blue-400" : "text-blue-500/70 dark:text-blue-400/70")} />
+                        <div className={cn(
+                          "p-2 sm:p-2.5 rounded-full border-2 transition-all duration-300",
+                          metrics?.currentSentiment === 'neutral'
+                            ? "bg-blue-100 border-blue-500 shadow-sm ring-2 ring-blue-500/20 dark:bg-blue-900/40 dark:border-blue-400"
+                            : "bg-secondary/30 border-transparent hover:bg-secondary dark:bg-slate-800/30 hover:border-blue-200 dark:hover:border-blue-800"
+                        )}>
+                          <Meh className={cn("w-8 h-8 sm:w-10 sm:h-10 transition-colors", metrics?.currentSentiment === 'neutral' ? "text-blue-600 dark:text-blue-400" : "text-blue-500/60 dark:text-blue-400/60")} />
                         </div>
-                        <span className={cn("text-sm font-semibold transition-colors", metrics?.currentSentiment === 'neutral' ? "text-blue-700 dark:text-blue-400" : "text-muted-foreground dark:text-slate-400")}>Normal</span>
+                        <span className={cn("text-xs font-medium transition-colors", metrics?.currentSentiment === 'neutral' ? "text-blue-700 dark:text-blue-400" : "text-muted-foreground")}>Normal</span>
                       </button>
-                      
-                      <button 
+
+                      <button
                         className={cn(
-                          "group flex-1 py-5 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
-                          metrics?.currentSentiment === 'bad' 
-                            ? 'border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-900/20 shadow-md ring-4 ring-red-500/10' 
-                            : 'border-transparent bg-secondary/50 hover:bg-secondary dark:bg-slate-800/50 dark:hover:bg-slate-800',
-                          metrics?.currentSentiment && metrics?.currentSentiment !== 'bad' ? 'opacity-50 hover:opacity-80 grayscale-[0.5]' : ''
+                          "group flex flex-col items-center gap-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
+                          metrics?.currentSentiment && metrics?.currentSentiment !== 'bad' ? 'opacity-40 hover:opacity-70 grayscale-[0.5]' : ''
                         )}
                         onClick={() => handleSentiment('bad')}
                       >
-                        <div className={cn("p-3 rounded-full transition-all duration-300", metrics?.currentSentiment === 'bad' ? "bg-red-100 dark:bg-red-800/40 scale-110" : "bg-red-100/50 dark:bg-red-900/20 group-hover:scale-110")}>
-                          <Frown className={cn("w-8 h-8 transition-colors", metrics?.currentSentiment === 'bad' ? "text-red-600 dark:text-red-500" : "text-red-500/70 dark:text-red-500/70")} />
+                        <div className={cn(
+                          "p-2 sm:p-2.5 rounded-full border-2 transition-all duration-300",
+                          metrics?.currentSentiment === 'bad'
+                            ? "bg-red-100 border-red-500 shadow-sm ring-2 ring-red-500/20 dark:bg-red-900/40 dark:border-red-500"
+                            : "bg-secondary/30 border-transparent hover:bg-secondary dark:bg-slate-800/30 hover:border-red-200 dark:hover:border-red-800"
+                        )}>
+                          <Frown className={cn("w-8 h-8 sm:w-10 sm:h-10 transition-colors", metrics?.currentSentiment === 'bad' ? "text-red-600 dark:text-red-400" : "text-red-500/60 dark:text-red-400/60")} />
                         </div>
-                        <span className={cn("text-sm font-semibold transition-colors", metrics?.currentSentiment === 'bad' ? "text-red-700 dark:text-red-500" : "text-muted-foreground dark:text-slate-400")}>Estressado</span>
+                        <span className={cn("text-xs font-medium transition-colors", metrics?.currentSentiment === 'bad' ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>Estressado</span>
                       </button>
                     </div>
                   </div>
-                  {metrics?.currentSentiment && (
-                    <div className="absolute top-5 right-5 animate-in fade-in zoom-in duration-300">
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
-                    </div>
-                  )}
                   <div className="mt-6 flex justify-end relative z-10">
                     <button className="flex items-center gap-2 text-xs font-medium text-muted-foreground dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00e676] transition-colors">
                       <TrendingUp className="w-4 h-4" />
@@ -1383,75 +1542,84 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       {/* ONBOARDING MODAL / ASSISTANT MODAL */}
       <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-        <DialogContent className={cn("w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background/95 p-0 text-foreground backdrop-blur-2xl overflow-hidden flex flex-col", chatIntent === "profile_discovery" ? "max-w-[1300px]" : "max-w-[800px]")}>
-          <div className={cn("grid h-[85vh] max-h-[800px] min-h-[500px] gap-0", chatIntent === "profile_discovery" ? "md:grid-cols-2" : "md:grid-cols-1")}>
+        <DialogContent className={cn("w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background sm:bg-background/95 p-0 text-foreground sm:backdrop-blur-2xl overflow-hidden flex flex-col [&>button]:hidden", chatIntent === "profile_discovery" ? "max-w-[1300px]" : "max-w-[800px]")}>
+          <div className={cn("grid h-[100dvh] sm:h-[85vh] sm:max-h-[800px] sm:min-h-[500px] gap-0", chatIntent === "profile_discovery" ? "md:grid-cols-2" : "md:grid-cols-1")}>
             {/* Left: quick profile */}
             {chatIntent === "profile_discovery" && (
               <div className="flex h-full min-h-0 flex-col overflow-y-auto custom-scrollbar border-b border-border p-10 md:border-b-0 md:border-r">
                 <DialogHeader className="space-y-3 text-left">
                   <DialogTitle className="text-3xl">
-                  {chatIntent === "profile_discovery" ? "Conheça os Perfis de Liderança" : "Assistente ClearIT"}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground">
-                  {chatIntent === "profile_discovery" 
-                    ? "Converse com nossa IA para descobrir qual perfil combina com você. Isso personaliza roteiros, feedbacks e 1:1s."
-                    : "Converse com nossa IA para estruturar seus feedbacks, 1:1s e planos de desenvolvimento."}
-                </DialogDescription>
-              </DialogHeader>
+                    {chatIntent === "profile_discovery" ? "Conheça os Perfis de Liderança" : "Assistente ClearIT"}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    {chatIntent === "profile_discovery"
+                      ? "Converse com nossa IA para descobrir qual perfil combina com você. Isso personaliza roteiros, feedbacks e 1:1s."
+                      : "Converse com nossa IA para estruturar seus feedbacks, 1:1s e planos de desenvolvimento."}
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="mt-8 text-sm font-medium uppercase tracking-widest text-blue-400/80">Perfis Disponíveis</div>
-              <div className="mt-5 flex flex-1 flex-col justify-center gap-5">
-                <ProfileCard
-                  icon={Wrench}
-                  title="Técnico"
-                  desc="Objetivo, orientado a fatos. Prefere roteiros diretos e curtos."
-                />
-                <ProfileCard
-                  icon={Rocket}
-                  title="Engajado"
-                  desc="Já pratica 1:1s. Busca eficiência e histórico organizado."
-                />
-                <ProfileCard
-                  icon={HeartHandshake}
-                  title="Em Transição"
-                  desc="Novo em gestão. Precisa de apoio passo a passo e validação."
-                />
+                <div className="mt-8 text-sm font-medium uppercase tracking-widest text-blue-400/80">Perfis Disponíveis</div>
+                <div className="mt-5 flex flex-1 flex-col justify-center gap-5">
+                  <ProfileCard
+                    icon={Wrench}
+                    title="Técnico"
+                    desc="Objetivo, orientado a fatos. Prefere roteiros diretos e curtos."
+                  />
+                  <ProfileCard
+                    icon={Rocket}
+                    title="Engajado"
+                    desc="Já pratica 1:1s. Busca eficiência e histórico organizado."
+                  />
+                  <ProfileCard
+                    icon={HeartHandshake}
+                    title="Em Transição"
+                    desc="Novo em gestão. Precisa de apoio passo a passo e validação."
+                  />
+                </div>
               </div>
-            </div>
             )}
 
             {/* Right: AI chat */}
-            <div className="flex h-full min-h-0 flex-col p-8 md:p-10 relative">
-              <div className="shrink-0 text-sm font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
-              <div className="mt-1 flex items-center justify-between shrink-0">
-                <div className="text-xl font-semibold">
-                  {chatIntent === "profile_discovery" ? "Descubra seu perfil" 
-                   : chatIntent === "sbi" ? "Roteiro de Feedback (SBI)"
-                   : chatIntent === "one_on_one" ? "Preparar 1:1"
-                   : "Elaborar PDI"}
+            <div className="flex h-full min-h-0 flex-col p-4 sm:p-8 md:p-10 relative">
+              <div className="flex items-center justify-between sm:block shrink-0">
+                <div>
+                  <div className="hidden sm:block text-sm font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
+                  <div className="mt-1 flex items-center justify-between">
+                    <div className="text-lg sm:text-xl font-semibold">
+                      {chatIntent === "profile_discovery" ? "Descubra seu perfil"
+                        : chatIntent === "sbi" ? "Roteiro de Feedback (SBI)"
+                          : chatIntent === "one_on_one" ? "Preparar 1:1"
+                            : "Elaborar PDI"}
+                    </div>
+                  </div>
                 </div>
-                {chatIntent !== "profile_discovery" && (
-                  <Select value={docEmployeeId} onValueChange={setDocEmployeeId}>
-                    <SelectTrigger className="w-[180px] h-9 text-xs border-border bg-secondary/60">
-                      <SelectValue placeholder="Vincular a liderado..." />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-popover-foreground">
-                      {team.length === 0 ? (
-                        <SelectItem value="none" disabled>Nenhum liderado</SelectItem>
-                      ) : team.map((m) => (
-                        <SelectItem key={m.uid} value={m.name}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <div className="flex items-center gap-2">
+                  {chatIntent !== "profile_discovery" && (
+                    <Select value={docEmployeeId === "none" ? undefined : docEmployeeId} onValueChange={setDocEmployeeId} disabled={isChatContextLocked}>
+                      <SelectTrigger className="w-[140px] sm:w-[180px] h-9 text-xs border-border bg-secondary/60">
+                        <SelectValue placeholder="Vincular liderado..." />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover text-popover-foreground">
+                        {team.length === 0 ? (
+                          <SelectItem value="none" disabled>Nenhum liderado</SelectItem>
+                        ) : team.map((m) => (
+                          <SelectItem key={m.uid} value={m.name}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9 rounded-full" onClick={() => setIsChatOpen(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
-              <p className="shrink-0 text-sm text-muted-foreground mt-2">
+              <p className="hidden sm:block shrink-0 text-sm text-muted-foreground mt-2">
                 {chatIntent === "profile_discovery" ? "Um agente irá mapear seu DISC em poucas perguntas." : "Forneça o contexto e deixe o agente estruturar tudo para você."}
               </p>
 
               <div
                 ref={chatContainerRef}
-                className="mt-4 flex-1 space-y-4 overflow-y-auto custom-scrollbar rounded-xl border border-border bg-secondary/40 p-5 min-h-0"
+                className="mt-4 flex-1 space-y-4 overflow-y-auto custom-scrollbar rounded-xl sm:border border-border sm:bg-secondary/40 sm:p-5 min-h-0 pb-20 sm:pb-0"
               >
                 {chat.map((m, i) => (
                   <div
@@ -1475,18 +1643,18 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       )}
                     >
                       {m.from === "bot" ? (
-                        <ReactMarkdown 
+                        <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
-                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
-                            h3: ({node, ...props}) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
-                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                            li: ({node, ...props}) => <li className="pl-1" {...props} />,
-                            strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
-                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
+                            h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
+                            h2: ({ node, ...props }) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                            h3: ({ node, ...props }) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
+                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                            li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                            strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
                           }}
                         >
                           {m.text}
@@ -1494,22 +1662,22 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       ) : (
                         <div className="whitespace-pre-wrap">{m.text}</div>
                       )}
-                      
+
                       {/* Copy and Save buttons for bot messages */}
                       {m.from === "bot" && chatIntent !== "profile_discovery" && (
                         <div className="absolute -right-2 -bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-6 w-6 bg-secondary/80 text-muted-foreground hover:text-foreground rounded-full"
                             onClick={() => handleSaveDocument(m.text, chatIntent)}
                             title="Salvar no Prontuário"
                           >
                             <CheckCircle2 className="h-3 w-3" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-6 w-6 bg-secondary/80 text-muted-foreground hover:text-foreground rounded-full"
                             onClick={() => {
                               navigator.clipboard.writeText(m.text);
@@ -1547,7 +1715,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 </Button>
               </div>
 
-              <div className="mt-3 flex shrink-0 items-center justify-end border-t border-border pt-3">
+              <div className="hidden sm:flex mt-3 shrink-0 items-center justify-end border-t border-border pt-3">
                 <button
                   onClick={() => setIsChatOpen(false)}
                   className="text-xs text-muted-foreground hover:text-foreground"
@@ -1686,31 +1854,31 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 <div key={doc.id} className="rounded-xl border border-border bg-secondary/40 p-5 space-y-3">
                   <div className="flex items-center justify-between border-b border-border/50 pb-2">
                     <Badge variant="outline" className={
-                      doc.type === 'pdi' ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : 
-                      doc.type === 'one_on_one' ? "text-blue-400 border-blue-500/30 bg-blue-500/10" :
-                      "text-violet-400 border-violet-500/30 bg-violet-500/10"
+                      doc.type === 'pdi' ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
+                        doc.type === 'one_on_one' ? "text-blue-400 border-blue-500/30 bg-blue-500/10" :
+                          "text-violet-400 border-violet-500/30 bg-violet-500/10"
                     }>
-                      {doc.type === 'pdi' ? "Plano de Desenvolvimento (PDI)" : 
-                       doc.type === 'one_on_one' ? "Pauta de 1:1" : 
-                       "Feedback (SBI)"}
+                      {doc.type === 'pdi' ? "Plano de Desenvolvimento (PDI)" :
+                        doc.type === 'one_on_one' ? "Pauta de 1:1" :
+                          "Feedback (SBI)"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {new Date(doc.createdAt).toLocaleDateString()} às {new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <div className="rounded-lg bg-background/50 p-4 text-sm text-foreground whitespace-pre-wrap max-h-96 overflow-y-auto markdown-body">
-                    <ReactMarkdown 
+                    <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
-                        h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
-                        h3: ({node, ...props}) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
-                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                        li: ({node, ...props}) => <li className="pl-1" {...props} />,
-                        strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
-                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
+                        h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
+                        h2: ({ node, ...props }) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                        h3: ({ node, ...props }) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
+                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                        strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                        blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
                       }}
                     >
                       {doc.content}
@@ -1882,15 +2050,15 @@ function MeetingRow({
   );
 }
 
-function DateTimePickerCombo({ 
-  date, setDate, 
-  time, setTime 
-}: { 
+function DateTimePickerCombo({
+  date, setDate,
+  time, setTime
+}: {
   date: string, setDate: (v: string) => void,
-  time: string, setTime: (v: string) => void 
+  time: string, setTime: (v: string) => void
 }) {
   const [dateStr, setDateStr] = useState(date ? format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy') : "");
-  
+
   useEffect(() => {
     if (date) setDateStr(format(new Date(date + 'T12:00:00'), 'dd/MM/yyyy'));
     else setDateStr("");
@@ -1901,7 +2069,7 @@ function DateTimePickerCombo({
     if (val.length > 2) val = val.substring(0, 2) + '/' + val.substring(2);
     if (val.length > 5) val = val.substring(0, 5) + '/' + val.substring(5, 9);
     setDateStr(val);
-    
+
     if (val.length === 10) {
       const [d, m, y] = val.split('/');
       const parsed = new Date(`${y}-${m}-${d}T12:00:00`);
@@ -1916,10 +2084,10 @@ function DateTimePickerCombo({
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">Data</Label>
         <div className="relative flex items-center">
-          <Input 
-            placeholder="DD/MM/AAAA" 
-            value={dateStr} 
-            onChange={handleDateChange} 
+          <Input
+            placeholder="DD/MM/AAAA"
+            value={dateStr}
+            onChange={handleDateChange}
             maxLength={10}
             className="border-border bg-secondary/60 pr-10 text-sm"
           />
