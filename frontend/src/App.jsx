@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { LogOut, Loader2, Terminal, Sparkles } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
@@ -7,15 +7,15 @@ import { auth } from './lib/firebase';
 import MainLayout from './layouts/MainLayout';
 import Sidebar from './components/features/Sidebar';
 
-import ConducaoView from './views/ConducaoView'; 
-import SeparacaoUsuarioView from './views/SeparacaoUsuarioView';
+// Code splitting: Views carregadas sob demanda para reduzir bundle inicial
+const ConducaoView = lazy(() => import('./views/ConducaoView'));
+const SeparacaoUsuarioView = lazy(() => import('./views/SeparacaoUsuarioView'));
+const LoginView = lazy(() => import('./views/LoginView'));
+const LeaderDashboardView = lazy(() => import('./views/LeaderDashboardView'));
+const EmployeeDashboardView = lazy(() => import('./views/EmployeeDashboardView'));
+const HRDashboardView = lazy(() => import('./views/HRDashboardView'));
+const ResetPasswordView = lazy(() => import('./views/ResetPasswordView'));
 
-// Importa as Visões
-import LoginView from './views/LoginView';
-import LeaderDashboardView from './views/LeaderDashboardView';
-import EmployeeDashboardView from './views/EmployeeDashboardView';
-import HRDashboardView from './views/HRDashboardView';
-import ResetPasswordView from './views/ResetPasswordView';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,25 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from './components/ui/alert-dialog';import { dadosIniciaisEquipe } from "./dados";
+} from './components/ui/alert-dialog';
+import { dadosIniciaisEquipe } from "./dados";
+
+// Limpa o estado de navegação (hash + localStorage de tabs) para forçar "home" após login/logout
+function clearNavigationState() {
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  localStorage.removeItem('leaderDashboardActiveTab');
+  localStorage.removeItem('hrDashboardActiveTab');
+  localStorage.removeItem('employeeDashboardActiveTab');
+}
+
+// Fallback de loading para Suspense (componentes lazy)
+function LazyFallback() {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-background">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+    </div>
+  );
+}
 
 export default function App() {
 
@@ -95,6 +113,7 @@ export default function App() {
     await signOut(auth);
     localStorage.removeItem('token');
     localStorage.removeItem('email');
+    clearNavigationState(); // Limpa hash e tabs para próximo login abrir em "home"
     
     // Delay simulando a mensagem de despedida (aumentado para a animação)
     setTimeout(() => {
@@ -183,14 +202,16 @@ export default function App() {
 
   if ((resetView === 'reset-password' || firebaseMode === 'resetPassword') && oobCode) {
     return (
-      <ResetPasswordView 
-        oobCode={oobCode} 
-        onBackToLogin={() => {
-          // Limpa a URL e volta para o login
-          window.history.replaceState({}, '', window.location.pathname);
-          window.location.reload();
-        }} 
-      />
+      <Suspense fallback={<LazyFallback />}>
+        <ResetPasswordView 
+          oobCode={oobCode} 
+          onBackToLogin={() => {
+            // Limpa a URL e volta para o login
+            window.history.replaceState({}, '', window.location.pathname);
+            window.location.reload();
+          }} 
+        />
+      </Suspense>
     );
   }
 
@@ -205,10 +226,15 @@ export default function App() {
   
   // Renderização condicional: se não estiver logado, mostra o Login
   if (!isLoggedIn) {
-    return <LoginView onLoginSuccess={(data) => {
-      setUserData(data);
-      setIsLoggedIn(true);
-    }} />;
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <LoginView onLoginSuccess={(data) => {
+          clearNavigationState(); // Garante que o dashboard abre em "home"
+          setUserData(data);
+          setIsLoggedIn(true);
+        }} />
+      </Suspense>
+    );
   }
 
   // Props comuns a todos os dashboards
@@ -222,9 +248,14 @@ export default function App() {
   };
 
   const renderDashboard = () => {
-    if (userData?.role === 'employee') return <EmployeeDashboardView {...dashboardProps} />;
-    if (userData?.role === 'hr') return <HRDashboardView {...dashboardProps} />;
-    return <LeaderDashboardView {...dashboardProps} />;
+    let DashboardComponent = LeaderDashboardView;
+    if (userData?.role === 'employee') DashboardComponent = EmployeeDashboardView;
+    else if (userData?.role === 'hr') DashboardComponent = HRDashboardView;
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <DashboardComponent {...dashboardProps} />
+      </Suspense>
+    );
   };
 
   return (

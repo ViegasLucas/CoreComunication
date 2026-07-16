@@ -61,7 +61,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
     const hash = window.location.hash.replace(/^#/, '');
     const validTabs = ["home", "engagement", "meetings", "teams", "users"];
     if (validTabs.includes(hash)) return hash;
-    return localStorage.getItem("hrDashboardActiveTab") || "home";
+    return "home";
   };
 
   const [active, setActive] = useState(getInitialTab);
@@ -73,8 +73,6 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
   const [filterRole, setFilterRole] = useState("all");
   // Sync state -> URL and LocalStorage
   useEffect(() => {
-    localStorage.setItem("hrDashboardActiveTab", active);
-    
     const currentHash = window.location.hash.replace(/^#/, '');
     if (currentHash !== active) {
       window.history.pushState(null, '', `#${active}`);

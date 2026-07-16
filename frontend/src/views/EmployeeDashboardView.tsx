@@ -52,13 +52,12 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
     const hash = window.location.hash.replace(/^#/, '');
     const validTabs = ["home", "pdi", "meetings", "feedbacks"];
     if (validTabs.includes(hash)) return hash;
-    return localStorage.getItem("employeeDashboardActiveTab") || "home";
+    return "home";
   };
 
   const [active, setActive] = useState(getInitialTab);
 
   useEffect(() => {
-    localStorage.setItem("employeeDashboardActiveTab", active);
     const currentHash = window.location.hash.replace(/^#/, '');
     if (currentHash !== active) {
       window.history.pushState(null, '', `#${active}`);

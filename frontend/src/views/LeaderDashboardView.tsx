@@ -102,13 +102,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     const hash = window.location.hash.replace(/^#/, '');
     const validTabs = ["home", "team", "meetings", "pdi", "my-performance"];
     if (validTabs.includes(hash)) return hash;
-    return localStorage.getItem("leaderDashboardActiveTab") || "home";
+    return "home";
   };
 
   const [active, setActive] = useState(getInitialTab);
 
   useEffect(() => {
-    localStorage.setItem("leaderDashboardActiveTab", active);
     const currentHash = window.location.hash.replace(/^#/, '');
     if (currentHash !== active) {
       window.history.pushState(null, '', `#${active}`);
