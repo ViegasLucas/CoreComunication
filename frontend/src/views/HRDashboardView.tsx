@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Home,
   PieChart,
@@ -47,7 +48,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useDebounce } from "../hooks/useDebounce";
 import EngagementTab from "@/components/features/EngagementTab";
 import AdoptionTab from "@/components/features/AdoptionTab";
 import TeamsTab from "@/components/features/TeamsTab";
@@ -66,10 +67,10 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
 
   const [active, setActive] = useState(getInitialTab);
   
-  const [usersList, setUsersList] = useState<any[]>([]);
   const [selectedRole, setSelectedRole] = useState("leader");
   const [assignedEmployees, setAssignedEmployees] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [filterRole, setFilterRole] = useState("all");
   // Sync state -> URL and LocalStorage
   useEffect(() => {
@@ -101,67 +102,41 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
   
   const [userToDelete, setUserToDelete] = useState<{uid: string, name: string} | null>(null);
   
-  const [metrics, setMetrics] = useState({
-    averageEngagement: 0,
-    adoptionRate: 0,
-    completedPDIs: 0,
-    leadersAdoptionData: []
-  });
-  
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const queryClient = useQueryClient();
 
-  const fetchMetrics = async () => {
-    try {
+  const { data: metrics = { averageEngagement: 0, adoptionRate: 0, completedPDIs: 0, leadersAdoptionData: [] }, isLoading: isMetricsLoading } = useQuery({
+    queryKey: ['hrMetrics'],
+    queryFn: async () => {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/metrics`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setMetrics({
-          averageEngagement: data.averageEngagement || 0,
-          adoptionRate: data.adoptionRate || 0,
-          completedPDIs: data.completedPDIs || 0,
-          leadersAdoptionData: data.leadersAdoptionData || []
-        });
-        setAlerts(data.companyAlerts || []);
-        setDepartments(data.topDepartments || []);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+      if (!res.ok) throw new Error("Erro ao carregar métricas");
+      return res.json();
+    },
+    enabled: active === "home" || active === "meetings",
+    staleTime: 5 * 60 * 1000
+  });
 
-  useEffect(() => {
-    if (active === "home" || active === "meetings") {
-      fetchMetrics();
-    }
-  }, [active]);
+  const alerts = metrics.companyAlerts || [];
+  const departments = metrics.topDepartments || [];
 
-  const fetchUsers = async () => {
-    try {
+  const { data: usersList = [], isLoading: isUsersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setUsersList(data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+      if (!res.ok) throw new Error("Erro ao carregar usuários");
+      return res.json();
+    },
+    enabled: active === "users" || createUserModalOpen || editModalOpen,
+    staleTime: 5 * 60 * 1000
+  });
 
-  useEffect(() => {
-    if (active === "users") {
-      fetchUsers();
-    }
-  }, [active]);
-
-  const handleToggleStatus = async (uid: string, currentDisabledStatus: boolean) => {
-    try {
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ uid, currentDisabledStatus }: { uid: string, currentDisabledStatus: boolean }) => {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${uid}/status`, {
         method: "PATCH",
@@ -171,24 +146,29 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
         },
         body: JSON.stringify({ disabled: !currentDisabledStatus })
       });
-      
       if (!res.ok) throw new Error("Erro ao alterar status");
-      
+      return currentDisabledStatus;
+    },
+    onSuccess: (currentDisabledStatus) => {
       toast.success(currentDisabledStatus ? "Usuário reativado!" : "Usuário inativado!");
-      fetchUsers();
-    } catch (e: any) {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (e: any) => {
       toast.error(e.message);
     }
+  });
+
+  const handleToggleStatus = (uid: string, currentDisabledStatus: boolean) => {
+    toggleStatusMutation.mutate({ uid, currentDisabledStatus });
   };
 
   const promptDeleteUser = (uid: string, name: string) => {
     setUserToDelete({ uid, name });
   };
 
-  const confirmDeleteUser = async () => {
-    if (!userToDelete) return;
-    
-    try {
+  const deleteUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!userToDelete) return;
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${userToDelete.uid}`, {
         method: "DELETE",
@@ -196,16 +176,22 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
           "Authorization": `Bearer ${token}`
         }
       });
-      
       if (!res.ok) throw new Error("Erro ao excluir usuário");
-      
+      return;
+    },
+    onSuccess: () => {
       toast.success("Usuário excluído com sucesso!");
-      fetchUsers();
-    } catch (e: any) {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setUserToDelete(null);
+    },
+    onError: (e: any) => {
       toast.error(e.message);
-    } finally {
       setUserToDelete(null);
     }
+  });
+
+  const confirmDeleteUser = () => {
+    deleteUserMutation.mutate();
   };
 
   return (
@@ -537,9 +523,24 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                 </div>
 
                 <div className="space-y-3 overflow-y-auto pr-2 flex-1">
-                  {usersList
+                  {isUsersLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-secondary/30 h-16 animate-pulse">
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-secondary w-1/3 rounded"></div>
+                          <div className="h-3 bg-secondary w-1/4 rounded"></div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="h-8 w-8 bg-secondary rounded-md"></div>
+                          <div className="h-8 w-8 bg-secondary rounded-md"></div>
+                          <div className="h-8 w-8 bg-secondary rounded-md"></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                  usersList
                     .filter(u => {
-                      const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesSearch = u.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
                       const matchesRole = filterRole === "all" || u.role === filterRole;
                       return matchesSearch && matchesRole;
                     })
@@ -588,7 +589,8 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </div>
             </div>
@@ -634,7 +636,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                     toast.success('Usuário cadastrado com sucesso!');
                     form.reset();
                     setAssignedEmployees([]);
-                    fetchUsers();
+                    queryClient.invalidateQueries({ queryKey: ['users'] });
                     setCreateUserModalOpen(false);
                   } catch (error: any) {
                     toast.error(error.message);
@@ -740,7 +742,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       
                       toast.success('Usuário atualizado!');
                       setEditModalOpen(false);
-                      fetchUsers();
+                      queryClient.invalidateQueries({ queryKey: ['users'] });
                     } catch (error: any) {
                       toast.error(error.message);
                     }

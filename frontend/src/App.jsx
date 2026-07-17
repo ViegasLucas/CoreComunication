@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { LogOut, Loader2, Terminal, Sparkles } from 'lucide-react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './lib/firebase';
+import { onAuthStateChangedLazy, signOutLazy } from './lib/firebase-lazy';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Importa o Layout e Sidebar comuns
 import MainLayout from './layouts/MainLayout';
@@ -64,7 +64,8 @@ export default function App() {
 
   // Efeito para persistência de login no F5 (Firebase)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeFn = null;
+    onAuthStateChangedLazy(async (user) => {
       if (user) {
         try {
           const token = await user.getIdToken();
@@ -102,15 +103,15 @@ export default function App() {
         setUserData(null);
       }
       setIsAuthReady(true); // Terminou de carregar o estado inicial
-    });
+    }).then(unsub => { unsubscribeFn = unsub; });
 
-    return () => unsubscribe();
+    return () => { if (unsubscribeFn) unsubscribeFn(); };
   }, []);
 
   const confirmLogout = async () => {
     setShowLogoutAlert(false);
     setIsLoggingOut(true);
-    await signOut(auth);
+    await signOutLazy();
     localStorage.removeItem('token');
     localStorage.removeItem('email');
     clearNavigationState(); // Limpa hash e tabs para próximo login abrir em "home"

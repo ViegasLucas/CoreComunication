@@ -13,14 +13,62 @@
   <link rel="preconnect" href="https://firebaseauth.googleapis.com" />
   <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
   
-  <!-- Google Fonts: Inter (usada no design system) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Google Fonts: Inter (usada no design system) assíncrono -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  </noscript>
   
   <title>ClearIT Smart Leading</title>
+  <style>
+    /* App Shell Loader para resolver First Contentful Paint instantâneo */
+    #initial-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+      background-color: #fafafa;
+      font-family: 'Inter', sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      #initial-loader { background-color: #09090b; color: #fafafa; }
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(15, 23, 42, 0.1);
+      border-radius: 50%;
+      border-top-color: #0f172a;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 1rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      .spinner {
+        border: 3px solid rgba(250, 250, 250, 0.1);
+        border-top-color: #fafafa;
+      }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    /* CSS crítico inline: evita flash branco enquanto o CSS externo carrega */
+    .bg-background { background-color: #09090b; }
+    .text-foreground { color: #fafafa; }
+    .dark .bg-background { background-color: #09090b; }
+    .dark .text-foreground { color: #fafafa; }
+    body { margin: 0; }
+  </style>
 </head>
 
 <body class="antialiased text-foreground bg-background">
-  <div id="root"></div>
+  <div id="root">
+    <div id="initial-loader">
+      <div class="spinner"></div>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

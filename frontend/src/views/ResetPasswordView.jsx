@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Lock, Eye, EyeOff, CheckCircle2, XCircle, ArrowLeft, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
-import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { getFirebaseAuth } from "../lib/firebase-lazy";
 
 export default function ResetPasswordView({ oobCode, onBackToLogin }) {
   const [newPassword, setNewPassword] = useState("");
@@ -26,6 +25,8 @@ export default function ResetPasswordView({ oobCode, onBackToLogin }) {
   useEffect(() => {
     const verifyCode = async () => {
       try {
+        const auth = await getFirebaseAuth();
+        const { verifyPasswordResetCode } = await import('firebase/auth');
         const email = await verifyPasswordResetCode(auth, oobCode);
         setVerifiedEmail(email);
         setIsVerifying(false);
@@ -52,6 +53,8 @@ export default function ResetPasswordView({ oobCode, onBackToLogin }) {
     setError(null);
 
     try {
+      const auth = await getFirebaseAuth();
+      const { confirmPasswordReset } = await import('firebase/auth');
       await confirmPasswordReset(auth, oobCode, newPassword);
       setSuccess(true);
     } catch (err) {

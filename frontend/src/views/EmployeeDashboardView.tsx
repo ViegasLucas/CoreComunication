@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Home,
   Target,
@@ -78,39 +79,30 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [active]);
+  const queryClient = useQueryClient();
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('feedbacks'); // 'feedbacks' | 'kudos'
 
-  const [metrics, setMetrics] = useState({
-    wellbeingData: wellbeingDataMock,
-    pdiProgress: 72,
-    chatCount: 0
+  const { data: metrics = { wellbeingData: wellbeingDataMock, pdiProgress: 72, chatCount: 0 }, isLoading: isMetricsLoading } = useQuery({
+    queryKey: ['employeeMetrics'],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/metrics`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Erro ao buscar métricas");
+      const data = await res.json();
+      if (data.currentSentiment) {
+        setSentiment(data.currentSentiment);
+      }
+      return data;
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutos
   });
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/metrics`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMetrics(data);
-          if (data.currentSentiment) {
-            setSentiment(data.currentSentiment);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchMetrics();
-  }, []);
-
-  const handleSentiment = async (val: string) => {
-    setSentiment(val);
-    try {
+  const sentimentMutation = useMutation({
+    mutationFn: async (val: string) => {
+      setSentiment(val); // Optimistic UI
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/sentiment`, {
         method: "POST",
@@ -120,19 +112,16 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
         },
         body: JSON.stringify({ sentiment: val })
       });
-      if (res.ok) {
-        // Refetch to update graph
-        const metricsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me/metrics`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (metricsRes.ok) {
-          const data = await metricsRes.json();
-          setMetrics(data);
-        }
-      }
-    } catch (e) {
-      console.error(e);
+      if (!res.ok) throw new Error("Erro ao salvar humor");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employeeMetrics'] });
     }
+  });
+
+  const handleSentiment = (val: string) => {
+    sentimentMutation.mutate(val);
   };
 
   return (
@@ -309,7 +298,14 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-row justify-center items-center w-full gap-4 sm:gap-8 py-2">
+                  {isMetricsLoading ? (
+                    <div className="flex flex-row justify-center items-center w-full gap-4 sm:gap-8 py-2">
+                      <div className="w-12 h-12 bg-secondary animate-pulse rounded-full"></div>
+                      <div className="w-12 h-12 bg-secondary animate-pulse rounded-full"></div>
+                      <div className="w-12 h-12 bg-secondary animate-pulse rounded-full"></div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-row justify-center items-center w-full gap-4 sm:gap-8 py-2">
                     <button 
                       className={cn(
                         "group flex flex-col items-center gap-2 transition-all duration-300 transform active:scale-95 hover:-translate-y-1",
@@ -363,7 +359,8 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                       </div>
                       <span className={cn("text-xs font-medium transition-colors", sentiment === 'bad' ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>Estressado</span>
                     </button>
-                  </div>
+                    </div>
+                  )}
 
                   <div className="mt-6 flex justify-end">
                     <button className="flex items-center gap-2 text-xs font-medium text-muted-foreground dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00e676] transition-colors">
@@ -378,10 +375,19 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                   <h3 className="text-sm font-medium text-emerald-600 dark:text-[#00e676] mb-4 flex items-center gap-2">
                     Progresso PDI <Target className="h-4 w-4 ml-auto" />
                   </h3>
-                  <div className="text-4xl font-bold text-foreground dark:text-white mb-4">{metrics.pdiProgress}%</div>
-                  <div className="w-full bg-secondary dark:bg-slate-800 rounded-full h-2 mb-4">
-                    <div className="bg-gradient-to-r from-blue-500 to-emerald-500 dark:to-[#00e676] h-2 rounded-full" style={{ width: `${metrics.pdiProgress}%` }}></div>
-                  </div>
+                  {isMetricsLoading ? (
+                    <div className="space-y-4 mb-4">
+                      <div className="w-16 h-10 bg-secondary animate-pulse rounded-md"></div>
+                      <div className="w-full bg-secondary animate-pulse rounded-full h-2"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-4xl font-bold text-foreground dark:text-white mb-4">{metrics.pdiProgress}%</div>
+                      <div className="w-full bg-secondary dark:bg-slate-800 rounded-full h-2 mb-4">
+                        <div className="bg-gradient-to-r from-blue-500 to-emerald-500 dark:to-[#00e676] h-2 rounded-full" style={{ width: `${metrics.pdiProgress}%` }}></div>
+                      </div>
+                    </>
+                  )}
                   <p className="text-xs text-muted-foreground dark:text-slate-400 mb-6">Baseado nas suas ações e feedbacks.</p>
 
                   <div className="bg-secondary/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-lg p-3">
@@ -492,24 +498,28 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
                 <div className="col-span-1 lg:col-span-2 p-6 bg-card dark:bg-[#111827] border border-border dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-lg">
                   <h3 className="font-semibold mb-6 text-foreground dark:text-slate-200">Tendência de Sentimento (Bem-Estar)</h3>
                   <div className="h-[200px] sm:h-[240px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={metrics.wellbeingData}>
-                        <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis hide />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#ffffff', border: isDark ? 'none' : '1px solid #e2e8f0', borderRadius: '8px', color: isDark ? '#fff' : '#0f172a' }}
-                          itemStyle={{ color: '#10b981' }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#10b981"
-                          strokeWidth={3}
-                          dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: isDark ? '#0a101f' : '#ffffff' }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {isMetricsLoading ? (
+                      <div className="w-full h-full bg-secondary animate-pulse rounded-lg"></div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={metrics.wellbeingData}>
+                          <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                          <YAxis hide />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#ffffff', border: isDark ? 'none' : '1px solid #e2e8f0', borderRadius: '8px', color: isDark ? '#fff' : '#0f172a' }}
+                            itemStyle={{ color: '#10b981' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: isDark ? '#0a101f' : '#ffffff' }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
 

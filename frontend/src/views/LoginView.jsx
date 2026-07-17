@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { HelpCircle, Mail, Lock, ArrowRight, Eye, EyeOff, ArrowLeft, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../lib/firebase";
-import logoClearIt from "../assets/logo-brancoClearIt.png";
+import { getFirebaseAuth } from "../lib/firebase-lazy";
+import logoClearIt from "../assets/logo-brancoClearIt.webp";
 
 export default function LoginView({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -49,6 +48,8 @@ export default function LoginView({ onLoginSuccess }) {
         handleCodeInApp: true,
       };
 
+      const auth = await getFirebaseAuth();
+      const { sendPasswordResetEmail } = await import('firebase/auth');
       await sendPasswordResetEmail(auth, normalizedEmail, actionCodeSettings);
       setResetSuccess(true);
 
@@ -70,7 +71,9 @@ export default function LoginView({ onLoginSuccess }) {
     const normalizedEmail = loginEmail.trim().toLowerCase();
 
     try {
-      // Faz o login real com o Firebase
+      // Faz o login real com o Firebase (import dinâmico)
+      const auth = await getFirebaseAuth();
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
       const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, loginPassword);
 
       // Obtém o token JWT
@@ -141,6 +144,9 @@ export default function LoginView({ onLoginSuccess }) {
               <img
                 src={logoClearIt}
                 alt="ClearIT Logo"
+                fetchpriority="high"
+                width="200"
+                height="96"
                 className="h-full object-contain"
               />
             </div>

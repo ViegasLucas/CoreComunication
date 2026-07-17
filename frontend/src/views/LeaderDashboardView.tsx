@@ -40,6 +40,9 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMetrics, useTeam, useMeetings, useHistory } from "../hooks/useLeaderData";
+import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -142,10 +145,11 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+    const queryClient = useQueryClient();
+
   // Novos estados para o Histórico de IA
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const { data: chatHistory = [], isLoading: isLoadingHistory } = useHistory();
 
   // States para o Prontuário (Documentos Salvos)
   const [isProntuarioOpen, setIsProntuarioOpen] = useState(false);
@@ -153,10 +157,12 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [selectedProntuarioEmployee, setSelectedProntuarioEmployee] = useState("");
   const [isLoadingProntuario, setIsLoadingProntuario] = useState(false);
 
-  const [team, setTeam] = useState<any[]>([]);
+  const { data: team = [], isLoading: isLoadingTeam } = useTeam();
   const [teamSearch, setTeamSearch] = useState("");
   const [teamViewMode, setTeamViewMode] = useState<'grid' | 'list'>('grid');
-  const [metrics, setMetrics] = useState<any>({
+  
+  const { data: metricsData, isLoading: isLoadingMetrics } = useMetrics();
+  const metrics = metricsData || {
     averageEngagement: 87,
     completedPDIs: 12,
     pdiProgress: 0,
@@ -168,9 +174,9 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       { name: "Sem 3", value: 3 },
       { name: "Atual", value: 4 },
     ]
-  });
+  };
 
-  const [upcomingMeetingsList, setUpcomingMeetingsList] = useState(upcomingMeetingsMock);
+  const { data: upcomingMeetingsList = upcomingMeetingsMock, isLoading: isLoadingMeetings } = useMeetings();
   const [selectedMember, setSelectedMember] = useState("");
   const [meetingDate, setMeetingDate] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
@@ -210,29 +216,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
-
-  const fetchHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const token = localStorage.getItem("token") || "";
-      if (!token) return;
-
-      const res = await fetch(`${API_BASE}/api/chat/history`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setChatHistory(data);
-      }
-    } catch (e) {
-      console.error("Erro ao buscar histórico:", e);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  const fetchProntuario = async (employeeId: string) => {
+const fetchProntuario = async (employeeId: string) => {
     setIsLoadingProntuario(true);
     setSelectedProntuarioEmployee(employeeId);
     try {
@@ -256,68 +240,8 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       setIsLoadingProntuario(false);
     }
   };
-
-  const fetchTeam = async () => {
-    try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const token = localStorage.getItem("token") || "";
-      if (!token) return;
-
-      const res = await fetch(`${API_BASE}/api/users/me/team`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTeam(data);
-      }
-    } catch (e) {
-      console.error("Erro ao buscar equipe:", e);
-    }
-  };
-
-  const fetchMetrics = async () => {
-    try {
-      const token = localStorage.getItem("token") || "";
-      if (!token) return;
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await fetch(`${API_BASE}/api/metrics`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMetrics(data);
-      }
-    } catch (e) {
-      console.error("Erro ao buscar métricas:", e);
-    }
-  };
-
-  const fetchMeetings = async () => {
-    try {
-      const token = localStorage.getItem("token") || "";
-      if (!token) return;
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await fetch(`${API_BASE}/api/meetings`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Mapear para o formato que a UI espera
-        const formatted = data.map((m: any) => ({
-          who: m.employeeName,
-          when: `${m.date} · ${m.time}`,
-          topic: "1:1 Agendada",
-          hasSbi: false
-        }));
-        setUpcomingMeetingsList(formatted);
-      }
-    } catch (e) {
-      console.error("Erro ao buscar reuniões:", e);
-    }
-  };
-
-  const handleSentiment = async (val: string) => {
-    setMetrics((prev: any) => ({ ...prev, currentSentiment: val }));
+const handleSentiment = async (val: string) => {
+    
     try {
       const token = localStorage.getItem("token");
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -330,21 +254,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
         body: JSON.stringify({ sentiment: val })
       });
       if (res.ok) {
-        fetchMetrics();
+        queryClient.invalidateQueries({ queryKey: ['metrics'] });
       }
     } catch (e) {
       console.error(e);
     }
   };
-
-  useEffect(() => {
-    fetchHistory();
-    fetchTeam();
-    fetchMetrics();
-    fetchMeetings();
-  }, []);
-
-  const sendChat = async () => {
+const sendChat = async () => {
     if (!chatInput.trim() || isLoading) return;
     const userMsg = chatInput;
     setChatInput("");
@@ -478,7 +394,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       if (!response.ok) throw new Error("Erro na API.");
       const data = await response.json();
       setSbiScript(data.reply);
-      fetchHistory(); // Atualiza o histórico após gerar um novo roteiro
+      queryClient.invalidateQueries({ queryKey: ['history'] }); // Atualiza o histórico após gerar um novo roteiro
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
@@ -549,7 +465,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
       if (res.ok) {
         toast.success("1:1 agendada com sucesso!");
-        fetchMeetings(); // Recarrega a lista do banco
+        queryClient.invalidateQueries({ queryKey: ['meetings'] });
       } else {
         toast.error("Erro ao agendar 1:1 no banco.");
       }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "../../hooks/useDebounce";
 import { Users, ChevronDown, Search, AlertCircle, Lock, User, Grid3x3, Orbit, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ const fetchUsers = async () => {
 
 export default function TeamsTab({ onLinkUsers }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [expandedLeader, setExpandedLeader] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // grid ou radar
   const [selectedStatusFilter, setSelectedStatusFilter] = useState(null);
@@ -77,24 +79,24 @@ export default function TeamsTab({ onLinkUsers }) {
 
   // Função auxiliar para verificar se um líder atende à busca (Spotlight effect)
   const matchesSearchQuery = (leader) => {
-    if (!searchQuery.trim()) return true;
+    if (!debouncedSearchQuery.trim()) return true;
     const assignedEmps = getAssignedEmployees(leader.assignedEmployees || []);
-    const nameMatch = leader.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const nameMatch = leader.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
     const employeeMatch = assignedEmps.some((e) =>
-      e.name.toLowerCase().includes(searchQuery.toLowerCase())
+      e.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
     return nameMatch || employeeMatch;
   };
 
   // Auto-expand on search
   useEffect(() => {
-    if (searchQuery.trim() && filteredLeaders.length > 0) {
+    if (debouncedSearchQuery.trim() && filteredLeaders.length > 0) {
       const firstMatch = filteredLeaders.find(l => matchesSearchQuery(l));
       if (firstMatch) setExpandedLeader(firstMatch.uid);
-    } else if (!searchQuery.trim()) {
+    } else if (!debouncedSearchQuery.trim()) {
       setExpandedLeader(null);
     }
-  }, [searchQuery, leaders]);
+  }, [debouncedSearchQuery, leaders]);
 
   // Status badge
   const StatusBadge = ({ status = "on-time" }) => {
