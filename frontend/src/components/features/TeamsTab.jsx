@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Users, ChevronDown, Search, AlertCircle, Lock, User, Grid3x3, Orbit, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,63 +8,52 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+const fetchUsers = async () => {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Falha ao carregar usuários");
+  return res.json();
+};
+
 export default function TeamsTab({ onLinkUsers }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [leaders, setLeaders] = useState([]);
-  const [employees, setEmployees] = useState([]);
   const [expandedLeader, setExpandedLeader] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // grid ou radar
   const [selectedStatusFilter, setSelectedStatusFilter] = useState(null);
 
-  // Fetch data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const leadersList = data.filter((u) => u.role === "leader").map((l) => ({
-            ...l,
-            adoptionRate: Math.floor(Math.random() * 100),
-            status: Math.random() > 0.7 ? "overdue" : Math.random() > 0.4 ? "attention" : "on-time"
-          }));
-          const employeesList = data.filter((u) => u.role === "employee");
-          setLeaders(leadersList);
-          setEmployees(employeesList);
-        } else {
-          setError("Falha ao carregar usuários");
-        }
-      } catch (e) {
-        console.error(e);
-        // Usar mock data se API falhar
-        setLeaders([
-          { uid: "l1", name: "Ana Silva", assignedEmployees: ["e1", "e2", "e3"], adoptionRate: 85, status: "on-time" },
-          { uid: "l2", name: "Carlos Oliveira", assignedEmployees: ["e4"], adoptionRate: 35, status: "overdue" },
-          { uid: "l3", name: "Marina Costa", assignedEmployees: ["e5", "e6"], adoptionRate: 60, status: "attention" },
-          { uid: "l4", name: "Rafael Mendes", assignedEmployees: [], adoptionRate: 0, status: "empty" },
-        ]);
-        setEmployees([
-          { uid: "e1", name: "Pedro", role: "Dev", status: "on-time" },
-          { uid: "e2", name: "Beatriz", role: "Designer", status: "on-time" },
-          { uid: "e3", name: "Felipe", role: "QA", status: "attention" },
-          { uid: "e4", name: "Hugo", role: "Engenheiro", status: "overdue" },
-          { uid: "e5", name: "João", role: "Designer", status: "on-time" },
-          { uid: "e6", name: "Kamila", role: "Dev", status: "on-time" },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data, isLoading: loading, isError } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+    staleTime: 5 * 60 * 1000,
+  });
 
-    fetchData();
-  }, []);
+  const leaders = data
+    ? data.filter((u) => u.role === "leader").map((l) => ({
+        ...l,
+        adoptionRate: Math.floor(Math.random() * 100),
+        status: Math.random() > 0.7 ? "overdue" : Math.random() > 0.4 ? "attention" : "on-time"
+      }))
+    : isError || !data ? [
+        { uid: "l1", name: "Ana Silva", assignedEmployees: ["e1", "e2", "e3"], adoptionRate: 85, status: "on-time" },
+        { uid: "l2", name: "Carlos Oliveira", assignedEmployees: ["e4"], adoptionRate: 35, status: "overdue" },
+        { uid: "l3", name: "Marina Costa", assignedEmployees: ["e5", "e6"], adoptionRate: 60, status: "attention" },
+        { uid: "l4", name: "Rafael Mendes", assignedEmployees: [], adoptionRate: 0, status: "empty" },
+      ] : [];
+
+  const employees = data
+    ? data.filter((u) => u.role === "employee")
+    : isError || !data ? [
+        { uid: "e1", name: "Pedro", role: "Dev", status: "on-time" },
+        { uid: "e2", name: "Beatriz", role: "Designer", status: "on-time" },
+        { uid: "e3", name: "Felipe", role: "QA", status: "attention" },
+        { uid: "e4", name: "Hugo", role: "Engenheiro", status: "overdue" },
+        { uid: "e5", name: "João", role: "Designer", status: "on-time" },
+        { uid: "e6", name: "Kamila", role: "Dev", status: "on-time" },
+      ] : [];
+
+  const error = isError ? "Falha de conexão com a API (Usando dados mockados)" : null;
 
   // Get assigned employees for a leader
   const getAssignedEmployees = (leaderAssignedEmployees) => {

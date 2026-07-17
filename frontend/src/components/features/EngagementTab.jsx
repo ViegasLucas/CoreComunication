@@ -1,42 +1,32 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Activity, AlertCircle, Lock, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
+const fetchMetricsAPI = async () => {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/metrics`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Falha ao carregar as métricas");
+  return res.json();
+};
+
 export default function EngagementTab() {
-  const [metrics, setMetrics] = useState({
+  const { data: metricsData, isLoading: loading, isError, refetch } = useQuery({
+    queryKey: ['metrics'],
+    queryFn: fetchMetricsAPI,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const metrics = metricsData || {
     averageEngagement: null,
     adoptionRate: null,
     completedPDIs: null
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchMetrics = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/metrics`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMetrics(data);
-      } else {
-        setError("Falha ao carregar as métricas");
-      }
-    } catch (e) {
-      console.error(e);
-      setError("Não foi possível conectar ao servidor");
-    } finally {
-      setLoading(false);
-    }
   };
-
-  useEffect(() => {
-    fetchMetrics();
-  }, []);
+  const error = isError ? "Não foi possível conectar ao servidor" : null;
+  const fetchMetrics = () => refetch();
 
   // Determina a cor do anel baseado no valor
   const getEngagementColor = (value) => {
