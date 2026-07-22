@@ -66,16 +66,19 @@ exports.createMeeting = async (req, res) => {
   }
 };
 
-// Listar 1:1s do líder
+// Listar 1:1s (Líder ou Liderado)
 exports.getMeetings = async (req, res) => {
   try {
-    const leaderId = req.user.uid;
+    const userId = req.user.uid;
+    const userName = req.user.name;
     const meetings = [];
 
-    // Tenta buscar do Firebase
+    // Tenta buscar do Firebase (se configurado)
     try {
+      // Como não podemos fazer um OR simples no Firestore com where facilmente sem composito,
+      // pegaremos do Firestore apenas como Leader por agora (mockado focamos na memoria)
       const snapshot = await db.collection('meetings')
-        .where('leaderId', '==', leaderId)
+        .where('leaderId', '==', userId)
         .orderBy('date', 'asc')
         .orderBy('time', 'asc')
         .get();
@@ -92,7 +95,17 @@ exports.getMeetings = async (req, res) => {
     }
 
     // Se falhou ou está vazio, usa memória local
-    const localMeetings = memoryMeetings[leaderId] || [];
+    const localMeetings = [];
+    
+    // Busca em todos os líderes (caso o usuário logado seja liderado de alguém)
+    Object.values(memoryMeetings).forEach(leaderMeetings => {
+      leaderMeetings.forEach(m => {
+        if (m.leaderId === userId || m.employeeId === userId || m.employeeName === userName) {
+          localMeetings.push(m);
+        }
+      });
+    });
+
     return res.status(200).json(localMeetings);
 
   } catch (error) {
@@ -101,3 +114,58 @@ exports.getMeetings = async (req, res) => {
   }
 };
 
+// Atualizar 1:1
+exports.updateMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const leaderId = req.user.uid;
+    const updateData = req.body;
+
+    // Firebase
+    try {
+      await db.collection('meetings').doc(id).update(updateData);
+    } catch (e) {
+      console.warn('[Meetings] Erro ao atualizar no Firestore:', e.message);
+    }
+
+    // Local memory
+    if (memoryMeetings[leaderId]) {
+      const idx = memoryMeetings[leaderId].findIndex(m => m.id === id);
+      if (idx !== -1) {
+        memoryMeetings[leaderId][idx] = { ...memoryMeetings[leaderId][idx], ...updateData };
+        saveMemory();
+      }
+    }
+
+    return res.status(200).json({ message: 'Reunião atualizada com sucesso' });
+  } catch (error) {
+    console.error('[updateMeeting] Erro:', error);
+    return res.status(500).json({ error: 'Erro ao atualizar reunião.' });
+  }
+};
+
+// Deletar 1:1
+exports.deleteMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const leaderId = req.user.uid;
+
+    // Firebase
+    try {
+      await db.collection('meetings').doc(id).delete();
+    } catch (e) {
+      console.warn('[Meetings] Erro ao deletar no Firestore:', e.message);
+    }
+
+    // Local memory
+    if (memoryMeetings[leaderId]) {
+      memoryMeetings[leaderId] = memoryMeetings[leaderId].filter(m => m.id !== id);
+      saveMemory();
+    }
+
+    return res.status(200).json({ message: 'Reunião deletada' });
+  } catch (error) {
+    console.error('[deleteMeeting] Erro:', error);
+    return res.status(500).json({ error: 'Erro ao deletar reunião.' });
+  }
+};

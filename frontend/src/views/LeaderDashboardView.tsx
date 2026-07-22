@@ -40,12 +40,12 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useQueryClient } from "@tanstack/react-query";
-import { useMetrics, useTeam, useMeetings, useHistory } from "../hooks/useLeaderData";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { useMetrics, useTeam, useMeetings, useHistory, useActionItems } from "../hooks/useLeaderData";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,6 +57,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -68,28 +78,74 @@ type ChatMsg = { from: "bot" | "user"; text: string };
 
 // Removido const team fixo. Será carregado do backend.
 
-const pendingActions = [
-  { icon: ClipboardList, label: "Aprovar PDI de Bruno", tone: "blue" },
-  { icon: MessageSquare, label: "Dar feedback à Ana", tone: "amber" },
-  { icon: Calendar, label: "Confirmar 1:1 com Carla", tone: "emerald" },
-];
 
-const recentMeetings = [
-  { who: "Ana Ribeiro", when: "Ontem · 15:00", topic: "Follow-up sprint" },
-  { who: "Carla Nunes", when: "3 dias atrás", topic: "Feedback SBI" },
-];
 
-const upcomingMeetingsMock = [
-  { who: "Bruno Alves", when: "Hoje · 17:30", topic: "1:1 quinzenal", hasSbi: true },
-  { who: "Ana Ribeiro", when: "Sex · 10:00", topic: "Revisão de PDI" },
-];
 
-const teamFallbackMock = [
-  { name: "Bruno Alves", role: "Engenheiro Frontend", pdi: 65 },
-  { name: "Ana Ribeiro", role: "Product Designer", pdi: 80 },
-  { name: "Carlos Silva", role: "Engenheiro Backend", pdi: 35 },
-  { name: "Fernanda Costa", role: "QA Engineer", pdi: 50 },
-];
+const ManualDatePicker = ({ date, setDate, placeholder = "DD/MM/AAAA" }: any) => {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+
+  useEffect(() => {
+    if (date) {
+      const [y, m, d] = date.split('-');
+      if (y && m && d) setInputValue(`${d}/${m}/${y}`);
+    } else {
+      setInputValue("");
+    }
+  }, [date]);
+
+  const handleInputChange = (e: any) => {
+    let val = e.target.value.replace(/\D/g, "");
+    if (val.length > 2) val = val.substring(0, 2) + "/" + val.substring(2);
+    if (val.length > 5) val = val.substring(0, 5) + "/" + val.substring(5, 9);
+    setInputValue(val);
+
+    if (val.length === 10) {
+      const [d, m, y] = val.split("/");
+      const parsedDate = new Date(`${y}-${m}-${d}T00:00:00`);
+      if (!isNaN(parsedDate.getTime())) {
+        setDate(`${y}-${m}-${d}`);
+      }
+    }
+    if (val.length === 0) setDate("");
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <div className="relative">
+        <Input
+          value={inputValue}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className="h-9 bg-background/50 border-border pr-10 text-sm"
+        />
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:bg-transparent">
+            <Calendar className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+      </div>
+      <PopoverContent className="w-auto p-0" align="start">
+        <CalendarComponent
+          mode="single"
+          selected={date ? new Date(date + "T12:00:00") : undefined}
+          onSelect={(d: Date | undefined) => {
+            if (d) {
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              setDate(`${yyyy}-${mm}-${dd}`);
+            } else {
+              setDate("");
+            }
+            setOpen(false);
+          }}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIsHighContrast, userData, onLogout }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -133,6 +189,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   }, [active]);
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
   const [docEmployeeId, setDocEmployeeId] = useState("");
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
 
   const [chat, setChat] = useState<ChatMsg[]>([
     {
@@ -145,7 +202,16 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-    const queryClient = useQueryClient();
+  const { data: rawActionItems = [] } = useActionItems();
+  const pendingActionsState = rawActionItems.map((a: any) => ({
+    id: a.id,
+    icon: ClipboardList,
+    label: a.title,
+    completed: a.status === 'completed',
+    collaborator: a.ownerId
+  }));
+
+  const queryClient = useQueryClient();
 
   // Novos estados para o Histórico de IA
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -155,12 +221,20 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [isProntuarioOpen, setIsProntuarioOpen] = useState(false);
   const [prontuarioDocs, setProntuarioDocs] = useState<any[]>([]);
   const [selectedProntuarioEmployee, setSelectedProntuarioEmployee] = useState("");
+  const [prontuarioFilter, setProntuarioFilter] = useState("all");
+  const [prontuarioStartDate, setProntuarioStartDate] = useState("");
+  const [prontuarioEndDate, setProntuarioEndDate] = useState("");
+  const [isEditDocOpen, setIsEditDocOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<any>(null);
+  const [editDocTitle, setEditDocTitle] = useState("");
+  const [editDocContent, setEditDocContent] = useState("");
+  const [editDocType, setEditDocType] = useState("sbi");
   const [isLoadingProntuario, setIsLoadingProntuario] = useState(false);
 
   const { data: team = [], isLoading: isLoadingTeam } = useTeam();
   const [teamSearch, setTeamSearch] = useState("");
   const [teamViewMode, setTeamViewMode] = useState<'grid' | 'list'>('grid');
-  
+
   const { data: metricsData, isLoading: isLoadingMetrics } = useMetrics();
   const metrics = metricsData || {
     averageEngagement: 87,
@@ -176,7 +250,61 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     ]
   };
 
-  const { data: upcomingMeetingsList = upcomingMeetingsMock, isLoading: isLoadingMeetings } = useMeetings();
+
+  const approveDocumentMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("token") || "";
+      const res = await fetch(`${API_BASE}/api/documents/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error("Erro ao atualizar status");
+      return res.json();
+    },
+    onSuccess: () => {
+      if (selectedProntuarioEmployee) {
+        fetchProntuario(selectedProntuarioEmployee);
+      }
+      toast.success("Status do PDI atualizado com sucesso!");
+    }
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("token") || "";
+      const res = await fetch(`${API_BASE}/api/documents/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Erro ao remover documento");
+      return res.json();
+    },
+    onSuccess: () => {
+      if (selectedProntuarioEmployee) {
+        fetchProntuario(selectedProntuarioEmployee);
+      }
+      toast.success("Documento removido.");
+    }
+  });
+
+  const { data: fetchedMeetings = [], isLoading: isLoadingMeetings } = useMeetings();
+  const [upcomingMeetingsList, setUpcomingMeetingsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (fetchedMeetings && fetchedMeetings.length > 0) {
+      setUpcomingMeetingsList(fetchedMeetings);
+    }
+  }, [fetchedMeetings]);
+
+  const [meetingToCancel, setMeetingToCancel] = useState<any>(null);
+  const [editingMeeting, setEditingMeeting] = useState<any>(null);
+  const [actionFilter, setActionFilter] = useState("all");
   const [selectedMember, setSelectedMember] = useState("");
   const [meetingDate, setMeetingDate] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
@@ -216,7 +344,7 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chat]);
-const fetchProntuario = async (employeeId: string) => {
+  const fetchProntuario = async (employeeId: string) => {
     setIsLoadingProntuario(true);
     setSelectedProntuarioEmployee(employeeId);
     try {
@@ -240,8 +368,8 @@ const fetchProntuario = async (employeeId: string) => {
       setIsLoadingProntuario(false);
     }
   };
-const handleSentiment = async (val: string) => {
-    
+  const handleSentiment = async (val: string) => {
+
     try {
       const token = localStorage.getItem("token");
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -260,7 +388,7 @@ const handleSentiment = async (val: string) => {
       console.error(e);
     }
   };
-const sendChat = async () => {
+  const sendChat = async () => {
     if (!chatInput.trim() || isLoading) return;
     const userMsg = chatInput;
     setChatInput("");
@@ -294,7 +422,8 @@ const sendChat = async () => {
           message: userMsg,
           history: historyPayload,
           type: chatIntent,
-          profileTone: profile ? labelFor(profile) : "neutro"
+          profileTone: profile ? labelFor(profile) : "neutro",
+          employeeId: docEmployeeId !== "none" ? docEmployeeId : null
         }),
       });
 
@@ -403,8 +532,8 @@ const sendChat = async () => {
   };
 
   const handleSaveDocument = async (text: string, type: string) => {
-    if (!docEmployeeId) {
-      toast.warning("Selecione um liderado no topo do chat para salvar o prontuário.");
+    if (!docEmployeeId || docEmployeeId === "none") {
+      toast.warning("Selecione um liderado no topo do chat para salvar no prontuário.");
       return;
     }
     try {
@@ -426,6 +555,7 @@ const sendChat = async () => {
 
       if (res.ok) {
         toast.success("Salvo no prontuário com sucesso!");
+        fetchProntuario(docEmployeeId);
       } else {
         toast.error("Erro ao salvar documento.");
       }
@@ -454,17 +584,29 @@ const sendChat = async () => {
         status: "Scheduled"
       };
 
-      const res = await fetch(`${API_BASE}/api/meetings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      let res;
+      if (editingMeeting?.id) {
+        res = await fetch(`${API_BASE}/api/meetings/${editingMeeting.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch(`${API_BASE}/api/meetings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+      }
 
       if (res.ok) {
-        toast.success("1:1 agendada com sucesso!");
+        toast.success(editingMeeting ? "1:1 reagendada com sucesso!" : "1:1 agendada com sucesso!");
         queryClient.invalidateQueries({ queryKey: ['meetings'] });
       } else {
         toast.error("Erro ao agendar 1:1 no banco.");
@@ -476,6 +618,7 @@ const sendChat = async () => {
 
     // Reseta form
     setNewMeetingOpen(false);
+    setEditingMeeting(null);
     setSbiScript("");
     setMeetingTopics("");
     setMeetingSubject("");
@@ -488,12 +631,32 @@ const sendChat = async () => {
     .filter((m) => m.name.toLowerCase().includes(teamSearch.toLowerCase()))
     .sort((a, b) => a.pdi - b.pdi);
 
-  const meetingsTbd = upcomingMeetingsList.filter(m => m.when === "A definir" || m.when.toLowerCase().includes("a definir"));
-  const meetingsNext = upcomingMeetingsList.filter(m => !meetingsTbd.includes(m) && m.when.match(/\d{2}\/\d{2}/));
-  const meetingsThisWeek = upcomingMeetingsList.filter(m => !meetingsTbd.includes(m) && !meetingsNext.includes(m));
+  const sortedMeetings = [...upcomingMeetingsList].sort((a, b) => {
+    const dateA = a.date || "A definir";
+    const dateB = b.date || "A definir";
+    const timeA = a.time || "A definir";
+    const timeB = b.time || "A definir";
 
-  const currentTeam = team.length > 0 ? team : teamFallbackMock;
-  const membersWithoutMeetings = currentTeam.filter(m => !upcomingMeetingsList.some(um => um.who === m.name));
+    
+    if (dateA === "A definir" && dateB !== "A definir") return 1;
+    if (dateB === "A definir" && dateA !== "A definir") return -1;
+    if (dateA !== dateB) return dateA.localeCompare(dateB);
+    
+    if (timeA === "A definir" && timeB !== "A definir") return 1;
+    if (timeB === "A definir" && timeA !== "A definir") return -1;
+    return timeA.localeCompare(timeB);
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const recentMeetings = sortedMeetings.filter(m => m.date && m.date !== "A definir" && m.date < todayStr).reverse();
+  const futureMeetings = sortedMeetings.filter(m => !recentMeetings.includes(m));
+
+  const meetingsTbd = futureMeetings.filter(m => m.date === "A definir" || !m.date || m.when === "A definir" || m.when.toLowerCase().includes("a definir"));
+  const meetingsScheduled = futureMeetings.filter(m => !meetingsTbd.includes(m));
+
+  const currentTeam = team;
+  const membersWithoutMeetings = currentTeam.filter(m => !futureMeetings.some(um => um.who === m.name));
+
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -740,24 +903,52 @@ const sendChat = async () => {
                   <KpiCard title="Membros" value={team.length.toString()} trend="Ativos" icon={Users} accent="violet" />
                 </div>
 
-                <GlassCard className="p-5">
-                  <div className="mb-3 flex items-center justify-between">
+                <GlassCard className="p-5 flex flex-col max-h-[420px]">
+                  <div className="mb-3 flex items-center justify-between shrink-0">
                     <div className="text-base font-semibold">Ações Pendentes</div>
-                    <Badge className="bg-blue-600/15 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20">{pendingActions.length}</Badge>
+                    <Badge className="bg-blue-600/15 text-blue-400 dark:text-blue-300 hover:bg-blue-600/20">{pendingActionsState.filter(a => !a.completed).length}</Badge>
                   </div>
-                  <ul className="space-y-2">
-                    {pendingActions.map((a, i) => {
+                  <ul className="space-y-2 overflow-y-auto pr-2 flex-1">
+                    {[...pendingActionsState].sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1)).map((a) => {
                       const Icon = a.icon;
                       return (
                         <li
-                          key={i}
-                          className="group flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 transition-all hover:border-blue-600/40 hover:bg-accent"
+                          key={a.id}
+                          className={cn("group flex items-center gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 transition-all hover:border-blue-600/40 hover:bg-accent", a.completed && "opacity-50 grayscale")}
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground group-hover:text-blue-400 dark:group-hover:text-blue-300">
-                            <Icon className="h-4 w-4" />
+                          <div className="flex items-center gap-3 w-full cursor-pointer" onClick={async () => {
+                             if (!a.completed) {
+                               if (confirm(`Deseja marcar '${a.label}' de ${a.collaborator} como concluída?`)) {
+                                 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+                                 const token = localStorage.getItem("token") || "";
+                                 try {
+                                   await fetch(`${API_BASE}/api/action-items/${a.id}/status`, {
+                                     method: "PATCH",
+                                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                                     body: JSON.stringify({ status: "completed" })
+                                   });
+                                   queryClient.invalidateQueries({ queryKey: ['actionItems'] });
+                                   toast.success("Ação concluída!");
+                                 } catch (err) {
+                                   console.error(err);
+                                   toast.error("Erro ao concluir ação.");
+                                 }
+                               }
+                             }
+                          }}>
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 flex flex-col">
+                              <span className={cn("text-sm text-foreground", a.completed && "line-through text-muted-foreground")}>{a.label}</span>
+                              <span className="text-xs text-muted-foreground">{a.collaborator}</span>
+                            </div>
+                            {a.completed ? (
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500 transition-all" />
+                            ) : (
+                              <div className="h-5 w-5 rounded border border-muted-foreground/50 group-hover:border-blue-400 flex items-center justify-center transition-all" />
+                            )}
                           </div>
-                          <span className="flex-1 text-sm text-foreground">{a.label}</span>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-400 dark:group-hover:text-blue-300" />
                         </li>
                       );
                     })}
@@ -837,23 +1028,34 @@ const sendChat = async () => {
                   </ul>
                 </GlassCard>
 
-                <GlassCard className="p-5">
-                  <div className="mb-4 flex items-center justify-between">
+                <GlassCard className="p-5 flex flex-col">
+                  <div className="mb-4 flex items-center justify-between shrink-0">
                     <h3 className="text-base font-semibold">Próximas Reuniões</h3>
+                    {meetingsScheduled.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={() => setActive("meetings")} className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+                        Ver todas
+                      </Button>
+                    )}
                   </div>
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <Calendar className="w-10 h-10 text-muted-foreground mb-3 opacity-20" />
-                    <p className="text-lg font-medium text-foreground">{upcomingMeetingsList.length} 1:1s agendadas</p>
-                    <p className="text-sm text-muted-foreground mb-4">Gerencie as pautas e roteiros com IA</p>
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
-                      onClick={() => setActive("meetings")}
-                    >
-                      Ir para Reuniões
-                      <ChevronRight className="w-4 h-4 ml-1.5" />
-                    </Button>
-                  </div>
+                  {meetingsScheduled.length > 0 ? (
+                    <ul className="space-y-2 overflow-y-auto pr-2">
+                      {meetingsScheduled.slice(0, 3).map((m, i) => (
+                        <MeetingRow key={i} {...m} tone="blue" />
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                      <Calendar className="w-10 h-10 text-muted-foreground mb-3 opacity-20" />
+                      <p className="text-sm text-muted-foreground mb-4">Nenhuma 1:1 agendada.</p>
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                        onClick={() => setNewMeetingOpen(true)}
+                      >
+                        Agendar 1:1
+                      </Button>
+                    </div>
+                  )}
                 </GlassCard>
               </section>
             </>
@@ -1156,12 +1358,12 @@ const sendChat = async () => {
                     <h1 className="text-2xl font-bold tracking-tight">Reuniões</h1>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Você tem {upcomingMeetingsList.length === 1 ? "uma 1:1 agendada" : upcomingMeetingsList.length === 2 ? "duas 1:1s agendadas" : upcomingMeetingsList.length + " 1:1s agendadas"} nesta sessão
+                    Você tem {futureMeetings.length === 1 ? "uma 1:1 agendada" : futureMeetings.length === 2 ? "duas 1:1s agendadas" : futureMeetings.length + " 1:1s agendadas"} nesta sessão
                   </p>
                 </div>
               </div>
 
-              {upcomingMeetingsList.length === 0 ? (
+              {futureMeetings.length === 0 ? (
                 <div className="flex flex-col h-64 items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/50 mt-6 text-center">
                   <p className="text-muted-foreground mb-4">Nenhuma 1:1 agendada ainda</p>
                   <Button onClick={() => setNewMeetingOpen(true)} variant="outline">Criar a primeira 1:1</Button>
@@ -1170,42 +1372,23 @@ const sendChat = async () => {
                 <div className="flex flex-col lg:flex-row gap-6">
                   {/* Left Column: Meetings List */}
                   <div className="flex-1 space-y-8">
-                    {meetingsThisWeek.length > 0 && (
+                    {meetingsScheduled.length > 0 && (
                       <section>
-                        <h3 className="text-lg font-semibold mb-4 text-violet-400">Esta semana</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-violet-400">Agendadas</h3>
                         <ul className="space-y-3">
-                          {meetingsThisWeek.map((m, i) => (
+                          {meetingsScheduled.map((m, i) => (
                             <MeetingRow
                               key={i}
                               {...m}
                               tone="blue"
                               onHistoryClick={() => setIsHistoryOpen(true)}
-                              onCancel={() => setUpcomingMeetingsList(prev => prev.filter(x => x !== m))}
+                              onCancel={() => setMeetingToCancel(m)}
                               onReschedule={() => {
                                 setSelectedMember(m.who);
+                                setMeetingDate(m.date || "");
+                                setMeetingTime(m.time || "");
+                                setEditingMeeting(m);
                                 setNewMeetingOpen(true);
-                                setUpcomingMeetingsList(prev => prev.filter(x => x !== m));
-                              }}
-                            />
-                          ))}
-                        </ul>
-                      </section>
-                    )}
-                    {meetingsNext.length > 0 && (
-                      <section>
-                        <h3 className="text-lg font-semibold mb-4 text-blue-400">Próximas</h3>
-                        <ul className="space-y-3">
-                          {meetingsNext.map((m, i) => (
-                            <MeetingRow
-                              key={i}
-                              {...m}
-                              tone="blue"
-                              onHistoryClick={() => setIsHistoryOpen(true)}
-                              onCancel={() => setUpcomingMeetingsList(prev => prev.filter(x => x !== m))}
-                              onReschedule={() => {
-                                setSelectedMember(m.who);
-                                setNewMeetingOpen(true);
-                                setUpcomingMeetingsList(prev => prev.filter(x => x !== m));
                               }}
                             />
                           ))}
@@ -1222,11 +1405,13 @@ const sendChat = async () => {
                               {...m}
                               tone="slate"
                               onHistoryClick={() => setIsHistoryOpen(true)}
-                              onCancel={() => setUpcomingMeetingsList(prev => prev.filter(x => x !== m))}
+                              onCancel={() => setMeetingToCancel(m)}
                               onReschedule={() => {
                                 setSelectedMember(m.who);
+                                setMeetingDate(m.date || "");
+                                setMeetingTime(m.time || "");
+                                setEditingMeeting(m);
                                 setNewMeetingOpen(true);
-                                setUpcomingMeetingsList(prev => prev.filter(x => x !== m));
                               }}
                             />
                           ))}
@@ -1458,6 +1643,15 @@ const sendChat = async () => {
       {/* ONBOARDING MODAL / ASSISTANT MODAL */}
       <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
         <DialogContent className={cn("w-[100dvw] h-[100dvh] sm:h-auto sm:max-h-[85vh] rounded-none sm:rounded-xl border-border bg-background sm:bg-background/95 p-0 text-foreground sm:backdrop-blur-2xl overflow-hidden flex flex-col [&>button]:hidden", chatIntent === "profile_discovery" ? "max-w-[1300px]" : "max-w-[800px]")}>
+          {/* Botão X no canto superior direito — dentro de div para não ser escondido por [&>button]:hidden */}
+          <div className="absolute top-3 right-3 z-50">
+            <DialogClose asChild>
+              <button className="h-9 w-9 rounded-full bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/50 shadow-sm transition-all flex items-center justify-center">
+                <X className="h-4 w-4" />
+                <span className="sr-only">Fechar</span>
+              </button>
+            </DialogClose>
+          </div>
           <div className={cn("grid h-[100dvh] sm:h-[85vh] sm:max-h-[800px] sm:min-h-[500px] gap-0", chatIntent === "profile_discovery" ? "md:grid-cols-2" : "md:grid-cols-1")}>
             {/* Left: quick profile */}
             {chatIntent === "profile_discovery" && (
@@ -1495,11 +1689,11 @@ const sendChat = async () => {
             )}
 
             {/* Right: AI chat */}
-            <div className="flex h-full min-h-0 flex-col p-4 sm:p-8 md:p-10 relative">
-              <div className="flex items-center justify-between sm:block shrink-0">
+            <div className="flex h-full min-h-0 flex-col p-4 sm:p-8 md:p-10 pt-14 relative">
+              <div className="flex items-center justify-between shrink-0">
                 <div>
                   <div className="hidden sm:block text-sm font-medium uppercase tracking-widest text-blue-400/80">Via IA</div>
-                  <div className="mt-1 flex items-center justify-between">
+                  <div className="mt-1">
                     <div className="text-lg sm:text-xl font-semibold">
                       {chatIntent === "profile_discovery" ? "Descubra seu perfil"
                         : chatIntent === "sbi" ? "Roteiro de Feedback (SBI)"
@@ -1508,25 +1702,20 @@ const sendChat = async () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {chatIntent !== "profile_discovery" && (
-                    <Select value={docEmployeeId === "none" ? undefined : docEmployeeId} onValueChange={setDocEmployeeId} disabled={isChatContextLocked}>
-                      <SelectTrigger className="w-[140px] sm:w-[180px] h-9 text-xs border-border bg-secondary/60">
-                        <SelectValue placeholder="Vincular liderado..." />
-                      </SelectTrigger>
-                      <SelectContent className="border-border bg-popover text-popover-foreground">
-                        {team.length === 0 ? (
-                          <SelectItem value="none" disabled>Nenhum liderado</SelectItem>
-                        ) : team.map((m) => (
-                          <SelectItem key={m.uid} value={m.name}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9 rounded-full" onClick={() => setIsChatOpen(false)}>
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
+                {chatIntent !== "profile_discovery" && (
+                  <Select value={docEmployeeId === "none" ? undefined : docEmployeeId} onValueChange={setDocEmployeeId} disabled={isChatContextLocked}>
+                    <SelectTrigger className="w-[140px] sm:w-[180px] h-9 text-xs border-border bg-secondary/60">
+                      <SelectValue placeholder="Vincular liderado..." />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-popover-foreground">
+                      {team.length === 0 ? (
+                        <SelectItem value="none" disabled>Nenhum liderado</SelectItem>
+                      ) : team.map((m) => (
+                        <SelectItem key={m.uid} value={m.name}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <p className="hidden sm:block shrink-0 text-sm text-muted-foreground mt-2">
                 {chatIntent === "profile_discovery" ? "Um agente irá mapear seu DISC em poucas perguntas." : "Forneça o contexto e deixe o agente estruturar tudo para você."}
@@ -1537,77 +1726,76 @@ const sendChat = async () => {
                 className="mt-4 flex-1 space-y-4 overflow-y-auto custom-scrollbar rounded-xl sm:border border-border sm:bg-secondary/40 sm:p-5 min-h-0 pb-20 sm:pb-0"
               >
                 {chat.map((m, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex gap-3",
-                      m.from === "user" ? "justify-end" : "justify-start",
-                    )}
-                  >
-                    {m.from === "bot" && (
-                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-800">
-                        <Sparkles className="h-5 w-5 text-white" />
-                      </div>
-                    )}
+                  <div key={i}>
                     <div
                       className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed relative group",
-                        m.from === "bot"
-                          ? "bg-secondary text-foreground markdown-body" // Note: added markdown-body or custom styling can go here
-                          : "bg-blue-600 text-white",
+                        "flex gap-3",
+                        m.from === "user" ? "justify-end" : "justify-start",
                       )}
                     >
-                      {m.from === "bot" ? (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
-                            h2: ({ node, ...props }) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
-                            h3: ({ node, ...props }) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
-                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                            li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                            strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
-                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
-                          }}
-                        >
-                          {m.text}
-                        </ReactMarkdown>
-                      ) : (
-                        <div className="whitespace-pre-wrap">{m.text}</div>
-                      )}
-
-                      {/* Copy and Save buttons for bot messages */}
-                      {m.from === "bot" && chatIntent !== "profile_discovery" && (
-                        <div className="absolute -right-2 -bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 bg-secondary/80 text-muted-foreground hover:text-foreground rounded-full"
-                            onClick={() => handleSaveDocument(m.text, chatIntent)}
-                            title="Salvar no Prontuário"
-                          >
-                            <CheckCircle2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 bg-secondary/80 text-muted-foreground hover:text-foreground rounded-full"
-                            onClick={() => {
-                              navigator.clipboard.writeText(m.text);
-                              toast.success("Roteiro copiado!");
-                            }}
-                            title="Copiar texto"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
+                      {m.from === "bot" && (
+                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-800">
+                          <Sparkles className="h-5 w-5 text-white" />
                         </div>
                       )}
+                      <div
+                        className={cn(
+                          "max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed",
+                          m.from === "bot"
+                            ? "bg-secondary text-foreground markdown-body"
+                            : "bg-blue-600 text-white",
+                        )}
+                      >
+                        {m.from === "bot" ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
+                              h2: ({ node, ...props }) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                              h3: ({ node, ...props }) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
+                              p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                              ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                              li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                              strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                              blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
+                            }}
+                          >
+                            {m.text}
+                          </ReactMarkdown>
+                        ) : (
+                          <div className="whitespace-pre-wrap">{m.text}</div>
+                        )}
+                      </div>
                     </div>
+                    {/* Botões de ação abaixo da mensagem do bot */}
+                    {m.from === "bot" && chatIntent !== "profile_discovery" && i > 0 && (
+                      <div className="flex items-center gap-2 mt-2 ml-[52px]">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs font-medium border-border bg-secondary/60 hover:bg-emerald-500/15 hover:border-emerald-500/40 hover:text-emerald-400 text-muted-foreground transition-all"
+                          onClick={() => handleSaveDocument(m.text, chatIntent)}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Salvar no Prontuário
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs font-medium border-border bg-secondary/60 hover:bg-blue-500/15 hover:border-blue-500/40 hover:text-blue-400 text-muted-foreground transition-all"
+                          onClick={() => {
+                            navigator.clipboard.writeText(m.text);
+                            toast.success("Texto copiado!");
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copiar
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
-                {/* Sentinel element for auto-scroll anchor */}
                 <div ref={chatEndRef} aria-hidden className="h-0 w-0" />
               </div>
 
@@ -1628,15 +1816,6 @@ const sendChat = async () => {
                 <Button onClick={sendChat} className="h-12 w-12 shrink-0 bg-blue-600 text-white hover:bg-blue-500">
                   <Send className="h-5 w-5" />
                 </Button>
-              </div>
-
-              <div className="hidden sm:flex mt-3 shrink-0 items-center justify-end border-t border-border pt-3">
-                <button
-                  onClick={() => setIsChatOpen(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Fechar janela
-                </button>
               </div>
             </div>
           </div>
@@ -1688,6 +1867,7 @@ const sendChat = async () => {
                 variant="outline"
                 onClick={() => {
                   setNewMeetingOpen(false);
+                  setEditingMeeting(null);
                   setMeetingSubject("");
                   setSelectedMember("");
                   setMeetingDate("");
@@ -1747,64 +1927,435 @@ const sendChat = async () => {
         </SheetContent>
       </Sheet>
 
-      {/* PRONTUARIO SLIDE-OVER */}
-      <Sheet open={isProntuarioOpen} onOpenChange={setIsProntuarioOpen}>
-        <SheetContent className="w-full sm:max-w-md md:max-w-xl border-border bg-background/95 text-foreground backdrop-blur-2xl overflow-y-auto h-[100dvh]">
-          <SheetHeader>
-            <SheetTitle>Prontuário de {selectedProntuarioEmployee}</SheetTitle>
-            <SheetDescription className="text-muted-foreground">
-              Documentos, PDIs e Feedbacks salvos da IA.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-4">
-            {isLoadingProntuario ? (
-              <div className="text-center text-sm text-muted-foreground py-10">Buscando documentos...</div>
-            ) : prontuarioDocs.length === 0 ? (
-              <div className="text-center text-sm text-muted-foreground py-10 border border-dashed border-border rounded-xl">
-                Nenhum documento salvo no prontuário ainda.
+      {/* PRONTUARIO MODAL (TELA CHEIA) */}
+      <Dialog open={isProntuarioOpen} onOpenChange={setIsProntuarioOpen}>
+        <DialogContent className="w-[100dvw] h-[100dvh] sm:w-[95vw] sm:h-[95vh] max-w-7xl border-border bg-background/95 text-foreground backdrop-blur-2xl overflow-hidden p-0 flex flex-col sm:rounded-xl [&>button]:hidden">
+          <DialogHeader className="px-6 py-5 border-b border-border/50 shrink-0 bg-background/80">
+            <div className="flex justify-between items-center">
+              <div>
+                <DialogTitle className="text-2xl font-bold">Prontuário de {selectedProntuarioEmployee}</DialogTitle>
+                <DialogDescription className="text-muted-foreground mt-1 text-sm">
+                  Histórico completo de PDIs, Feedbacks e 1:1s do colaborador.
+                </DialogDescription>
               </div>
-            ) : (
-              prontuarioDocs.map((doc: any) => (
-                <div key={doc.id} className="rounded-xl border border-border bg-secondary/40 p-5 space-y-3">
-                  <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                    <Badge variant="outline" className={
-                      doc.type === 'pdi' ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                        doc.type === 'one_on_one' ? "text-blue-400 border-blue-500/30 bg-blue-500/10" :
-                          "text-violet-400 border-violet-500/30 bg-violet-500/10"
-                    }>
-                      {doc.type === 'pdi' ? "Plano de Desenvolvimento (PDI)" :
-                        doc.type === 'one_on_one' ? "Pauta de 1:1" :
-                          "Feedback (SBI)"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(doc.createdAt).toLocaleDateString()} às {new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div className="rounded-lg bg-background/50 p-4 text-sm text-foreground whitespace-pre-wrap max-h-96 overflow-y-auto markdown-body">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-2 mt-2" {...props} />,
-                        h2: ({ node, ...props }) => <h2 className="text-lg font-bold mb-2 mt-2" {...props} />,
-                        h3: ({ node, ...props }) => <h3 className="text-md font-semibold mb-1 mt-1" {...props} />,
-                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                        strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
-                        blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500 pl-3 italic text-muted-foreground my-2" {...props} />
-                      }}
-                    >
-                      {doc.content}
-                    </ReactMarkdown>
-                  </div>
+              <div className="absolute right-4 top-4 z-50">
+                <DialogClose asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-secondary/80 hover:bg-secondary">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* CONTENT AREA: 2 COLUMNS ON DESKTOP */}
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-secondary/10">
+            {/* SIDEBAR - FILTERS */}
+            <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border/50 p-6 shrink-0 flex flex-col gap-6 bg-background/40 overflow-y-auto">
+              <div>
+                <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Filtros de Categoria</h3>
+                <div className="space-y-1.5 flex flex-col">
+                  <Button
+                    variant={prontuarioFilter === "all" ? "default" : "ghost"}
+                    className={cn("justify-start h-9 text-sm font-medium", prontuarioFilter === "all" ? "bg-primary/20 text-primary hover:bg-primary/30" : "text-muted-foreground hover:text-foreground")}
+                    onClick={() => setProntuarioFilter("all")}
+                  >
+                    Todos <span className="ml-auto bg-background/50 rounded-md px-2 py-0.5 text-xs">{prontuarioDocs.length}</span>
+                  </Button>
+                  <Button
+                    variant={prontuarioFilter === "pdi" ? "default" : "ghost"}
+                    className={cn("justify-start h-9 text-sm font-medium", prontuarioFilter === "pdi" ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" : "text-emerald-500/70 hover:text-emerald-400")}
+                    onClick={() => setProntuarioFilter("pdi")}
+                  >
+                    PDIs <span className="ml-auto bg-background/50 rounded-md px-2 py-0.5 text-xs">{prontuarioDocs.filter((d: any) => d.type === 'pdi').length}</span>
+                  </Button>
+                  <Button
+                    variant={prontuarioFilter === "sbi" ? "default" : "ghost"}
+                    className={cn("justify-start h-9 text-sm font-medium", prontuarioFilter === "sbi" ? "bg-violet-500/20 text-violet-400 hover:bg-violet-500/30" : "text-violet-500/70 hover:text-violet-400")}
+                    onClick={() => setProntuarioFilter("sbi")}
+                  >
+                    Feedbacks SBI <span className="ml-auto bg-background/50 rounded-md px-2 py-0.5 text-xs">{prontuarioDocs.filter((d: any) => d.type === 'sbi').length}</span>
+                  </Button>
+                  <Button
+                    variant={prontuarioFilter === "one_on_one" ? "default" : "ghost"}
+                    className={cn("justify-start h-9 text-sm font-medium", prontuarioFilter === "one_on_one" ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30" : "text-blue-500/70 hover:text-blue-400")}
+                    onClick={() => setProntuarioFilter("one_on_one")}
+                  >
+                    Pautas 1:1 <span className="ml-auto bg-background/50 rounded-md px-2 py-0.5 text-xs">{prontuarioDocs.filter((d: any) => d.type === 'one_on_one').length}</span>
+                  </Button>
                 </div>
-              ))
-            )}
+              </div>
+
+              <div className="mt-4">
+                <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Período</h3>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">De</Label>
+                    <ManualDatePicker
+                      date={prontuarioStartDate}
+                      setDate={setProntuarioStartDate}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Até</Label>
+                    <ManualDatePicker
+                      date={prontuarioEndDate}
+                      setDate={setProntuarioEndDate}
+                    />
+                  </div>
+                  {(prontuarioStartDate || prontuarioEndDate) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => { setProntuarioStartDate(""); setProntuarioEndDate(""); }}
+                    >
+                      Limpar Datas
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-auto pt-6 border-t border-border/50">
+                <Button className="w-full gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-md shadow-blue-500/20" onClick={() => {
+                  setEditingDoc(null);
+                  setEditDocType("sbi");
+                  setEditDocTitle("");
+                  setEditDocContent("");
+                  setIsEditDocOpen(true);
+                }}>
+                  <Plus className="w-4 h-4" /> Novo Registro Manual
+                </Button>
+              </div>
+            </div>
+
+            {/* MAIN CONTENT - TIMELINE/DOCS */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar">
+              {isLoadingProntuario ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+                  <div className="w-8 h-8 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+                  <span className="text-sm font-medium">Carregando prontuário...</span>
+                </div>
+              ) : prontuarioDocs.filter((d: any) => {
+                const matchCategory = prontuarioFilter === 'all' || d.type === prontuarioFilter;
+                if (!matchCategory) return false;
+
+                if (prontuarioStartDate) {
+                  const docDate = new Date(d.createdAt);
+                  const startDate = new Date(prontuarioStartDate + 'T00:00:00');
+                  if (docDate < startDate) return false;
+                }
+
+                if (prontuarioEndDate) {
+                  const docDate = new Date(d.createdAt);
+                  const endDate = new Date(prontuarioEndDate + 'T23:59:59');
+                  if (docDate > endDate) return false;
+                }
+
+                return true;
+              }).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mb-2">
+                    <ClipboardList className="w-8 h-8 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Nenhum documento encontrado</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Não há registros nesta categoria. Use o botão "Novo Registro Manual" ou crie um através do chat da IA.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {prontuarioDocs
+                    .filter((d: any) => {
+                      const matchCategory = prontuarioFilter === 'all' || d.type === prontuarioFilter;
+                      if (!matchCategory) return false;
+
+                      if (prontuarioStartDate) {
+                        const docDate = new Date(d.createdAt);
+                        const startDate = new Date(prontuarioStartDate + 'T00:00:00');
+                        if (docDate < startDate) return false;
+                      }
+
+                      if (prontuarioEndDate) {
+                        const docDate = new Date(d.createdAt);
+                        const endDate = new Date(prontuarioEndDate + 'T23:59:59');
+                        if (docDate > endDate) return false;
+                      }
+
+                      return true;
+                    })
+                    .map((doc: any) => (
+                      <div key={doc.id} className="rounded-2xl border border-border/60 bg-background/80 shadow-xl shadow-black/5 p-6 md:p-8 space-y-6 transition-all hover:border-border">
+
+                        {/* DOC HEADER */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/40 pb-4 gap-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <Badge className={cn(
+                                "px-3 py-1 text-xs font-semibold rounded-full border",
+                                doc.type === 'pdi' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                  doc.type === 'one_on_one' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                                    "bg-violet-500/10 text-violet-400 border-violet-500/20"
+                              )}>
+                                {doc.type === 'pdi' ? "Plano de Desenvolvimento (PDI)" :
+                                  doc.type === 'one_on_one' ? "Pauta de 1:1" :
+                                    "Feedback (SBI)"}
+                              </Badge>
+                              {doc.type === 'pdi' && (
+                                <Badge className={cn(
+                                  "px-3 py-1 text-xs font-semibold rounded-full border",
+                                  doc.status === 'approved' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                )}>
+                                  {doc.status === 'approved' ? "Aprovado" : "Aguardando Aprovação"}
+                                </Badge>
+                              )}
+                            </div>
+                            <h2 className="text-xl font-bold text-foreground mt-2">{doc.title || "Documento sem título"}</h2>
+                          </div>
+
+                          <div className="text-sm text-muted-foreground flex items-center gap-2 bg-secondary/30 px-3 py-1.5 rounded-lg shrink-0">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {new Date(doc.createdAt).toLocaleDateString('pt-BR')} às {new Date(doc.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* DOC CONTENT (MARKDOWN) */}
+                        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-foreground">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mt-6 mb-4" {...props} />,
+                              h2: ({ node, ...props }) => <h2 className="text-xl font-bold mt-5 mb-3 border-b border-border/30 pb-2" {...props} />,
+                              h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mt-4 mb-2" {...props} />,
+                              p: ({ node, ...props }) => <p className="mb-4 text-muted-foreground/90 leading-relaxed" {...props} />,
+                              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-4 space-y-2 text-muted-foreground/90" {...props} />,
+                              ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-4 space-y-2 text-muted-foreground/90" {...props} />,
+                              li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                              strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
+                              blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500/50 bg-blue-500/5 px-4 py-3 rounded-r-lg italic text-muted-foreground my-4" {...props} />
+                            }}
+                          >
+                            {doc.content}
+                          </ReactMarkdown>
+                        </div>
+
+                        {/* ACTIONS BAR */}
+                        <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-border/40 mt-6">
+                          {doc.type === 'pdi' && doc.status !== 'approved' && (
+                            <Button
+                              className="h-9 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 shadow-sm"
+                              onClick={() => approveDocumentMutation.mutate({ id: doc.id, status: 'approved' })}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" /> Aprovar PDI
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            className="h-9 border-border bg-background hover:bg-secondary text-foreground px-4 shadow-sm"
+                            onClick={() => {
+                              setEditingDoc(doc);
+                              setEditDocTitle(doc.title || (doc.type === 'pdi' ? "Plano de Desenvolvimento Individual" : "Documento"));
+                              setEditDocContent(doc.content || "");
+                              setIsEditDocOpen(true);
+                            }}
+                          >
+                            <Wrench className="w-4 h-4 mr-2 text-blue-500" /> Editar Documento
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="h-9 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 px-4"
+                            onClick={() => setDocumentToDelete(doc.id)}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" /> Excluir
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE EDIÇÃO DE DOCUMENTO / PDI INTEGRADO */}
+      <Dialog open={isEditDocOpen} onOpenChange={setIsEditDocOpen}>
+        <DialogContent className="sm:max-w-[650px] bg-popover text-popover-foreground border border-border shadow-2xl backdrop-blur-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-popover-foreground">
+              <Wrench className="w-5 h-5 text-blue-500" />
+              Editar Documento / PDI
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Ajuste o título e as metas do PDI antes de disponibilizar para o colaborador.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            {!editingDoc && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Tipo de Registro</Label>
+                <Select value={editDocType} onValueChange={setEditDocType}>
+                  <SelectTrigger className="border-border bg-secondary/60 text-foreground text-sm font-medium w-full">
+                    <SelectValue placeholder="Selecione o tipo..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border text-popover-foreground">
+                    <SelectItem value="sbi">Feedback (SBI)</SelectItem>
+                    <SelectItem value="one_on_one">Pauta 1:1</SelectItem>
+                    <SelectItem value="pdi">Plano de Desenvolvimento (PDI)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Título do Documento</Label>
+              <Input
+                value={editDocTitle}
+                onChange={(e) => setEditDocTitle(e.target.value)}
+                placeholder="Ex: PDI 2026 - Eficiência Operacional"
+                className="border-border bg-secondary/60 text-foreground placeholder:text-muted-foreground text-sm font-medium"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Conteúdo / Metas do PDI</Label>
+              <Textarea
+                value={editDocContent}
+                onChange={(e) => setEditDocContent(e.target.value)}
+                rows={10}
+                placeholder="Descreva as metas e combinados..."
+                className="border-border bg-secondary/60 text-foreground placeholder:text-muted-foreground text-sm leading-relaxed resize-none custom-scrollbar"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-border/50">
+            <Button variant="outline" onClick={() => setIsEditDocOpen(false)} className="border-border bg-secondary/60 text-foreground hover:bg-secondary">
+              Cancelar
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-5"
+              onClick={async () => {
+                if (!editDocTitle || !editDocContent) {
+                  toast.warning("Preencha título e conteúdo do documento.");
+                  return;
+                }
+                try {
+                  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                  if (editingDoc) {
+                    const res = await fetch(`${API_BASE}/api/documents/${editingDoc.id}`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${localStorage.getItem("token")}`
+                      },
+                      body: JSON.stringify({ title: editDocTitle, content: editDocContent })
+                    });
+                    if (!res.ok) throw new Error("Erro ao salvar alterações");
+                    toast.success("Documento atualizado com sucesso!");
+                  } else {
+                    const res = await fetch(`${API_BASE}/api/documents`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${localStorage.getItem("token")}`
+                      },
+                      body: JSON.stringify({
+                        employeeId: selectedProntuarioEmployee,
+                        employeeName: selectedProntuarioEmployee,
+                        type: editDocType,
+                        content: editDocContent,
+                        title: editDocTitle
+                      })
+                    });
+                    if (!res.ok) throw new Error("Erro ao criar documento manual");
+                    toast.success("Documento registrado com sucesso!");
+                  }
+
+                  setIsEditDocOpen(false);
+                  if (selectedProntuarioEmployee) {
+                    fetchProntuario(selectedProntuarioEmployee);
+                  }
+                } catch (e: any) {
+                  toast.error(e.message || "Erro ao salvar");
+                }
+              }}
+            >
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+        <AlertDialogContent className="bg-popover text-popover-foreground border-border shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir este documento?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Esta ação não pode ser desfeita. O documento será removido permanentemente do prontuário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-secondary/60 text-foreground hover:bg-secondary border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-500"
+              onClick={() => {
+                if (documentToDelete) {
+                  deleteDocumentMutation.mutate(documentToDelete);
+                  setDocumentToDelete(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!meetingToCancel} onOpenChange={(open) => !open && setMeetingToCancel(null)}>
+        <AlertDialogContent className="bg-popover text-popover-foreground border-border shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar reunião?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja cancelar esta reunião com <strong>{meetingToCancel?.who}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-secondary/60 text-foreground hover:bg-secondary border-border">Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-500"
+              onClick={async () => {
+                if (meetingToCancel) {
+                  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+                  const token = localStorage.getItem("token") || "";
+                  try {
+                    if (meetingToCancel.id) {
+                      await fetch(`${API_BASE}/api/meetings/${meetingToCancel.id}`, {
+                        method: "DELETE",
+                        headers: { "Authorization": `Bearer ${token}` }
+                      });
+                    }
+                  } catch (e) {
+                    console.error("Erro ao deletar", e);
+                  }
+
+                  setUpcomingMeetingsList(prev => prev.filter(x => x.id !== meetingToCancel.id));
+                  queryClient.invalidateQueries({ queryKey: ['meetings'] });
+                  setMeetingToCancel(null);
+                  toast.success("Reunião cancelada com sucesso.");
+                }
+              }}
+            >
+              Sim, Cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -2046,7 +2597,12 @@ function DateTimePickerCombo({
                 <Clock className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-32 p-0 border-border bg-popover max-h-56 overflow-y-auto custom-scrollbar" align="end">
+            <PopoverContent
+              className="w-32 p-0 border-border bg-popover max-h-56 overflow-y-auto custom-scrollbar touch-pan-y"
+              align="end"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               <div className="flex flex-col">
                 {Array.from({ length: 24 }).flatMap((_, i) => {
                   const h = String(i).padStart(2, "0");

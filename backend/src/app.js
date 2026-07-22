@@ -69,10 +69,23 @@ app.get('/api/chat/history', authMiddleware, chatController.getChatHistory);
 // Rotas de Reuniões 1:1
 app.post('/api/meetings', authMiddleware, meetingController.createMeeting);
 app.get('/api/meetings', authMiddleware, meetingController.getMeetings);
+app.put('/api/meetings/:id', authMiddleware, meetingController.updateMeeting);
+app.delete('/api/meetings/:id', authMiddleware, meetingController.deleteMeeting);
+
+const actionItemController = require('./controllers/actionItemController');
+
+// Rotas de Itens de Ação (Ações Pendentes)
+app.get('/api/action-items', authMiddleware, actionItemController.getActionItems);
+app.post('/api/action-items', authMiddleware, actionItemController.createActionItem);
+app.patch('/api/action-items/:id/status', authMiddleware, actionItemController.toggleActionStatus);
+app.delete('/api/action-items/:id', authMiddleware, actionItemController.deleteActionItem);
 
 // Rotas de Documentos (PDI/SBI)
 app.post('/api/documents', authMiddleware, documentController.createDocument);
 app.get('/api/documents/:employeeId', authMiddleware, documentController.getDocuments);
+app.patch('/api/documents/:id/status', authMiddleware, documentController.updateDocumentStatus);
+app.put('/api/documents/:id', authMiddleware, documentController.updateDocument);
+app.delete('/api/documents/:id', authMiddleware, documentController.deleteDocument);
 
 // Rotas de Métricas
 app.post('/api/users/me/sentiment', authMiddleware, metricsController.logSentiment);

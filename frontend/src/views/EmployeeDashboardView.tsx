@@ -83,6 +83,50 @@ export default function EmployeeDashboardView({ isDark, setIsDark, isHighContras
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('feedbacks'); // 'feedbacks' | 'kudos'
 
+
+  const { data: actionItems = [], isLoading: isLoadingActions } = useQuery({
+    queryKey: ['employeeActionItems'],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/action-items`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Erro ao buscar ações");
+      return res.json();
+    }
+  });
+
+  const toggleActionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/action-items/${id}/status`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Erro ao atualizar ação");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employeeActionItems'] });
+      toast.success("Status da ação atualizado!");
+    }
+  });
+
+  const { data: myPdiDocs = [], isLoading: isLoadingMyPdi } = useQuery({
+    queryKey: ['employeeMyPdi', userData?.name],
+    queryFn: async () => {
+      if (!userData?.name) return [];
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/documents/${encodeURIComponent(userData.name)}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Erro ao buscar PDI");
+      const data = await res.json();
+      return data.filter((d: any) => d.type === 'pdi' && (d.status === 'approved' || !d.status));
+    },
+    enabled: !!userData?.name
+  });
+
   const { data: metrics = { wellbeingData: wellbeingDataMock, pdiProgress: 72, chatCount: 0 }, isLoading: isMetricsLoading } = useQuery({
     queryKey: ['employeeMetrics'],
     queryFn: async () => {

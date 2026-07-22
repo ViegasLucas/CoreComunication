@@ -1,0 +1,45 @@
+{
+  "OWsCXCYMJ6azdKvAqTGZkPuykcM2": [
+    {
+      "id": "fdd62f18-d1a0-4190-afe6-25922e39650d",
+      "leaderId": "OWsCXCYMJ6azdKvAqTGZkPuykcM2",
+      "employeeId": "9PBxuzD16IeWfaOHsdu2vEVkVDr2",
+      "employeeName": "colab2",
+      "date": "2026-07-22",
+      "time": "16:00",
+      "duration": "45m",
+      "status": "Scheduled",
+      "topics": [
+        "Feedback SBI sobre entregas de UI",
+        "Planejamento do Próximo Ciclo"
+      ],
+      "createdAt": "2026-07-21T23:35:20.852Z"
+    },
+    {
+      "id": "50a791c2-a5cc-464c-af98-88aa998bb51f",
+      "leaderId": "OWsCXCYMJ6azdKvAqTGZkPuykcM2",
+      "employeeId": "6lPap9GPxNVCC9nw2mdjXhlqfol2",
+      "employeeName": "visaooperacional",
+      "date": "2026-07-28",
+      "time": "10:00",
+      "duration": "45m",
+      "status": "Scheduled",
+      "topics": [
+        "Feedback 360",
+        "Mapeamento de Processos"
+      ],
+      "createdAt": "2026-07-21T23:35:20.852Z"
+    },
+    {
+      "id": "1784687899844",
+      "leaderId": "OWsCXCYMJ6azdKvAqTGZkPuykcM2",
+      "employeeId": "colab1",
+      "employeeName": "colab1",
+      "date": "2026-07-22",
+      "time": "10:00",
+      "duration": "30m",
+      "status": "Scheduled",
+      "createdAt": "2026-07-22T02:38:19.844Z"
+    }
+  ]
+}

@@ -154,7 +154,7 @@ async function checkLGPD(text) {
  * @param {string} profileTone - Tom do perfil do líder
  * @returns {Promise<{ reply: string, blocked: boolean }>}
  */
-async function generateSBIFeedback(userMessage, profileTone) {
+async function generateSBIFeedback(userMessage, profileTone = 'neutro', contextData = '') {
   // 1. Filtro LGPD Híbrido (RegEx + SLM) antes de enviar ao modelo
   const checkResult = await checkLGPD(userMessage);
   if (checkResult.blocked) {
@@ -195,7 +195,7 @@ async function generateSBIFeedback(userMessage, profileTone) {
       const response = await aiService.client.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: getSbiSystemPrompt(profileTone) },
+          { role: 'system', content: getSbiSystemPrompt(profileTone) + contextData },
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,
@@ -208,7 +208,7 @@ async function generateSBIFeedback(userMessage, profileTone) {
         model: MODEL_SBI,
         contents: userMessage,
         config: {
-          systemInstruction: getSbiSystemPrompt(profileTone),
+          systemInstruction: getSbiSystemPrompt(profileTone) + contextData,
           temperature: 0.7,
           topP: 0.9,
           maxOutputTokens: 1024,
@@ -377,7 +377,7 @@ Sua missão agora é:
  * @param {string} profileTone - Tom do perfil do líder
  * @returns {Promise<{ reply: string, blocked: boolean }>}
  */
-async function generatePDI(userMessage, profileTone) {
+async function generatePDI(userMessage, profileTone = 'neutro', contextData = '') {
   const checkResult = await checkLGPD(userMessage);
   if (checkResult.blocked) {
     if (checkResult.type === 'TOXIC') {
@@ -399,7 +399,7 @@ async function generatePDI(userMessage, profileTone) {
       const response = await aiService.client.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: getPdiSystemPrompt(profileTone) },
+          { role: 'system', content: getPdiSystemPrompt(profileTone) + contextData },
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,
@@ -411,7 +411,7 @@ async function generatePDI(userMessage, profileTone) {
         model: MODEL_SBI,
         contents: userMessage,
         config: {
-          systemInstruction: getPdiSystemPrompt(profileTone),
+          systemInstruction: getPdiSystemPrompt(profileTone) + contextData,
           temperature: 0.7,
           maxOutputTokens: 1024,
         },
@@ -432,7 +432,7 @@ async function generatePDI(userMessage, profileTone) {
  * @param {string} profileTone - Tom do perfil do líder
  * @returns {Promise<{ reply: string, blocked: boolean }>}
  */
-async function generateOneOnOne(userMessage, profileTone) {
+async function generateOneOnOne(userMessage, profileTone = 'neutro', contextData = '') {
   const checkResult = await checkLGPD(userMessage);
   if (checkResult.blocked) {
     if (checkResult.type === 'TOXIC') {
@@ -454,7 +454,7 @@ async function generateOneOnOne(userMessage, profileTone) {
       const response = await aiService.client.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: getOneOnOneSystemPrompt(profileTone) },
+          { role: 'system', content: getOneOnOneSystemPrompt(profileTone) + contextData },
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,
@@ -466,7 +466,7 @@ async function generateOneOnOne(userMessage, profileTone) {
         model: MODEL_SBI,
         contents: userMessage,
         config: {
-          systemInstruction: getOneOnOneSystemPrompt(profileTone),
+          systemInstruction: getOneOnOneSystemPrompt(profileTone) + contextData,
           temperature: 0.7,
           maxOutputTokens: 1024,
         },

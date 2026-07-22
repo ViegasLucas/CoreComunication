@@ -24,13 +24,52 @@ const saveMemory = () => {
 
 const handleChat = async (req, res) => {
   try {
-    const { message, type = 'sbi', profileTone, history = [] } = req.body;
+    const { message, type = 'sbi', profileTone, history = [], employeeId } = req.body;
     const user = req.user; // uid e email injetados pelo authMiddleware
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
         error: 'A propriedade "message" é obrigatória e deve ser uma string.',
       });
+    }
+
+    let contextData = '';
+    if (employeeId && employeeId !== 'none') {
+      try {
+        const docs = [];
+        try {
+          const snapshot = await db.collection('documents')
+            .where('employeeId', '==', employeeId)
+            .orderBy('createdAt', 'desc')
+            .get();
+          snapshot.forEach(doc => {
+            docs.push({ id: doc.id, ...doc.data() });
+          });
+        } catch (e) {
+          console.warn('[Chat] Erro no Firestore ao buscar documentos, tentando local:', e.message);
+        }
+
+        if (docs.length === 0) {
+          const DOCS_DB_FILE = path.join(__dirname, '../../local_docs_db.json');
+          if (fs.existsSync(DOCS_DB_FILE)) {
+            const memoryDocs = JSON.parse(fs.readFileSync(DOCS_DB_FILE, 'utf-8'));
+            const localDocs = memoryDocs[employeeId] || [];
+            docs.push(...localDocs);
+          }
+        }
+
+        if (docs.length > 0) {
+          contextData = `\n\n--- HISTÓRICO DO COLABORADOR (PRONTUÁRIO) ---\n`;
+          docs.forEach((doc, idx) => {
+            contextData += `\nDocumento ${idx + 1} (${doc.type.toUpperCase()}) - ${doc.title} [${new Date(doc.createdAt).toLocaleDateString()}]\n`;
+            contextData += `Conteúdo: ${doc.content}\n`;
+          });
+          contextData += `\n---------------------------------------------\n`;
+          contextData += `Instrução adicional: Utilize o histórico acima para ter mais contexto sobre o colaborador, mencionando evolução ou reincidências caso faça sentido.\n`;
+        }
+      } catch (err) {
+        console.error('[Chat] Erro ao carregar contexto do prontuário:', err.message);
+      }
     }
 
     let reply, blocked;
@@ -40,16 +79,16 @@ const handleChat = async (req, res) => {
       reply = result.reply;
       blocked = result.blocked;
     } else if (type === 'pdi') {
-      const result = await generatePDI(message, profileTone);
+      const result = await generatePDI(message, profileTone, contextData);
       reply = result.reply;
       blocked = result.blocked;
     } else if (type === 'one_on_one') {
-      const result = await generateOneOnOne(message, profileTone);
+      const result = await generateOneOnOne(message, profileTone, contextData);
       reply = result.reply;
       blocked = result.blocked;
     } else {
       // type === 'sbi' default
-      const result = await generateSBIFeedback(message, profileTone);
+      const result = await generateSBIFeedback(message, profileTone, contextData);
       reply = result.reply;
       blocked = result.blocked;
     }

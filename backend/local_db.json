@@ -1,385 +1,40 @@
 {
-  "1MQ0unBAhYP6W8rqxBLTzuw3CDV2": {
-    "pdi": 68,
-    "sentiments": [
-      {
-        "sentiment": "good",
-        "date": "2026-07-10T22:06:38.168Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-10T22:06:41.916Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-10T22:06:43.145Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-10T22:06:44.517Z"
-      }
-    ],
-    "role": "leader",
-    "assignedEmployees": [
-      "1MQ0unBAhYP6W8rqxBLTzuw3CDV2",
-      "I73z3AndKzU6p3dB4GB0viHTmZx2",
-      "Lrb9hJXLCTMxlpj13P40mw88NEN2"
-    ],
-    "profile": "engajado"
-  },
-  "I73z3AndKzU6p3dB4GB0viHTmZx2": {
-    "pdi": 74,
-    "role": "employee",
-    "assignedEmployees": []
-  },
   "OWsCXCYMJ6azdKvAqTGZkPuykcM2": {
-    "profile": "engajado",
+    "name": "visaolider",
+    "email": "visaolider@gmail.com",
     "role": "leader",
+    "profile": "Líder Engajador",
     "assignedEmployees": [
-      "Lc8iraRxtiTjhK7DYPWOsPLToss1",
-      "PL5kOFYJPgc97Sle44O0ZzN3Dt42",
-      "NazoqxRQ3Edc8ErsrnpqnQ1xg7G2",
-      "6lPap9GPxNVCC9nw2mdjXhlqfol2",
+      "H0h1hZGzFMNcGpuCeHQ7zATlAaE2",
       "9PBxuzD16IeWfaOHsdu2vEVkVDr2",
-      "H0h1hZGzFMNcGpuCeHQ7zATlAaE2"
-    ],
-    "sentiments": [
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-11T10:03:52.872Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-11T10:03:53.347Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-11T10:03:53.914Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-11T10:03:54.156Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-11T10:03:54.575Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-11T10:03:54.786Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-11T10:03:55.345Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-11T10:03:55.625Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-11T10:03:56.060Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-11T10:03:56.807Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-11T10:03:57.284Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-11T10:03:57.630Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-11T10:03:58.055Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-14T03:32:35.876Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:32:36.311Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-14T03:32:36.776Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-14T03:55:08.101Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:08.950Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-14T03:55:09.567Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:11.765Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:12.909Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:14.400Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:15.251Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-14T23:10:30.432Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T23:10:32.069Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T23:10:32.124Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-14T23:10:32.240Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T01:39:04.140Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T01:39:04.462Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T01:39:04.942Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T02:18:44.226Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T02:18:44.576Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T02:18:45.900Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T02:18:46.199Z"
-      }
-    ]
-  },
-  "n3hwSDOUacNEOS4BcC6hqQQv6nK2": {
-    "role": "hr",
-    "assignedEmployees": []
-  },
-  "Lrb9hJXLCTMxlpj13P40mw88NEN2": {
-    "pdi": 90,
-    "sentiments": [
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:39.422Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-14T03:55:40.755Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:42.517Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-14T03:55:44.064Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-14T03:55:44.984Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-14T03:55:45.843Z"
-      }
-    ]
-  },
-  "ExbgDx9z3rOkxQ7hWbnGaRHrqin2": {
-    "role": "leader",
-    "assignedEmployees": [
-      "xwT32fAF5gRclwV7X3pqQjD4O7x1",
-      "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1"
-    ],
-    "profile": "engajado"
-  },
-  "mZ1u9D5uk8ZRPwD6Pxbgfliv7Rs1": {
-    "pdi": 59
-  },
-  "Lc8iraRxtiTjhK7DYPWOsPLToss1": {
-    "role": "employee",
-    "assignedEmployees": []
-  },
-  "ZsdaT72cGoTWt0VXafAsgp2sck13": {
-    "role": "employee",
-    "assignedEmployees": []
-  },
-  "PL5kOFYJPgc97Sle44O0ZzN3Dt42": {
-    "role": "employee",
-    "assignedEmployees": []
-  },
-  "mweC0NfGArMoZiD6O1nS4ZgM6SF2": {
-    "role": "employee",
-    "assignedEmployees": []
-  },
-  "NazoqxRQ3Edc8ErsrnpqnQ1xg7G2": {
-    "role": "employee",
-    "assignedEmployees": []
-  },
-  "6lPap9GPxNVCC9nw2mdjXhlqfol2": {
-    "role": "employee",
-    "name": "visaooperacional",
-    "email": "visaooperacional@gmail.com",
-    "assignedEmployees": [],
-    "sentiments": [
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T01:49:39.936Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T01:49:40.356Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T01:49:41.065Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T01:49:41.457Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T01:54:31.045Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T01:54:31.504Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T01:54:31.952Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T02:04:07.224Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T02:04:08.221Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T02:04:09.169Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T02:08:59.486Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T02:09:00.237Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T02:28:00.972Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T02:28:02.619Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T02:30:40.179Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T02:30:51.565Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-15T02:30:51.894Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-15T02:30:52.265Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-15T02:30:52.812Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-17T00:57:23.026Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-17T00:57:26.849Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-17T00:57:28.745Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-17T00:57:32.250Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-17T00:57:32.738Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-17T00:57:33.105Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-17T00:57:52.443Z"
-      },
-      {
-        "sentiment": "good",
-        "date": "2026-07-17T00:57:53.452Z"
-      },
-      {
-        "sentiment": "neutral",
-        "date": "2026-07-17T00:57:54.775Z"
-      },
-      {
-        "sentiment": "bad",
-        "date": "2026-07-17T00:57:56.183Z"
-      }
+      "6lPap9GPxNVCC9nw2mdjXhlqfol2"
     ]
   },
   "H0h1hZGzFMNcGpuCeHQ7zATlAaE2": {
-    "role": "employee",
     "name": "colab1",
     "email": "colab1@gmail.com",
+    "role": "employee",
+    "pdi": 40,
     "assignedEmployees": []
   },
   "9PBxuzD16IeWfaOHsdu2vEVkVDr2": {
-    "role": "employee",
     "name": "colab2",
     "email": "colab2@gmail.com",
+    "role": "employee",
+    "pdi": 65,
+    "assignedEmployees": []
+  },
+  "6lPap9GPxNVCC9nw2mdjXhlqfol2": {
+    "name": "visaooperacional",
+    "email": "visaooperacional@gmail.com",
+    "role": "employee",
+    "pdi": 85,
+    "assignedEmployees": []
+  },
+  "n3hwSDOUacNEOS4BcC6hqQQv6nK2": {
+    "name": "RH ClearIT",
+    "email": "visaorh@gmail.com",
+    "role": "hr",
     "assignedEmployees": []
   }
 }

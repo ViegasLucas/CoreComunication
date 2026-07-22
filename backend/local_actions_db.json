@@ -1,0 +1,74 @@
+[
+  {
+    "id": "a5f971e8-3217-4b78-8adf-aba018513c1a",
+    "creatorId": "sistema",
+    "ownerId": "visaolider",
+    "title": "Aprovar PDI de colab1",
+    "deadline": "2026-07-28",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "09674086-9163-495e-9d33-a29ea4e845f5",
+    "creatorId": "sistema",
+    "ownerId": "visaolider",
+    "title": "Dar feedback estruturado à colab2",
+    "deadline": "2026-07-29",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "d9366590-d6d2-4276-b82f-e5ea54840c7c",
+    "creatorId": "sistema",
+    "ownerId": "visaolider",
+    "title": "Confirmar pauta da 1:1 com visaooperacional",
+    "deadline": "2026-07-30",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "6a658a80-41ce-42fe-b18b-24e6f81b5aec",
+    "creatorId": "visaolider",
+    "ownerId": "colab1",
+    "title": "Finalizar módulo de arquitetura React (PDI 40%)",
+    "deadline": "2026-08-10",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "08b38507-71f8-472a-8198-a91a10d26e2e",
+    "creatorId": "visaolider",
+    "ownerId": "colab1",
+    "title": "Apresentar relatório de testes de carga",
+    "deadline": "2026-07-25",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "9849a18f-3387-4d02-bc41-db042b2c8100",
+    "creatorId": "visaolider",
+    "ownerId": "colab2",
+    "title": "Atualizar componentes do Design System (PDI 65%)",
+    "deadline": "2026-08-05",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "02007198-8e46-46c7-bf38-162ab3727147",
+    "creatorId": "visaolider",
+    "ownerId": "colab2",
+    "title": "Validar acessibilidade e contraste das telas",
+    "deadline": "2026-07-27",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  },
+  {
+    "id": "8b25d6bb-136b-4ccf-9e6c-ea5d05be714b",
+    "creatorId": "visaolider",
+    "ownerId": "visaooperacional",
+    "title": "Mapear processos do setor operacional (PDI 85%)",
+    "deadline": "2026-08-15",
+    "status": "pending",
+    "createdAt": "2026-07-21T23:35:20.853Z"
+  }
+]
