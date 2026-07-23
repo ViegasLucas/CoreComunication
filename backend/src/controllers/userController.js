@@ -23,7 +23,7 @@ const saveMemory = () => {
 
 exports.createUser = async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, role, managerId } = req.body;
 
     if (!email || !password || !name || !role) {
       return res.status(400).json({ error: 'Todos os campos (email, password, name, role) são obrigatórios.' });
@@ -56,6 +56,7 @@ exports.createUser = async (req, res) => {
       role, // 'leader' | 'employee' | 'hr'
       profile: null, // "Líder Técnico", "Líder Engajado", etc.
       assignedEmployees: req.body.assignedEmployees || [],
+      managerId: managerId || null,
       createdAt: new Date().toISOString()
     };
 
@@ -64,6 +65,7 @@ exports.createUser = async (req, res) => {
     memoryUsers[userRecord.uid].role = role;
     memoryUsers[userRecord.uid].name = name;
     memoryUsers[userRecord.uid].email = email;
+    if (managerId) memoryUsers[userRecord.uid].managerId = managerId;
     if (req.body.assignedEmployees) {
       memoryUsers[userRecord.uid].assignedEmployees = req.body.assignedEmployees;
     }
@@ -197,6 +199,7 @@ exports.getAllUsers = async (req, res) => {
         role: finalRole,
         profile: mem.profile || null,
         assignedEmployees: mem.assignedEmployees || [],
+        managerId: mem.managerId || null,
         disabled: u.disabled || false
       };
     });
@@ -210,7 +213,7 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { uid } = req.params;
-    const { email, password, name, role, assignedEmployees } = req.body;
+    const { email, password, name, role, assignedEmployees, managerId } = req.body;
 
     const updateData = {};
     if (name) updateData.displayName = name;
@@ -224,6 +227,7 @@ exports.updateUser = async (req, res) => {
     if (!memoryUsers[uid]) memoryUsers[uid] = {};
     if (role) memoryUsers[uid].role = role;
     if (assignedEmployees) memoryUsers[uid].assignedEmployees = assignedEmployees;
+    if (managerId !== undefined) memoryUsers[uid].managerId = managerId;
     saveMemory();
 
     return res.status(200).json({ message: 'Usuário atualizado com sucesso' });
@@ -242,7 +246,10 @@ exports.getMyTeam = async (req, res) => {
     const listUsersResult = await auth.listUsers(1000);
 
     const team = listUsersResult.users
-      .filter(u => assignedIds.includes(u.uid))
+      .filter(u => {
+        const uMem = memoryUsers[u.uid] || {};
+        return assignedIds.includes(u.uid) || uMem.managerId === uid;
+      })
       .map(u => {
         const mem = memoryUsers[u.uid] || {};
         const name = u.displayName || u.email.split('@')[0];

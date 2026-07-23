@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -37,7 +37,9 @@ import {
   LayoutGrid,
   List,
   MoreVertical,
-  MoreHorizontal
+  FileText,
+  Table,
+  User
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
@@ -46,6 +48,8 @@ import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ONE_ON_ONE_TEMPLATES } from "../data/oneOnOneTemplates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,7 +59,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -231,7 +234,54 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
   const [editDocType, setEditDocType] = useState("sbi");
   const [isLoadingProntuario, setIsLoadingProntuario] = useState(false);
 
+  // States para o Assistente Entrevistador de 1:1 & Registro de Ata (IA)
+  const [isConducao1on1Open, setIsConducao1on1Open] = useState(false);
+  const [conducaoStep, setConducaoStep] = useState<'interview' | 'preview'>('interview');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('weekly');
+  const [conducaoEmp, setConducaoEmp] = useState('');
+  const [conducaoPontos, setConducaoPontos] = useState('');
+  const [conducaoAcordos, setConducaoAcordos] = useState('');
+  const [conducaoPrazos, setConducaoPrazos] = useState('');
+  const [conducaoMelhorias, setConducaoMelhorias] = useState('');
+  const [conducaoSugestoes, setConducaoSugestoes] = useState('');
+  const [conducaoAtaContent, setConducaoAtaContent] = useState('');
+  const [isGeneratingAta, setIsGeneratingAta] = useState(false);
+
+  // States para a Central de Notificações Ativas na Sineta (Bell)
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
   const { data: team = [], isLoading: isLoadingTeam } = useTeam();
+  const { data: fetchedMeetings = [], isLoading: isLoadingMeetings } = useMeetings();
+
+  const [upcomingMeetingsList, setUpcomingMeetingsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (fetchedMeetings && fetchedMeetings.length > 0) {
+      setUpcomingMeetingsList(fetchedMeetings);
+    }
+  }, [fetchedMeetings]);
+
+  const sortedMeetings = [...(upcomingMeetingsList.length > 0 ? upcomingMeetingsList : fetchedMeetings)].sort((a, b) => {
+    const dateA = a.date || "A definir";
+    const dateB = b.date || "A definir";
+    const timeA = a.time || "A definir";
+    const timeB = b.time || "A definir";
+    if (dateA === "A definir" && dateB !== "A definir") return 1;
+    if (dateB === "A definir" && dateA !== "A definir") return -1;
+    if (dateA !== dateB) return dateA.localeCompare(dateB);
+    if (timeA === "A definir" && timeB !== "A definir") return 1;
+    if (timeB === "A definir" && timeA !== "A definir") return -1;
+    return timeA.localeCompare(timeB);
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const recentMeetings = sortedMeetings.filter(m => m.date && m.date !== "A definir" && m.date < todayStr).reverse();
+  const futureMeetings = sortedMeetings.filter(m => !recentMeetings.includes(m));
+
+  const meetingsTbd = futureMeetings.filter(m => m.date === "A definir" || !m.date || m.when === "A definir" || (m.when && m.when.toLowerCase().includes("a definir")));
+  const meetingsScheduled = futureMeetings.filter(m => !meetingsTbd.includes(m));
+
   const [teamSearch, setTeamSearch] = useState("");
   const [teamViewMode, setTeamViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -248,6 +298,63 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
       { name: "Sem 3", value: 3 },
       { name: "Atual", value: 4 },
     ]
+  };
+
+  // Lógica de Notificações Inteligentes em Tempo Real
+  const activeNotifications = useMemo(() => {
+    const list: { id: string; title: string; desc: string; time: string; type: 'meeting' | 'pdi' | 'system'; tabTarget: string }[] = [];
+
+    // 1. Alertas de Reuniões 1:1 Agendadas
+    (fetchedMeetings || []).forEach((m: any, i: number) => {
+      list.push({
+        id: `meeting-${m.id || i}`,
+        title: `1:1 Agendada`,
+        desc: `Reunião 1:1 agendada com ${m.who} (${m.when})`,
+        time: m.date || 'Agendada',
+        type: 'meeting',
+        tabTarget: 'meetings'
+      });
+    });
+
+    // 2. Alertas de Acompanhamento de PDI
+    (team || []).forEach((member: any) => {
+      if (member.pdi < 60) {
+        list.push({
+          id: `pdi-alert-${member.name}`,
+          title: `Alerta de PDI - ${member.name}`,
+          desc: `Progresso de PDI em ${member.pdi}%. Recomenda-se alinhamento de 1:1.`,
+          time: 'Pendente',
+          type: 'pdi',
+          tabTarget: 'team'
+        });
+      }
+    });
+
+    // 3. Alertas de Ações Sugeridas pela IA
+    if (rawActionItems && rawActionItems.length > 0) {
+      const pending = rawActionItems.filter((a: any) => a.status === 'pending').length;
+      if (pending > 0) {
+        list.push({
+          id: `actions-pending-count`,
+          title: `Recomendações da IA`,
+          desc: `Você possui ${pending} ações recomendadas aguardando execução.`,
+          time: 'Esta semana',
+          type: 'system',
+          tabTarget: 'home'
+        });
+      }
+    }
+
+    return list;
+  }, [fetchedMeetings, team, rawActionItems]);
+
+  const unreadNotifications = useMemo(() => {
+    return activeNotifications.filter(n => !readNotificationIds.includes(n.id));
+  }, [activeNotifications, readNotificationIds]);
+
+  const handleMarkAllRead = () => {
+    setReadNotificationIds(activeNotifications.map(n => n.id));
+    toast.success("Todas as notificações foram marcadas como lidas.");
   };
 
 
@@ -293,14 +400,165 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     }
   });
 
-  const { data: fetchedMeetings = [], isLoading: isLoadingMeetings } = useMeetings();
-  const [upcomingMeetingsList, setUpcomingMeetingsList] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (fetchedMeetings && fetchedMeetings.length > 0) {
-      setUpcomingMeetingsList(fetchedMeetings);
+  const handleGenerateAta = () => {
+    const selectedEmp = conducaoEmp || (team[0] ? (team[0].name || team[0].email) : 'colab1');
+    if (!selectedEmp) {
+      toast.error("Por favor, selecione um colaborador.");
+      return;
     }
-  }, [fetchedMeetings]);
+    setIsGeneratingAta(true);
+    setTimeout(() => {
+      const today = new Date().toLocaleDateString('pt-BR');
+      const leaderNameStr = userData?.name || 'Líder';
+      const empObj = team.find((t: any) => t.id === selectedEmp || t.name === selectedEmp || t.email === selectedEmp);
+      const empName = empObj?.name || selectedEmp;
+      const currentTmpl = ONE_ON_ONE_TEMPLATES.find(t => t.id === selectedTemplateId) || ONE_ON_ONE_TEMPLATES[0];
+
+      const markdown = `# Ata de Reunião 1:1 (${currentTmpl.title}) - ${empName}
+
+**Data da Reunião:** ${today}
+**Líder Responsável:** ${leaderNameStr}
+**Colaborador:** ${empName}
+**Pauta Temática:** ${currentTmpl.title} (${currentTmpl.description})
+
+---
+
+## 📌 1. ${currentTmpl.questions[0].label}
+${conducaoPontos.trim() || 'Acompanhamento alinhado durante a sessão.'}
+
+## 🤝 2. ${currentTmpl.questions[1].label}
+${conducaoAcordos.trim() || 'Manter o alinhamento das atividades acordadas.'}
+
+## ⏳ 3. ${currentTmpl.questions[2].label}
+${conducaoPrazos.trim() || 'Acompanhamento contínuo na próxima sessão de 1:1.'}
+
+## 🎯 4. ${currentTmpl.questions[3].label}
+${conducaoMelhorias.trim() || 'Desempenho dentro das expectativas da função.'}
+
+## 💡 5. ${currentTmpl.questions[4].label}
+${conducaoSugestoes.trim() || 'Realizar alinhamentos breves de prioridades durante a rotina.'}
+`;
+      setConducaoAtaContent(markdown);
+      setIsGeneratingAta(false);
+      setConducaoStep('preview');
+    }, 400);
+  };
+
+  const handleSaveAtaToProntuario = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("token") || "user-mock-123";
+      const selectedEmp = conducaoEmp || (team[0] ? (team[0].name || team[0].email) : 'colab1');
+      const empObj = team.find((t: any) => t.id === selectedEmp || t.name === selectedEmp || t.email === selectedEmp);
+      const empId = empObj?.name || empObj?.email || selectedEmp || 'colab1';
+
+      const res = await fetch(`${API_BASE}/api/documents`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          employeeId: empId,
+          employeeName: empId,
+          type: "one_on_one",
+          title: `Ata de Reunião 1:1 - ${empId}`,
+          content: conducaoAtaContent,
+          status: "approved"
+        })
+      });
+
+      if (!res.ok) throw new Error("Erro ao salvar ata de 1:1");
+
+      toast.success("Ata de Reunião 1:1 salva com sucesso no Prontuário!");
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      setIsConducao1on1Open(false);
+
+      // Reset do formulário
+      setConducaoStep('interview');
+      setConducaoPontos('');
+      setConducaoAcordos('');
+      setConducaoPrazos('');
+      setConducaoMelhorias('');
+      setConducaoSugestoes('');
+      setConducaoAtaContent('');
+    } catch (err: any) {
+      console.error("[SaveAta] Erro:", err);
+      toast.error("Erro ao salvar Ata no sistema.");
+    }
+  };
+
+  const handleExportSbiPdf = async () => {
+    try {
+      const token = localStorage.getItem("token") || "user-mock-123";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/reports/sbi/pdf`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'relatorio-geral-sbi.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Relatório SBI baixado com sucesso!");
+    } catch (err: any) {
+      console.error("[exportSbiPdf] Erro:", err);
+      toast.error(`Erro ao exportar PDF (${err.message || 'Falha de conexão'})`);
+    }
+  };
+
+  const handleExportTeamExcel = async () => {
+    try {
+      const token = localStorage.getItem("token") || "user-mock-123";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/reports/team/excel`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'relatorio-equipe-smart-leading.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Planilha da equipe baixada com sucesso!");
+    } catch (err: any) {
+      console.error("[exportTeamExcel] Erro:", err);
+      toast.error(`Erro ao exportar Excel (${err.message || 'Falha de conexão'})`);
+    }
+  };
+
+  const handleDownloadSingleDocPdf = async (docId: string, docTitle?: string) => {
+    try {
+      const token = localStorage.getItem("token") || "user-mock-123";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_BASE}/api/reports/documents/${docId}/pdf`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${docTitle ? docTitle.replace(/[^a-zA-Z0-9_-]/g, '_') : 'documento'}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Documento individual baixado com sucesso!");
+    } catch (err: any) {
+      console.error("[downloadSingleDocPdf] Erro:", err);
+      toast.error(`Erro ao baixar documento (${err.message || 'Falha de conexão'})`);
+    }
+  };
 
   const [meetingToCancel, setMeetingToCancel] = useState<any>(null);
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
@@ -631,29 +889,6 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
     .filter((m) => m.name.toLowerCase().includes(teamSearch.toLowerCase()))
     .sort((a, b) => a.pdi - b.pdi);
 
-  const sortedMeetings = [...upcomingMeetingsList].sort((a, b) => {
-    const dateA = a.date || "A definir";
-    const dateB = b.date || "A definir";
-    const timeA = a.time || "A definir";
-    const timeB = b.time || "A definir";
-
-    
-    if (dateA === "A definir" && dateB !== "A definir") return 1;
-    if (dateB === "A definir" && dateA !== "A definir") return -1;
-    if (dateA !== dateB) return dateA.localeCompare(dateB);
-    
-    if (timeA === "A definir" && timeB !== "A definir") return 1;
-    if (timeB === "A definir" && timeA !== "A definir") return -1;
-    return timeA.localeCompare(timeB);
-  });
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const recentMeetings = sortedMeetings.filter(m => m.date && m.date !== "A definir" && m.date < todayStr).reverse();
-  const futureMeetings = sortedMeetings.filter(m => !recentMeetings.includes(m));
-
-  const meetingsTbd = futureMeetings.filter(m => m.date === "A definir" || !m.date || m.when === "A definir" || m.when.toLowerCase().includes("a definir"));
-  const meetingsScheduled = futureMeetings.filter(m => !meetingsTbd.includes(m));
-
   const currentTeam = team;
   const membersWithoutMeetings = currentTeam.filter(m => !futureMeetings.some(um => um.who === m.name));
 
@@ -818,9 +1053,79 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                 {profile ? `Perfil ativo: ${labelFor(profile)}` : "Defina seu perfil para personalizar a experiência."}
               </p>
               <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto mt-2 sm:mt-0 hide-scrollbar">
-                <Button variant="outline" size="icon" className="border-border bg-secondary/60 shrink-0 min-h-[44px] min-w-[44px]">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                {/* CENTRAL DE NOTIFICAÇÕES ATIVAS NA SINETA (BELL) */}
+                <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" className="border-border bg-secondary/60 shrink-0 min-h-[44px] min-w-[44px] relative" title="Central de Notificações">
+                      <Bell className="h-4 w-4 text-foreground" />
+                      {unreadNotifications.length > 0 && (
+                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md animate-pulse">
+                          {unreadNotifications.length}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 sm:w-96 p-0 bg-popover border-border text-popover-foreground shadow-2xl rounded-xl overflow-hidden" align="end">
+                    <div className="p-3 bg-secondary/50 border-b border-border/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-blue-400" />
+                        <span className="font-semibold text-sm">Notificações</span>
+                        {unreadNotifications.length > 0 && (
+                          <span className="bg-blue-500/20 text-blue-400 text-[11px] px-2 py-0.5 rounded-full font-medium">
+                            {unreadNotifications.length} novas
+                          </span>
+                        )}
+                      </div>
+                      {unreadNotifications.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="h-7 text-[11px] text-muted-foreground hover:text-foreground">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Marcar lidas
+                        </Button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-border/40 custom-scrollbar">
+                      {activeNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-muted-foreground">
+                          Nenhuma notificação no momento.
+                        </div>
+                      ) : (
+                        activeNotifications.map(n => {
+                          const isUnread = !readNotificationIds.includes(n.id);
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                setReadNotificationIds(prev => [...prev, n.id]);
+                                setActive(n.tabTarget);
+                                setIsNotificationsOpen(false);
+                              }}
+                              className={cn(
+                                "p-3 transition-colors cursor-pointer hover:bg-secondary/60 flex items-start gap-3",
+                                isUnread ? "bg-blue-500/5" : "opacity-75"
+                              )}
+                            >
+                              <div className={cn(
+                                "p-2 rounded-lg shrink-0 mt-0.5",
+                                n.type === 'meeting' ? "bg-blue-500/20 text-blue-400" :
+                                n.type === 'pdi' ? "bg-amber-500/20 text-amber-400" : "bg-purple-500/20 text-purple-400"
+                              )}>
+                                {n.type === 'meeting' ? <Calendar className="w-4 h-4" /> :
+                                 n.type === 'pdi' ? <Target className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs font-semibold text-foreground truncate">{n.title}</span>
+                                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{n.desc}</p>
+                              </div>
+                              {isUnread && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="outline"
                   onClick={() => openChatWithIntent("profile_discovery")}
@@ -1132,6 +1437,14 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                       onChange={(e) => setTeamSearch(e.target.value)}
                     />
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleExportTeamExcel}
+                    className="border-border bg-secondary/60 hover:bg-secondary text-emerald-500 dark:text-emerald-400 h-10 px-3 shrink-0"
+                    title="Exportar dados da equipe e 1:1s em Planilha Excel/CSV"
+                  >
+                    <Table className="mr-2 h-4 w-4" /> Exportar Planilha (Excel)
+                  </Button>
                   <div className="flex p-1 bg-secondary/50 rounded-md border border-border h-10 w-fit self-end sm:self-auto">
                     <Button
                       variant={teamViewMode === 'grid' ? "secondary" : "ghost"}
@@ -1361,6 +1674,18 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
                     Você tem {futureMeetings.length === 1 ? "uma 1:1 agendada" : futureMeetings.length === 2 ? "duas 1:1s agendadas" : futureMeetings.length + " 1:1s agendadas"} nesta sessão
                   </p>
                 </div>
+                <Button
+                  onClick={() => {
+                    if (team.length > 0) setConducaoEmp(team[0].name || team[0].email);
+                    else setConducaoEmp("colab1");
+                    setConducaoStep('interview');
+                    setIsConducao1on1Open(true);
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-blue-500/20 px-4 py-2 flex items-center gap-2 shrink-0"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                  Conduzir 1:1 & Registrar Ata (IA)
+                </Button>
               </div>
 
               {futureMeetings.length === 0 ? (
@@ -2143,6 +2468,13 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
 
                         {/* ACTIONS BAR */}
                         <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-border/40 mt-6">
+                          <Button
+                            variant="outline"
+                            className="h-9 border-border bg-background hover:bg-secondary text-foreground px-4 shadow-sm"
+                            onClick={() => handleDownloadSingleDocPdf(doc.id, doc.title || doc.type)}
+                          >
+                            <FileText className="w-4 h-4 mr-2 text-red-500" /> Baixar PDF
+                          </Button>
                           {doc.type === 'pdi' && doc.status !== 'approved' && (
                             <Button
                               className="h-9 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 shadow-sm"
@@ -2288,6 +2620,203 @@ export default function DashboardPage({ isDark, setIsDark, isHighContrast, setIs
               Salvar Alterações
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE CONDUÇÃO E REGISTRO DE ATA DE 1:1 COM IA */}
+      <Dialog open={isConducao1on1Open} onOpenChange={setIsConducao1on1Open}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-popover text-popover-foreground border border-border shadow-2xl backdrop-blur-2xl custom-scrollbar">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2.5 text-popover-foreground">
+              <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+              Condução de 1:1 & Registro de Ata (IA)
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs leading-relaxed">
+              O assistente de inteligência artificial conduzirá as perguntas para registrar os principais alinhamentos, prazos e acordos firmados durante a reunião.
+            </DialogDescription>
+          </DialogHeader>
+
+          {conducaoStep === 'interview' ? (
+            <div className="space-y-5 my-2">
+              {/* Seleção do Colaborador */}
+              <div className="space-y-1.5 bg-secondary/30 p-3 rounded-lg border border-border/50">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-blue-400" /> Colaborador da Reunião 1:1
+                </Label>
+                <Select value={conducaoEmp} onValueChange={setConducaoEmp}>
+                  <SelectTrigger className="border-border bg-background text-foreground text-sm font-medium w-full">
+                    <SelectValue placeholder="Selecione o colaborador..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border text-popover-foreground">
+                    {team.map((m: any) => (
+                      <SelectItem key={m.id || m.name} value={m.name || m.email}>
+                        {m.name} ({m.role === 'employee' ? 'Liderado' : 'Equipe'})
+                      </SelectItem>
+                    ))}
+                    {team.length === 0 && (
+                      <SelectItem value="colab1">colab1 (Desenvolvedor)</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Seleção do Template de Pauta Temática */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Pauta Temática da Reunião
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Selecione para ajustar as perguntas</span>
+                </Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {ONE_ON_ONE_TEMPLATES.map(tmpl => {
+                    const isSelected = selectedTemplateId === tmpl.id;
+                    return (
+                      <button
+                        key={tmpl.id}
+                        type="button"
+                        onClick={() => setSelectedTemplateId(tmpl.id)}
+                        className={cn(
+                          "p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between min-h-[68px]",
+                          isSelected
+                            ? "border-blue-500 bg-blue-500/10 text-foreground ring-1 ring-blue-500/50 shadow-xs"
+                            : "border-border/60 bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                        )}
+                      >
+                        <span className="text-xs font-semibold block leading-tight">{tmpl.title}</span>
+                        <span className="text-[10px] opacity-75 mt-1 block truncate">{tmpl.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 5 Perguntas Entrevistadoras da IA Adaptadas ao Template */}
+              {(() => {
+                const currentTmpl = ONE_ON_ONE_TEMPLATES.find(t => t.id === selectedTemplateId) || ONE_ON_ONE_TEMPLATES[0];
+                return (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground flex items-center gap-2">
+                        <span className="bg-blue-500/20 text-blue-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">1</span>
+                        {currentTmpl.questions[0].label}
+                      </Label>
+                      <Textarea
+                        placeholder={currentTmpl.questions[0].placeholder}
+                        value={conducaoPontos}
+                        onChange={(e) => setConducaoPontos(e.target.value)}
+                        rows={2}
+                        className="border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground flex items-center gap-2">
+                        <span className="bg-emerald-500/20 text-emerald-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">2</span>
+                        {currentTmpl.questions[1].label}
+                      </Label>
+                      <Textarea
+                        placeholder={currentTmpl.questions[1].placeholder}
+                        value={conducaoAcordos}
+                        onChange={(e) => setConducaoAcordos(e.target.value)}
+                        rows={2}
+                        className="border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground flex items-center gap-2">
+                        <span className="bg-amber-500/20 text-amber-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">3</span>
+                        {currentTmpl.questions[2].label}
+                      </Label>
+                      <Textarea
+                        placeholder={currentTmpl.questions[2].placeholder}
+                        value={conducaoPrazos}
+                        onChange={(e) => setConducaoPrazos(e.target.value)}
+                        rows={2}
+                        className="border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground flex items-center gap-2">
+                        <span className="bg-purple-500/20 text-purple-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">4</span>
+                        {currentTmpl.questions[3].label}
+                      </Label>
+                      <Textarea
+                        placeholder={currentTmpl.questions[3].placeholder}
+                        value={conducaoMelhorias}
+                        onChange={(e) => setConducaoMelhorias(e.target.value)}
+                        rows={2}
+                        className="border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground flex items-center gap-2">
+                        <span className="bg-cyan-500/20 text-cyan-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">5</span>
+                        {currentTmpl.questions[4].label}
+                      </Label>
+                      <Textarea
+                        placeholder={currentTmpl.questions[4].placeholder}
+                        value={conducaoSugestoes}
+                        onChange={(e) => setConducaoSugestoes(e.target.value)}
+                        rows={2}
+                        className="border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground text-xs leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="pt-3 border-t border-border/50 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsConducao1on1Open(false)} className="border-border bg-secondary/60 text-foreground">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleGenerateAta}
+                  disabled={isGeneratingAta}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium px-5 shadow-md flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  {isGeneratingAta ? "Sintetizando Ata..." : "Sintetizar Ata com IA"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* PASSO 2: PRÉVIA E EDIÇÃO DA ATA GERADA PELA IA */
+            <div className="space-y-4 my-2">
+              <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 p-3 rounded-lg text-xs text-blue-300">
+                <span className="flex items-center gap-2 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  Ata compilada pela IA. Você pode revisar e editar o texto antes de salvar no prontuário.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Edição da Ata de Reunião (Markdown)</Label>
+                <Textarea
+                  value={conducaoAtaContent}
+                  onChange={(e) => setConducaoAtaContent(e.target.value)}
+                  rows={14}
+                  className="border-border bg-secondary/60 text-foreground font-mono text-xs leading-relaxed custom-scrollbar"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-3">
+                <Button variant="outline" onClick={() => setConducaoStep('interview')} className="border-border bg-secondary/60 text-foreground">
+                  Voltar às Perguntas
+                </Button>
+                <Button
+                  onClick={handleSaveAtaToProntuario}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 shadow-md flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Salvar Ata no Prontuário
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

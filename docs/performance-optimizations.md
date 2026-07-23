@@ -18,17 +18,17 @@ Este documento registra as implementações técnicas voltadas para a melhoria d
 **Escopo Inicial:** Foco no Dashboard do Líder.
 
 ### 1. Caching e Estado com React Query (Estratégia 1)
-- **Status:** Planejado
-- **O que é:** Substituição dos `fetch()` puros dentro de `useEffect` pela biblioteca `@tanstack/react-query`.
+- **Status:** ✅ Concluído
+- **O que foi feito:** Integração total com `@tanstack/react-query` via hooks customizados ([useLeaderData.js](file:///c:/pulseMais/atividadeFinal/CoreComunication-main/frontend/src/hooks/useLeaderData.js)) para busca de métricas, reuniões, itens de ação, prontuário e histórico.
 - **Impacto:**
-  - Evita requests repetidas para o mesmo endpoint.
-  - Oferece *stale-while-revalidate* (mostra dado em cache instantaneamente enquanto busca versão atualizada no fundo).
-  - Centraliza e simplifica o controle de erro e de *loading*.
+  - Requisições repetidas eliminadas com tempo de stale padrão configurado.
+  - Comportamento *stale-while-revalidate* ativado (troca instantânea de abas com atualização em segundo plano).
+  - Invalidação seletiva de cache (`invalidateQueries`) em mutações (agendamentos, aprovação de PDI, conclusões de ação).
 
 ### 2. Skeletons (Estratégia 2)
-- **Status:** Planejado
-- **O que é:** Componentes visuais (`animate-pulse`) projetados para preencher o exato espaço do dado antes que ele chegue, em vez de mostrar ícones girando.
-- **Impacto:** Zera a sensação de *Layout Shift* e acelera a percepção psicológica de carregamento da interface.
+- **Status:** ✅ Concluído
+- **O que foi feito:** Implementação de componentes de Skeleton com `animate-pulse` em todas as seções críticas do Dashboard do Líder.
+- **Impacto:** Eliminação completa do *Layout Shift* durante o carregamento de dados remotos.
 
 ### 3. Memoização de Gráficos (Estratégia 3)
 - **Status:** Planejado

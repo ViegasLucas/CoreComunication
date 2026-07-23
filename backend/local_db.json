@@ -8,6 +8,20 @@
       "H0h1hZGzFMNcGpuCeHQ7zATlAaE2",
       "9PBxuzD16IeWfaOHsdu2vEVkVDr2",
       "6lPap9GPxNVCC9nw2mdjXhlqfol2"
+    ],
+    "sentiments": [
+      {
+        "sentiment": "good",
+        "date": "2026-07-22T21:53:31.039Z"
+      },
+      {
+        "sentiment": "neutral",
+        "date": "2026-07-22T21:53:31.058Z"
+      },
+      {
+        "sentiment": "bad",
+        "date": "2026-07-22T21:53:31.063Z"
+      }
     ]
   },
   "H0h1hZGzFMNcGpuCeHQ7zATlAaE2": {

@@ -64,10 +64,10 @@ Para paralelizar o trabalho e evitar gargalos (bottlenecks), assumiremos os segu
 | Tarefa | Responsável | Dependência | Resumo Técnico |
 |---|---|---|---|
 | **4.1. Resgate de Histórico na UI** | Membro 2 | 3.3 | ✅ Feito |
-| **4.2. Correção de Bugs Backend** | Membro 3, 4| 3.5 | 🚧 A FAZER: Ajustar falhas de segurança levantadas pelo QA. |
-| **4.3. Polimento Visual Final** | Membro 1 | 3.5 | 🚧 A FAZER: Ajustar espaçamentos, cores e tipografia de acordo com o padrão da empresa. |
-| **4.4. Testes End-to-End e Red Teaming** | Membro 5 | 3.1, 4.2 | 🚧 A FAZER: Validação final contra a US01 (LGPD), US02 (Personas) e US05 (SBI). Simular a jornada real de um líder. |
-| **4.5. Deploy Produção (Vercel)** | Todos | 4.2, 4.3 | 🚧 A FAZER: Garantir que a branch `main` suba para a Vercel com todas as chaves (env) corretas em ambiente de Produção. |
+| **4.2. Correção de Bugs Backend e Rotas de Relatório** | Membro 3, 4| 3.5 | ✅ Feito (Criado reportController.js para geração e exportação de PDF e Excel/CSV). |
+| **4.3. Polimento Visual e Visão 'Meu PDI'** | Membro 1 | 3.5 | ✅ Feito (Visão 'Meu PDI' integrada e botões de exportação inseridos na UI). |
+| **4.4. Testes End-to-End e Validação de API** | Membro 5 | 3.1, 4.2 | ✅ Feito (Script de testes automatizados reports.test.js executado com sucesso). |
+| **4.5. Deploy Produção (Vercel)** | Todos | 4.2, 4.3 | 🚧 EM ANDAMENTO: Preparado com chaves de ambiente e fallback local de contingência. |
 
 ---
 

@@ -92,6 +92,15 @@ app.post('/api/users/me/sentiment', authMiddleware, metricsController.logSentime
 app.get('/api/users/me/metrics', authMiddleware, metricsController.getMyMetrics);
 app.get('/api/metrics', authMiddleware, metricsController.getGlobalMetrics);
 
+const reportController = require('./controllers/reportController');
+
+// Rotas de Relatórios (PDF / Excel)
+app.get('/api/reports/sbi/pdf', authMiddleware, reportController.exportSbiPdf);
+app.get('/api/reports/team/excel', authMiddleware, reportController.exportTeamExcel);
+app.get('/api/reports/documents/:id/pdf', authMiddleware, reportController.exportDocumentPdfById);
+
+
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {

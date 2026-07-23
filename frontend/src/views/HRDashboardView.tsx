@@ -621,7 +621,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                       },
-                      body: JSON.stringify({ ...data, assignedEmployees })
+                      body: JSON.stringify({ ...data, managerId: data.managerId === 'none' ? null : data.managerId, assignedEmployees })
                     });
                     
                     if (!response.ok) {
@@ -666,6 +666,22 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                       <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líder</SelectItem>
                       <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Liderado (Colaborador)</SelectItem>
                       <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Recursos Humanos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Gestor Direto (Hierarquia)</label>
+                  <Select name="managerId" defaultValue="none">
+                    <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
+                      <SelectValue placeholder="Nenhum (Raiz)" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl max-h-56">
+                      <SelectItem value="none">Nenhum (Raiz)</SelectItem>
+                      {usersList.filter(u => u.role === 'leader').map(leader => (
+                        <SelectItem key={leader.uid} value={leader.uid} className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">
+                          {leader.name} (Líder)
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -734,6 +750,7 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                         },
                         body: JSON.stringify({
                           ...data,
+                          managerId: data.managerId === 'none' ? null : data.managerId,
                           assignedEmployees: editingUser.assignedEmployees || []
                         })
                       });
@@ -771,6 +788,22 @@ export default function HRDashboardView({ isDark, setIsDark, isHighContrast, set
                         <SelectItem value="leader" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Líder</SelectItem>
                         <SelectItem value="employee" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Liderado (Colaborador)</SelectItem>
                         <SelectItem value="hr" className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">Recursos Humanos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Gestor Direto (Hierarquia)</label>
+                    <Select value={editingUser.managerId || "none"} onValueChange={(val) => setEditingUser({...editingUser, managerId: val})} name="managerId">
+                      <SelectTrigger className="w-full bg-background rounded-lg border-input hover:bg-accent/50 transition-colors h-10">
+                        <SelectValue placeholder="Nenhum (Raiz)" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border bg-popover/95 backdrop-blur-md shadow-xl max-h-56">
+                        <SelectItem value="none">Nenhum (Raiz)</SelectItem>
+                        {usersList.filter(u => u.role === 'leader' && u.uid !== editingUser.uid).map(leader => (
+                          <SelectItem key={leader.uid} value={leader.uid} className="cursor-pointer hover:bg-accent focus:bg-accent rounded-md my-0.5">
+                            {leader.name} (Líder)
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

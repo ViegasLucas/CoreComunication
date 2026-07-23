@@ -65,3 +65,23 @@ export const useActionItems = () => {
     staleTime: 5 * 60 * 1000,
   });
 };
+
+export const useMyPerformance = (uid) => {
+  return useQuery({
+    queryKey: ['myPerformance', uid],
+    queryFn: async () => {
+      const docs = await fetchWithToken(`/api/documents/${uid}`).catch(() => []);
+      const meetings = await fetchWithToken('/api/meetings').catch(() => []);
+      const actions = await fetchWithToken('/api/action-items').catch(() => []);
+
+      return {
+        feedbacks: docs.filter(d => d.type === 'sbi'),
+        pdis: docs.filter(d => d.type === 'pdi'),
+        managerMeetings: meetings.filter(m => m.employeeId === uid),
+        goals: actions.filter(a => a.ownerId === uid || a.ownerId === 'me'),
+      };
+    },
+    enabled: !!uid,
+    staleTime: 5 * 60 * 1000,
+  });
+};
